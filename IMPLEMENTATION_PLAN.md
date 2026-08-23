@@ -11,7 +11,15 @@ Against `docs/BRIEF.md` (Kyle Kenny, v2, 17 Aug 2026).
 | `docs/APPS_SCRIPT_PLAN.md` | The one live Sheets connection |
 | `tools/extract_flowchart.py` | Working migration prototype |
 
-Status: **planning**. Nothing built. Repo is a bare Lovable scaffold.
+**Status (23 Aug 2026): BUILT.** Supabase project `mm-experience-db`
+(`avftyexxqyykppzmrjxn`, ap-southeast-1) is live with the full schema, RLS, audit +
+Reden triggers, and all 1,206 products imported (769 exceptions queued in-app). The app
+(steps 1–13, 15*, 17*–21) runs against it; the pricing engine has a 15-test suite.
+Remaining: Apps Script rate sync (steps 15–17 run on sample rates until the 2027 RATE
+OFFER TA sheet is shared), Google Docs export (step 22, waits on Danny), flow-chart
+freeze at cutover (step 14), Vercel project creation (dashboard step), Resend key for
+live digest emails, Supabase Pro upgrade. A passwordless `test` demo login exists —
+remove before real go-live.
 
 ---
 
