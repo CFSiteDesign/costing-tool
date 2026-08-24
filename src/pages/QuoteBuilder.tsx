@@ -21,6 +21,8 @@ import { Plus, Trash2, Percent, Copy, ExternalLink, FileText } from "lucide-reac
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
 
+const DEFAULT_TERMS = `Prices are quoted in USD and held for 14 days from the date of this agreement. A revised version will be issued for any change of dates, party size, or itinerary. Payment terms and cancellation policy to be confirmed at booking.`;
+
 const asPriced = (l: QuoteLine): PricedLine => ({
   kind: l.kind, qty: Number(l.qty), unit_price_usd: Number(l.unit_price_usd),
   per_person: l.per_person, pax: l.pax, discount_pct: l.discount_pct == null ? null : Number(l.discount_pct),
@@ -123,7 +125,8 @@ export default function QuoteBuilder() {
 
   const generate = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("generate_quote_version", { p_quote_id: id });
+      const { data: q } = await supabase.from("quotes").select("terms_block").eq("id", id!).single();
+      const { data, error } = await supabase.rpc("generate_quote_version", { p_quote_id: id, p_terms: q?.terms_block ?? null });
       if (error) throw error;
       return data as string;
     },
@@ -155,12 +158,16 @@ export default function QuoteBuilder() {
     <div className="flex items-center gap-2 py-1.5 pl-2 pr-1 rounded hover:bg-secondary/50 group text-sm">
       <span className="w-16 shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">{l.kind === "accommodation" ? "stay" : l.kind}</span>
       <div className="flex-1 min-w-0">
-        <div className="truncate font-medium">
-          {l.title}
-          {l.room_type_id && <span className="text-muted-foreground font-normal"> · {roomName(l.room_type_id)}{l.season ? ` · ${l.season}` : ""}</span>}
+        <div className="flex items-baseline gap-1 font-medium">
+          <InlineText value={l.title} className="font-medium px-0.5"
+            onCommit={(v) => { if (!v.trim()) return; patchLine(l.id, { title: v.trim() }); }} />
+          {l.room_type_id && <span className="text-muted-foreground font-normal text-xs whitespace-nowrap">{roomName(l.room_type_id)}{l.season ? ` · ${l.season}` : ""}</span>}
         </div>
+        <InlineText value={l.description ?? ""} placeholder="add client-facing description…"
+          className="text-xs text-muted-foreground px-0.5"
+          onCommit={(v) => patchLine(l.id, { description: v.trim() || null })} />
         {(l.starts_at || l.is_comp || l.discount_pct || l.discount_amount_usd) && (
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[11px] text-muted-foreground px-0.5">
             {l.starts_at && `${shortTime(l.starts_at)}${l.ends_at ? `–${shortTime(l.ends_at)}` : ""} · `}
             {l.is_comp && <span className="text-[hsl(var(--st-active))]">comped</span>}
             {!l.is_comp && l.discount_pct ? `−${l.discount_pct}%` : ""}
@@ -332,6 +339,14 @@ export default function QuoteBuilder() {
             ))}
           </div>
         )}
+        <details className="text-sm">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground select-none">Agreement terms</summary>
+          <textarea
+            className="mt-2 w-full border rounded-md p-2 text-xs min-h-[90px] bg-background"
+            defaultValue={quote.terms_block ?? DEFAULT_TERMS}
+            onBlur={(e) => patchQuote({ terms_block: e.target.value })}
+          />
+        </details>
         <Button className="w-full" disabled={(lines ?? []).length === 0 || generate.isPending}
           onClick={() => generate.mutate()}>
           {generate.isPending ? "Freezing…" : "Generate agreement version"}
