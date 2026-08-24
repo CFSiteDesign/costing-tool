@@ -24,9 +24,9 @@ export default function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="w-[220px] shrink-0 border-r bg-secondary/60 flex flex-col max-lg:w-14">
-        <div className="h-14 flex items-center gap-2 px-4 border-b max-lg:justify-center max-lg:px-0">
-          <div className="h-7 w-7 rounded bg-accent grid place-items-center font-bold text-sm shrink-0">M</div>
-          <div className="font-semibold text-[15px] max-lg:hidden">Mad Monkey</div>
+        <div className="h-14 flex items-center px-4 border-b max-lg:justify-center max-lg:px-0">
+          <img src="/mm-logo.png" alt="Mad Monkey" className="h-8 w-auto max-lg:hidden" />
+          <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7 lg:hidden" />
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
           {NAV.filter((n) => !n.adminOnly || auth.isAdmin).map((n) => (

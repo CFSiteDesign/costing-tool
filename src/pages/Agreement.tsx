@@ -38,12 +38,9 @@ export default function Agreement() {
       <div className="max-w-3xl mx-auto bg-background border rounded-lg overflow-hidden shadow-sm print:border-0 print:shadow-none">
         {/* locked branded header */}
         <div className="bg-[#1A1A18] text-white px-8 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded bg-[#FFC72C] grid place-items-center font-bold text-[#1A1A18] text-lg">M</div>
-            <div>
-              <div className="font-semibold text-lg leading-tight">Mad Monkey</div>
-              <div className="text-xs text-white/70">Group Trip Agreement</div>
-            </div>
+          <div className="space-y-1">
+            <img src="/mm-logo-white.png" alt="Mad Monkey" className="h-9 w-auto" />
+            <div className="text-xs text-white/70">Group Trip Agreement</div>
           </div>
           <div className="text-right text-sm">
             <div className="tabular-nums">{data.quote_reference} · v{data.version_no}</div>
