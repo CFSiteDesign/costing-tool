@@ -78,7 +78,7 @@ export default function QuoteBuilder() {
     queryKey: ["rate-meta"],
     queryFn: async () => {
       const { data } = await supabase.from("rate_sync_runs")
-        .select("finished_at, status, source").eq("status", "success")
+        .select("finished_at, status, source").in("status", ["success", "partial"])
         .order("finished_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },

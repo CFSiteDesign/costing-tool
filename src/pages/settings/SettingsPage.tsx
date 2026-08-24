@@ -49,7 +49,7 @@ export default function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const lastSuccess = (runs ?? []).find((r) => r.status === "success");
+  const lastSuccess = (runs ?? []).find((r) => r.status === "success" || r.status === "partial");
 
   return (
     <div className="p-4 max-w-3xl space-y-6">
