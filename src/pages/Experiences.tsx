@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/app/StatusBadge";
 import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
 import { InlineText } from "@/components/app/InlineCell";
 import { ProductDrawer } from "@/components/app/ProductDrawer";
+import { Tip, TipHead } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -98,11 +99,13 @@ export default function Experiences() {
         <h1 className="text-xl font-semibold">Experiences</h1>
         <div className="flex items-center gap-2">
           {(exceptionCount ?? 0) > 0 && (
-            <Link to="/settings/imports">
-              <Button variant="outline" size="sm" className="gap-1.5 text-[hsl(var(--st-pending))]">
-                <AlertTriangle className="h-3.5 w-3.5" /> {exceptionCount} to fix
-              </Button>
-            </Link>
+            <Tip label="Things the spreadsheet import couldn't read with confidence — mostly rates written as words. Click to work the list; most items are one tap.">
+              <Link to="/settings/imports">
+                <Button variant="outline" size="sm" className="gap-1.5 text-[hsl(var(--st-pending))]">
+                  <AlertTriangle className="h-3.5 w-3.5" /> {exceptionCount} to fix
+                </Button>
+              </Link>
+            </Tip>
           )}
           {canEdit && (
             <Link to="/experiences/new">
@@ -146,12 +149,12 @@ export default function Experiences() {
               <tr className="bg-secondary text-muted-foreground text-left">
                 <th className="font-medium px-3 py-2.5 min-w-[260px] sticky left-0 bg-secondary z-10">Title</th>
                 <th className="font-medium px-3 py-2.5">Category</th>
-                <th className="font-medium px-3 py-2.5 text-right w-28">Rate</th>
-                <th className="font-medium px-3 py-2.5 w-40">Days</th>
+                <th className="font-medium px-3 py-2.5 text-right w-28"><TipHead label="Rate" tip="USD per person. Italic text means the spreadsheet had words instead of a number — click to set the real rate. No rate = can't be added to a quote." /></th>
+                <th className="font-medium px-3 py-2.5 w-40"><TipHead label="Days" tip="The days this runs. Click to change — this drives the 'what runs on a Monday?' filter and the quote builder." /></th>
                 <th className="font-medium px-3 py-2.5 w-28">Times</th>
-                <th className="font-medium px-3 py-2.5 w-32">Status</th>
-                <th className="font-medium px-3 py-2.5 w-24">Website</th>
-                <th className="font-medium px-3 py-2.5 w-24">Active</th>
+                <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
+                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Bookable on the Mad Monkey website. Only these products email Reden when they change, so the site stays in sync." /></th>
+                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
               </tr>
             </thead>
             <tbody>
@@ -225,21 +228,29 @@ export default function Experiences() {
                     ) : <StatusBadge status={p.status} />}
                   </td>
                   <td className="px-3 py-1">
-                    <Switch
-                      disabled={!canEdit}
-                      checked={p.bookable_on_website}
-                      onCheckedChange={(v) => commit(p.id, { bookable_on_website: v })}
-                    />
+                    <Tip label={p.bookable_on_website
+                      ? "On the Mad Monkey website — changes to this product are emailed to Reden."
+                      : "Not bookable on the website. Switch on to list it — Reden gets notified."}>
+                      <Switch
+                        disabled={!canEdit}
+                        checked={p.bookable_on_website}
+                        onCheckedChange={(v) => commit(p.id, { bookable_on_website: v })}
+                      />
+                    </Tip>
                   </td>
                   <td className="px-3 py-1">
-                    <Switch
-                      disabled={!canEdit}
-                      checked={p.active_on_ground}
-                      onCheckedChange={(v) => commit(p.id, {
+                    <Tip label={p.active_on_ground
+                      ? "Running on the ground. Switch off to pause — it stays in the database but leaves the costing tool."
+                      : "Paused. Switch on to reactivate."}>
+                      <Switch
+                        disabled={!canEdit}
+                        checked={p.active_on_ground}
+                        onCheckedChange={(v) => commit(p.id, {
                         active_on_ground: v,
-                        status: v ? (p.status === "paused" ? "active" : p.status) : "paused",
-                      })}
-                    />
+                          status: v ? (p.status === "paused" ? "active" : p.status) : "paused",
+                        })}
+                      />
+                    </Tip>
                   </td>
                 </tr>
               ))}

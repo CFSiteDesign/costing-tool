@@ -33,6 +33,7 @@ export default function AppShell() {
             <NavLink
               key={n.to}
               to={n.to}
+              title={n.label}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors relative max-lg:justify-center",

@@ -8,6 +8,7 @@ import { usd, shortTime, timeAgo } from "@/lib/format";
 import type { Location, Product, QuoteLine, RoomType, SeasonTier } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
 import { InlineText } from "@/components/app/InlineCell";
+import { Tip } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -191,7 +192,7 @@ export default function QuoteBuilder() {
       <span className="w-20 text-right tabular-nums shrink-0 font-medium">{usd(lineTotal(asPriced(l), quote.pax_count))}</span>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><Percent className="h-3.5 w-3.5" /></Button>
+          <Button variant="ghost" size="icon" title="Discount or comp this line — logged against your name" className="h-7 w-7 opacity-0 group-hover:opacity-100"><Percent className="h-3.5 w-3.5" /></Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 space-y-2" align="end">
           <div className="space-y-1">
@@ -211,7 +212,7 @@ export default function QuoteBuilder() {
           <p className="text-[11px] text-muted-foreground">Logged against your name.</p>
         </PopoverContent>
       </Popover>
-      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+      <Button variant="ghost" size="icon" title="Remove this line" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
         onClick={() => removeLine(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
     </div>
   );
@@ -243,7 +244,9 @@ export default function QuoteBuilder() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-sm">
-              <Label className="text-muted-foreground">Pax</Label>
+              <Tip label="Travellers on this quote — every per-person price multiplies by this number.">
+                <Label className="text-muted-foreground cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Pax</Label>
+              </Tip>
               <div className="w-16">
                 <InlineText numeric value={String(quote.pax_count)} onCommit={(v) => {
                   const n = Number(v); if (!isFinite(n) || n < 1) return toast.error("Pax must be ≥ 1");
@@ -251,9 +254,11 @@ export default function QuoteBuilder() {
                 }} />
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setVersionsOpen(true)} className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Versions ({versions?.length ?? 0})
-            </Button>
+            <Tip label="Frozen agreement versions. Each one keeps the prices from the moment it was generated — later edits never change a sent quote.">
+              <Button variant="outline" size="sm" onClick={() => setVersionsOpen(true)} className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> Versions ({versions?.length ?? 0})
+              </Button>
+            </Tip>
           </div>
         </div>
 
@@ -534,10 +539,12 @@ function AddLineDialog({
                   </SelectContent>
                 </Select>
               )}
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
-                <Switch checked={override} onCheckedChange={setOverride} />
-                Show everything
-              </label>
+              <Tip label="Force-add mode: ignores the day and availability filters and includes paused products. Use when you need something the filter hides.">
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto cursor-help">
+                  <Switch checked={override} onCheckedChange={setOverride} />
+                  Show everything
+                </label>
+              </Tip>
             </div>
             <Input placeholder="Search…" className="h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="max-h-72 overflow-y-auto border rounded-md divide-y">
