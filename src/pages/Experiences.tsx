@@ -153,7 +153,7 @@ export default function Experiences() {
                 <th className="font-medium px-3 py-2.5 w-40"><TipHead label="Days" tip="The days this runs. Click to change — this drives the 'what runs on a Monday?' filter and the quote builder." /></th>
                 <th className="font-medium px-3 py-2.5 w-28">Times</th>
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
-                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Bookable on the Mad Monkey website. Only these products email Reden when they change, so the site stays in sync." /></th>
+                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
               </tr>
             </thead>
@@ -229,8 +229,8 @@ export default function Experiences() {
                   </td>
                   <td className="px-3 py-1">
                     <Tip label={p.bookable_on_website
-                      ? "On the Mad Monkey website — changes to this product are emailed to Reden."
-                      : "Not bookable on the website. Switch on to list it — Reden gets notified."}>
+                      ? "Marked as listed on the website. Edits to this product queue an email to Reden — the site itself only changes when he updates it."
+                      : "Marked as not on the website. Switching on queues a notification to Reden — it does not publish anything by itself."}>
                       <Switch
                         disabled={!canEdit}
                         checked={p.bookable_on_website}
