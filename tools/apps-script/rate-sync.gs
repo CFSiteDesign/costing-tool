@@ -29,7 +29,8 @@
  */
 
 var ENDPOINT = "https://avftyexxqyykppzmrjxn.supabase.co/functions/v1/rate-sync";
-var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZnR5ZXh4cXl5a3Bwem1yanhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTgyNzAsImV4cCI6MjEwMzA3NDI3MH0.jmXCijjRJU3I6xtylc4mlFEWlGFhtyeUIiYT799zeQc";
+// Auth is the HMAC signature only — the endpoint no longer requires a JWT
+// (the long anon key kept getting mangled by copy-paste).
 
 var BASE_TAB = "BASE RATE PER SEASONALITY";   // matched with trim, trailing space ok
 var BF_TAB = "_SYNC_BREAKFAST";
@@ -167,7 +168,7 @@ function pushSnapshot_(trigger) {
   try {
     var resp = UrlFetchApp.fetch(ENDPOINT, {
       method: "post", contentType: "application/json", payload: body,
-      headers: { "Authorization": "Bearer " + ANON_KEY, "x-mm-signature": sig },
+      headers: { "x-mm-signature": sig },
       muteHttpExceptions: true,
     });
     var code = resp.getResponseCode();
