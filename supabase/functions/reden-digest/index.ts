@@ -15,6 +15,8 @@ Deno.serve(async (_req: Request) => {
   const sender = Deno.env.get("RESEND_FROM") ??
     "Mad Monkey Experiences <experiences@madmonkeyhostels.com>";
 
+
+
   const { data: settings } = await supabase.from("notification_settings").select("*").eq("id", 1).single();
   if (!settings?.enabled) return json({ skipped: "notifications disabled" });
   if (!settings.recipients?.length) return json({ skipped: "no recipients configured" });
