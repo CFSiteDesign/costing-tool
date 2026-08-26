@@ -17,10 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Plus, Trash2, Percent, Copy, ExternalLink, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock } from "lucide-react";
 
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
+
+/** Client wording: low / mid / high (our enum is lean / mid / high). */
+const SEASON_LABEL: Record<string, string> = { lean: "Low", mid: "Mid", high: "High" };
 
 const DEFAULT_TERMS = `Prices are quoted in USD and held for 14 days from the date of this agreement. A revised version will be issued for any change of dates, party size, or itinerary. Payment terms and cancellation policy to be confirmed at booking.`;
 
@@ -38,6 +42,8 @@ export default function QuoteBuilder() {
   const [addOpen, setAddOpen] = useState<null | "accommodation" | "experience" | "transport" | "custom">(null);
   const [addDayId, setAddDayId] = useState<string | null>(null);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const { data: quote } = useQuery({
     queryKey: ["quote", id],
@@ -124,6 +130,35 @@ export default function QuoteBuilder() {
     if (error) toast.error(error.message); else invalidate();
   };
 
+  /** Drop `dragId` onto `targetId`: renumber that day's lines and persist. */
+  const reorder = async (targetId: string) => {
+    const src = dragId;
+    setDragId(null); setOverId(null);
+    if (!src || src === targetId || !lines) return;
+    const dragged = lines.find((l) => l.id === src);
+    const target = lines.find((l) => l.id === targetId);
+    if (!dragged || !target || dragged.day_id !== target.day_id) return;
+
+    const group = lines.filter((l) => l.day_id === dragged.day_id);
+    const without = group.filter((l) => l.id !== src);
+    const at = without.findIndex((l) => l.id === targetId);
+    without.splice(at, 0, dragged);
+
+    qc.setQueryData(["quote-lines", id], (prev: QuoteLine[] | undefined) => {
+      if (!prev) return prev;
+      const order = new Map(without.map((l, i) => [l.id, i]));
+      return [...prev].map((l) => (order.has(l.id) ? { ...l, sort_order: order.get(l.id)! } : l))
+        .sort((a, b) => (a.sort_order - b.sort_order) || a.created_at.localeCompare(b.created_at));
+    });
+
+    for (let i = 0; i < without.length; i++) {
+      if (without[i].sort_order !== i) {
+        await supabase.from("quote_lines").update({ sort_order: i }).eq("id", without[i].id);
+      }
+    }
+    invalidate();
+  };
+
   const generate = useMutation({
     mutationFn: async () => {
       const { data: q } = await supabase.from("quotes").select("terms_block").eq("id", id!).single();
@@ -147,6 +182,14 @@ export default function QuoteBuilder() {
 
   if (!quote) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
+  // quote-level discount sits on top of any line-level ones (mirrors generate_quote_version)
+  const afterLines = totals.total;
+  const grandTotal = Math.max(0,
+    Math.round((afterLines * (1 - (Number(quote.discount_pct) || 0) / 100)
+      - (Number(quote.discount_amount_usd) || 0)) * 100) / 100);
+  const quoteDiscount = Math.round((afterLines - grandTotal) * 100) / 100;
+  const totalSaved = Math.round((totals.subtotal - grandTotal) * 100) / 100;
+
   const roomName = (rid: string) => roomTypes?.find((r) => r.id === rid)?.name ?? "Room";
   const rateStale = rateMeta?.finished_at
     ? Date.now() - new Date(rateMeta.finished_at).getTime() > 36 * 3600e3 : true;
@@ -156,25 +199,63 @@ export default function QuoteBuilder() {
     (lines ?? []).filter((l) => l.day_id === dayId);
 
   const LineRow = ({ l }: { l: QuoteLine }) => (
-    <div className="flex items-center gap-2 py-1.5 pl-2 pr-1 rounded hover:bg-secondary/50 group text-sm">
-      <span className="w-16 shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">{l.kind === "accommodation" ? "stay" : l.kind}</span>
+    <div
+      draggable
+      onDragStart={() => setDragId(l.id)}
+      onDragEnd={() => { setDragId(null); setOverId(null); }}
+      onDragOver={(e) => { e.preventDefault(); if (overId !== l.id) setOverId(l.id); }}
+      onDrop={(e) => { e.preventDefault(); reorder(l.id); }}
+      className={cn(
+        "flex items-center gap-2 py-1.5 pl-1 pr-1 rounded hover:bg-secondary/50 group text-sm transition-colors",
+        dragId === l.id && "opacity-40",
+        overId === l.id && dragId && dragId !== l.id && "border-t-2 border-accent",
+      )}
+    >
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+      <span className="w-14 shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">{l.kind === "accommodation" ? "stay" : l.kind}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1 font-medium">
           <InlineText value={l.title} className="font-medium px-0.5"
             onCommit={(v) => { if (!v.trim()) return; patchLine(l.id, { title: v.trim() }); }} />
-          {l.room_type_id && <span className="text-muted-foreground font-normal text-xs whitespace-nowrap">{roomName(l.room_type_id)}{l.season ? ` · ${l.season}` : ""}</span>}
+          {l.room_type_id && !l.title.includes(roomName(l.room_type_id)) && (
+            <span className="text-muted-foreground font-normal text-xs whitespace-nowrap">
+              {roomName(l.room_type_id)}{l.season ? ` · ${SEASON_LABEL[l.season] ?? l.season} season` : ""}
+            </span>
+          )}
         </div>
         <InlineText value={l.description ?? ""} placeholder="add client-facing description…"
           className="text-xs text-muted-foreground px-0.5"
           onCommit={(v) => patchLine(l.id, { description: v.trim() || null })} />
-        {(l.starts_at || l.is_comp || l.discount_pct || l.discount_amount_usd) && (
-          <div className="text-[11px] text-muted-foreground px-0.5">
-            {l.starts_at && `${shortTime(l.starts_at)}${l.ends_at ? `–${shortTime(l.ends_at)}` : ""} · `}
-            {l.is_comp && <span className="text-[hsl(var(--st-active))]">comped</span>}
-            {!l.is_comp && l.discount_pct ? `−${l.discount_pct}%` : ""}
-            {!l.is_comp && l.discount_amount_usd ? ` −$${l.discount_amount_usd}` : ""}
-          </div>
-        )}
+        <div className="text-[11px] text-muted-foreground px-0.5 flex items-center gap-1.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-secondary hover:text-foreground">
+                <Clock className="h-3 w-3" />
+                {l.starts_at
+                  ? `${shortTime(l.starts_at)}${l.ends_at ? `–${shortTime(l.ends_at)}` : ""}`
+                  : <span className="italic">add time</span>}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 space-y-2" align="start">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Start</Label>
+                  <Input type="time" className="h-8" defaultValue={l.starts_at?.slice(0, 5) ?? ""}
+                    onBlur={(e) => patchLine(l.id, { starts_at: e.target.value || null })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Finish</Label>
+                  <Input type="time" className="h-8" defaultValue={l.ends_at?.slice(0, 5) ?? ""}
+                    onBlur={(e) => patchLine(l.id, { ends_at: e.target.value || null })} />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Internal only — timings are not shown on the client quote.</p>
+            </PopoverContent>
+          </Popover>
+          {l.is_comp && <span className="text-[hsl(var(--st-active))]">comped</span>}
+          {!l.is_comp && l.discount_pct ? <span>−{l.discount_pct}%</span> : null}
+          {!l.is_comp && l.discount_amount_usd ? <span>−${l.discount_amount_usd}</span> : null}
+        </div>
       </div>
       <div className="w-14 shrink-0">
         <InlineText numeric value={String(l.qty)} onCommit={(v) => {
@@ -326,13 +407,45 @@ export default function QuoteBuilder() {
             </div>
           )}
         </div>
+        <div className="border-t pt-2 space-y-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="w-full flex justify-between text-sm rounded px-1 -mx-1 py-0.5 hover:bg-secondary">
+                <span className="text-muted-foreground underline decoration-dotted underline-offset-4">Whole-quote discount</span>
+                <span className="tabular-nums">
+                  {quoteDiscount > 0 ? `−${usd(quoteDiscount)}` : <span className="text-muted-foreground">add</span>}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60 space-y-2" align="end">
+              <div className="space-y-1">
+                <Label className="text-xs">Discount %</Label>
+                <Input className="h-8" inputMode="decimal" defaultValue={quote.discount_pct ?? ""}
+                  onBlur={(e) => patchQuote({ discount_pct: e.target.value === "" ? null : Number(e.target.value) })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Discount $ (after %)</Label>
+                <Input className="h-8" inputMode="decimal" defaultValue={quote.discount_amount_usd ?? ""}
+                  onBlur={(e) => patchQuote({ discount_amount_usd: e.target.value === "" ? null : Number(e.target.value) })} />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Applied to the whole quote after any line discounts. The client agreement shows the total saved.
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="border-t pt-2 space-y-1">
           <div className="flex justify-between font-semibold text-lg">
-            <span>Group total</span><span className="tabular-nums">{usd(totals.total)}</span>
+            <span>Group total</span><span className="tabular-nums">{usd(grandTotal)}</span>
           </div>
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Per person</span><span className="tabular-nums">{usd(totals.perPerson)}</span>
+            <span>Per person</span><span className="tabular-nums">{usd(grandTotal / Math.max(quote.pax_count, 1))}</span>
           </div>
+          {totalSaved > 0 && (
+            <div className="flex justify-between text-sm font-medium text-[hsl(var(--st-active))]">
+              <span>Total saved</span><span className="tabular-nums">{usd(totalSaved)}</span>
+            </div>
+          )}
         </div>
         {Object.keys(totals.byRoomType).length > 0 && (
           <div className="border-t pt-2 space-y-1 text-sm">
@@ -499,7 +612,8 @@ function AddLineDialog({
     const n = Math.max(1, Number(nights) || 1);
     const room = roomTypes.find((r) => r.id === roomId);
     const rows: Record<string, unknown>[] = [{
-      kind: "accommodation", title: `${room?.name ?? "Room"} · ${locations.find((l) => l.id === effLoc)?.name ?? ""}`,
+      kind: "accommodation",
+      title: `${room?.name ?? "Room"} - ${SEASON_LABEL[season] ?? season} season`,
       room_type_id: roomId, season, qty: n, unit_price_usd: accRate, per_person: true,
     }];
     if (breakfast && bfRate != null) {
@@ -591,9 +705,9 @@ function AddLineDialog({
                 <Select value={season} onValueChange={(v) => setSeason(v as SeasonTier)}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lean">Lean</SelectItem>
-                    <SelectItem value="mid">Mid</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="lean">Low season</SelectItem>
+                    <SelectItem value="mid">Mid season</SelectItem>
+                    <SelectItem value="high">High season</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

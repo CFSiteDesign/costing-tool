@@ -76,6 +76,7 @@ export interface QuoteLine {
   is_comp: boolean;
   line_total_usd: number;
   adjustment_note: string | null;
+  created_at: string;
 }
 
 export interface Quote {

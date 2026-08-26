@@ -1,13 +1,13 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { usd, shortTime } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 
 interface FrozenLine {
   id: string; day_id: string | null; kind: string; title: string; description: string | null;
-  starts_at: string | null; ends_at: string | null; room_type_name?: string | null;
+  room_type_name?: string | null;
 }
 interface FrozenDay { id: string; day_no: number; date: string | null; location_name: string | null; }
 
@@ -21,6 +21,7 @@ export default function Agreement() {
       return data as {
         quote_title: string; quote_reference: string; version_no: number; created_at: string;
         pax_count: number; total_usd: number; per_person_usd: number; terms_block: string | null;
+        subtotal_usd: number; discount_total_usd: number;
         customer: { contact_name?: string; company_name?: string } | null;
         days: FrozenDay[]; lines: FrozenLine[];
       } | null;
@@ -65,10 +66,8 @@ export default function Agreement() {
               </h2>
               <div className="space-y-2.5">
                 {linesFor(d.id).map((l) => (
-                  <div key={l.id} className="flex gap-3">
-                    <div className="w-24 shrink-0 text-sm text-muted-foreground tabular-nums pt-0.5">
-                      {l.starts_at ? `${shortTime(l.starts_at)}${l.ends_at ? ` – ${shortTime(l.ends_at)}` : ""}` : ""}
-                    </div>
+                  <div key={l.id} className="flex gap-2.5">
+                    <span className="text-muted-foreground/50 pt-[3px] leading-none">•</span>
                     <div>
                       <div className="font-medium text-sm">
                         {l.title}{l.room_type_name && !l.title.includes(l.room_type_name) ? ` · ${l.room_type_name}` : ""}
@@ -96,15 +95,25 @@ export default function Agreement() {
           )}
 
           {/* totals only — no line-item breakdown, per the brief */}
-          <section className="bg-secondary/60 rounded-lg p-5 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Per person</div>
-              <div className="text-xl font-semibold tabular-nums">{usd(data.per_person_usd)}</div>
+          <section className="bg-secondary/60 rounded-lg p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">Per person</div>
+                <div className="text-xl font-semibold tabular-nums">{usd(data.per_person_usd)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-muted-foreground">Group total · {data.pax_count} pax</div>
+                <div className="text-2xl font-semibold tabular-nums">{usd(data.total_usd)}</div>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Group total · {data.pax_count} pax</div>
-              <div className="text-2xl font-semibold tabular-nums">{usd(data.total_usd)}</div>
-            </div>
+            {Number(data.discount_total_usd) > 0 && (
+              <div className="flex items-center justify-between border-t pt-3 text-sm">
+                <span className="text-muted-foreground line-through tabular-nums">{usd(data.subtotal_usd)}</span>
+                <span className="font-semibold text-[hsl(var(--st-active))]">
+                  You save {usd(data.discount_total_usd)}
+                </span>
+              </div>
+            )}
           </section>
 
           <section className="text-xs text-muted-foreground leading-relaxed border-t pt-4 whitespace-pre-line">
