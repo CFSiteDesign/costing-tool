@@ -6,7 +6,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Without RESEND_API_KEY it reports what it WOULD send and dispatches nothing.
 // Sender comes from the RESEND_FROM secret (must be on a Resend-verified domain).
 
-Deno.serve(async (req: Request) => {
+Deno.serve(async (_req: Request) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -15,25 +15,6 @@ Deno.serve(async (req: Request) => {
   const sender = Deno.env.get("RESEND_FROM") ??
     "Mad Monkey Experiences <experiences@madmonkeyhostels.com>";
 
-  // One-off deliverability check: POST {"test_to":"someone@example.com"}
-  if (req.method === "POST") {
-    let testTo: string | undefined;
-    try { testTo = (await req.clone().json())?.test_to; } catch { /* not JSON */ }
-    if (testTo) {
-      if (!resendKey) return json({ error: "RESEND_API_KEY not configured" });
-      const resp = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: sender,
-          to: [testTo],
-          subject: "[Mad Monkey] Test email",
-          text: "This is a test email from the Experience Database notifier. If you received this, Resend sending is configured correctly.",
-        }),
-      });
-      return json({ test: true, to: testTo, from: sender, status: resp.status, body: await resp.text() });
-    }
-  }
 
 
   const { data: settings } = await supabase.from("notification_settings").select("*").eq("id", 1).single();
