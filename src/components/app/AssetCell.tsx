@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Product } from "@/lib/types";
 import { studioLink } from "@/lib/studio";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,9 @@ export interface Asset { id: string; product_id: string; url: string; stale: boo
 /** F5: one button per row. Create in STUDIO (prefilled), View when one exists, Rebuild when it's out of date. */
 export function AssetCell({ product, asset, currency, canEdit }: { product: Product; asset: Asset | null; currency: string; canEdit: boolean }) {
   const qc = useQueryClient();
+  const auth = useAuth();
   const [url, setUrl] = useState("");
-  const link = studioLink(product, currency);
+  const link = studioLink(product, currency, auth.allLocations.find((l) => l.id === product.location_id)?.name);
   const attach = useMutation({
     mutationFn: async () => {
       if (!/^https?:\/\//.test(url.trim())) throw new Error("Paste a full URL");
