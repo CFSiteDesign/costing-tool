@@ -2,7 +2,7 @@ import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, CalendarDays, FileText, History, Settings, ChevronDown } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { to: "/week", label: "My week", icon: CalendarDays },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/activity", label: "Activity", icon: History },
+  { to: "/global-events", label: "Global events", icon: Globe, headOffice: true },
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
@@ -30,7 +31,7 @@ export default function AppShell() {
           <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7 lg:hidden" />
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
-          {NAV.filter((n) => !n.adminOnly || auth.isAdmin).map((n) => (
+          {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office"))).map((n) => (
             <NavLink
               key={n.to}
               to={n.to}

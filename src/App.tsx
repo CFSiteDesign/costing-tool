@@ -14,6 +14,7 @@ import Activity from "./pages/Activity";
 import Quotes from "./pages/Quotes";
 import QuoteBuilder from "./pages/QuoteBuilder";
 import AutoTrip from "./pages/AutoTrip";
+import GlobalEvents from "./pages/GlobalEvents";
 import Agreement from "./pages/Agreement";
 import SettingsPage from "./pages/settings/SettingsPage";
 import ImportsPage from "./pages/settings/ImportsPage";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/quotes/auto" element={<AutoTrip />} />
               <Route path="/quotes/:id" element={<QuoteBuilder />} />
+              <Route path="/global-events" element={<GlobalEvents />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/imports" element={<ImportsPage />} />
             </Route>

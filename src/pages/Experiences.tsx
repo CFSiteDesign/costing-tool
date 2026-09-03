@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/app/StatusBadge";
 import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
 import { RateCell } from "@/components/app/RateCell";
 import { Tip, TipHead } from "@/components/app/Tip";
+import { PendingGlobalEvents } from "@/components/app/PendingGlobalEvents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -95,6 +96,7 @@ export default function Experiences() {
 
   return (
     <div className="p-4 space-y-3">
+      <PendingGlobalEvents />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Experiences</h1>
