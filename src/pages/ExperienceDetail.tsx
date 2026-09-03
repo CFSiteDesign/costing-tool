@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
+import { AssetCell, type Asset } from "@/components/app/AssetCell";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
 
@@ -135,6 +136,11 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     else { toast.success("Marked as verified today"); qc.invalidateQueries({ queryKey: ["product", product.id] }); qc.invalidateQueries({ queryKey: ["products"] }); }
   };
   const verifiedAt = (product as unknown as { last_verified_at: string | null }).last_verified_at;
+  const { data: assets } = useQuery({
+    queryKey: ["product-assets", product.id],
+    queryFn: async () => (await supabase.from("product_assets").select("*").eq("product_id", product.id).order("created_at", { ascending: false })).data as Asset[],
+  });
+  const latestAsset = assets?.[0] ?? null;
 
   const Field = ({ label, k, rows = 2, maxLength }: { label: string; k: keyof typeof init; rows?: number; maxLength?: number }) => (
     <div className="space-y-1">
@@ -238,6 +244,19 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <div className="space-y-1 col-span-2"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Departure times (quotes pick from these)</Label><Input className="tabular-nums" placeholder="08:30, 11:30, 17:00" readOnly={!canEdit} value={f.slots} onChange={(e) => set("slots", e.target.value)} /></div>
         </div>
       )}
+
+      <div className="rounded-md border p-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          {latestAsset && <img src={latestAsset.url} alt="" className="h-14 w-14 rounded object-cover border" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />}
+          <div className="text-sm">
+            <div className="font-medium">Social asset</div>
+            <div className="text-xs text-muted-foreground">
+              {latestAsset ? `Latest made ${new Date(latestAsset.created_at).toLocaleDateString("en-GB")}${latestAsset.stale ? " · out of date" : ""}${(assets?.length ?? 0) > 1 ? ` · ${assets!.length} versions` : ""}` : "None yet — Create opens STUDIO with these details prefilled."}
+            </div>
+          </div>
+        </div>
+        <AssetCell product={product} asset={latestAsset} currency={ccy} canEdit={canEdit} />
+      </div>
 
       <Field label="Brief description" k="brief" maxLength={95} />
       <Field label="Long description" k="long" rows={5} />

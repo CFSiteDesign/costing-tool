@@ -9,6 +9,7 @@ import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
 import { RateCell } from "@/components/app/RateCell";
 import { Tip, TipHead } from "@/components/app/Tip";
 import { PendingGlobalEvents } from "@/components/app/PendingGlobalEvents";
+import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -50,6 +51,18 @@ export default function Experiences() {
         .range(page * PAGE, page * PAGE + PAGE - 1);
       if (error) throw error;
       return { rows: (data ?? []) as Product[], count: count ?? 0 };
+    },
+  });
+
+  const rowIds = (data?.rows ?? []).map((r) => r.id);
+  const { data: assets } = useQuery({
+    queryKey: ["assets", rowIds],
+    enabled: rowIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("product_assets").select("*").in("product_id", rowIds).order("created_at", { ascending: false });
+      const latest: Record<string, Asset> = {};
+      for (const a of (data ?? []) as Asset[]) if (!latest[a.product_id]) latest[a.product_id] = a;
+      return latest;
     },
   });
 
@@ -167,14 +180,15 @@ export default function Experiences() {
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
                 <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Verified" tip="When someone last confirmed these details are current. Click the shield to mark it verified today." /></th>
+                <th className="font-medium px-3 py-2.5 w-36"><TipHead label="Asset" tip="The social graphic for this experience. Create opens STUDIO prefilled; View shows the latest one; it flags itself out of date when the name, day, time or price change." /></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && rows.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && rows.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-10 text-center text-muted-foreground">No products match.</td></tr>
+                <tr><td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">No products match.</td></tr>
               )}
               {rows.map((p) => (
                 <tr key={p.id} className="border-t hover:bg-secondary/40 h-11">
@@ -267,6 +281,9 @@ export default function Experiences() {
                         </Tip>
                       )}
                     </div>
+                  </td>
+                  <td className="px-3 py-1">
+                    <AssetCell product={p} asset={assets?.[p.id] ?? null} currency={auth.currentLocation?.currency ?? "USD"} canEdit={canEdit} />
                   </td>
                 </tr>
               ))}
