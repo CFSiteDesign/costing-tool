@@ -11,12 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useFx, money } from "@/lib/fx";
 
 export default function ExperienceNew() {
   const auth = useAuth();
   const nav = useNavigate();
+  const fx = useFx();
+  const localCcy = auth.currentLocation?.currency ?? "USD";
   const [f, setF] = useState({
-    title: "", category: "mm_tour" as Category, rate: "", brief: "", long: "",
+    title: "", category: "mm_tour" as Category, rate: "", rateCcy: "", brief: "", long: "",
     days: [] as number[], starts: "", ends: "", minGuests: "1", maxGuests: "",
     meetingPoint: "", inclusions: "", thingsToBring: "", photoUrl: "", bookable: false,
   });
@@ -31,14 +34,23 @@ export default function ExperienceNew() {
     if (f.category !== "one_time_event" && f.days.length === 0) {
       toast.error("Pick the days it runs"); return;
     }
-    const rate = f.rate.trim() === "" ? null : Number(f.rate);
-    if (f.rate.trim() !== "" && !isFinite(rate!)) { toast.error("Rate must be a number"); return; }
+    const typed = f.rate.trim() === "" ? null : Number(f.rate);
+    if (f.rate.trim() !== "" && !isFinite(typed!)) { toast.error("Rate must be a number"); return; }
+    const ccy = f.rateCcy || localCcy;
+    const fxRate = fx.rate(ccy);
+    if (typed != null && ccy !== "USD" && !fxRate) { toast.error(`No FX rate for ${ccy} yet — enter USD`); return; }
+    const rate = typed == null ? null : ccy === "USD" ? typed : Math.round((typed / fxRate!) * 100) / 100;
+    const localAmount = typed == null ? null : ccy === "USD" ? (localCcy === "USD" ? typed : null) : typed;
     setBusy(true);
     const { error } = await supabase.from("products").insert({
       location_id: auth.currentLocation.id,
       category: f.category,
       title: f.title.trim(),
       rate_usd: rate,
+      local_amount: localAmount,
+      local_currency: localCcy,
+      fx_rate_used: typed == null ? null : (ccy === "USD" ? 1 : fxRate),
+      fx_as_of: typed == null ? null : new Date().toISOString(),
       brief_description: f.brief.trim(),
       long_description: f.long.trim() || null,
       days_of_week: f.days,
@@ -82,8 +94,22 @@ export default function ExperienceNew() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Rate (USD)</Label>
-            <Input inputMode="decimal" placeholder="0 = free" value={f.rate} onChange={(e) => set("rate", e.target.value)} />
+            <Label>Rate</Label>
+            <div className="flex gap-2">
+              <Input inputMode="decimal" placeholder="0 = free" value={f.rate} onChange={(e) => set("rate", e.target.value)} />
+              {localCcy !== "USD" && (
+                <Select value={f.rateCcy || localCcy} onValueChange={(v) => set("rateCcy", v)}>
+                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={localCcy}>{localCcy}</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            {localCcy !== "USD" && f.rate && isFinite(Number(f.rate)) && (f.rateCcy || localCcy) !== "USD" && fx.rate(localCcy) && (
+              <p className="text-[11px] text-muted-foreground">≈ ${(Number(f.rate) / fx.rate(localCcy)!).toFixed(2)} USD · quotes use the USD figure</p>
+            )}
           </div>
         </div>
         <div className="space-y-1.5">

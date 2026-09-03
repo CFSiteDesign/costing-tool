@@ -6,7 +6,7 @@ import { CATEGORY_LABELS, STATUS_LABELS, type Category, type Product, type Produ
 import { daysLabel, shortTime, usd } from "@/lib/format";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
-import { InlineText } from "@/components/app/InlineCell";
+import { RateCell } from "@/components/app/RateCell";
 import { ProductDrawer } from "@/components/app/ProductDrawer";
 import { Tip, TipHead } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
@@ -149,7 +149,7 @@ export default function Experiences() {
               <tr className="bg-secondary text-muted-foreground text-left">
                 <th className="font-medium px-3 py-2.5 min-w-[260px] sticky left-0 bg-secondary z-10">Title</th>
                 <th className="font-medium px-3 py-2.5">Category</th>
-                <th className="font-medium px-3 py-2.5 text-right w-28"><TipHead label="Rate" tip="USD per person. Italic text means the spreadsheet had words instead of a number — click to set the real rate. No rate = can't be added to a quote." /></th>
+                <th className="font-medium px-3 py-2.5 text-right w-36"><TipHead label="Rate" tip="Local price with the USD figure alongside. Type either one — the other is worked out from today's FX rate. Quotes always use USD. Italic text means the spreadsheet had words instead of a number." /></th>
                 <th className="font-medium px-3 py-2.5 w-40"><TipHead label="Days" tip="The days this runs. Click to change — this drives the 'what runs on a Monday?' filter and the quote builder." /></th>
                 <th className="font-medium px-3 py-2.5 w-28">Times</th>
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
@@ -176,20 +176,9 @@ export default function Experiences() {
                     </button>
                   </td>
                   <td className="px-3 py-1 text-muted-foreground whitespace-nowrap">{CATEGORY_LABELS[p.category]}</td>
-                  <td className="px-3 py-1 w-28">
-                    {canEdit ? (
-                      <InlineText
-                        numeric
-                        confirmLargeChange
-                        value={p.rate_usd != null ? String(p.rate_usd) : ""}
-                        placeholder={p.rate_raw ? `“${p.rate_raw.slice(0, 14)}…”` : "—"}
-                        onCommit={(v) => {
-                          const n = v.trim() === "" ? null : Number(v);
-                          if (v.trim() !== "" && !isFinite(n!)) { toast.error("Rate must be a number"); return; }
-                          commit(p.id, { rate_usd: n });
-                        }}
-                      />
-                    ) : <span className="tabular-nums block text-right">{usd(p.rate_usd)}</span>}
+                  <td className="px-3 py-1 w-36">
+                    <RateCell product={p} currency={auth.currentLocation?.currency ?? "USD"} canEdit={canEdit}
+                      onCommit={(patch) => commit(p.id, patch)} />
                   </td>
                   <td className="px-3 py-1">
                     {canEdit ? (

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { RefreshCw, ArrowRight } from "lucide-react";
+import { useFx, money } from "@/lib/fx";
 
 export default function SettingsPage() {
   const auth = useAuth();
@@ -50,6 +51,24 @@ export default function SettingsPage() {
   });
 
   const lastSuccess = (runs ?? []).find((r) => r.status === "success" || r.status === "partial");
+  const fx = useFx();
+  const refreshFx = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fx-refresh");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["fx"] }); toast.success("FX rates refreshed"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const setOverride = useMutation({
+    mutationFn: async ({ code, value }: { code: string; value: number | null }) => {
+      const { error } = await supabase.from("fx_rates").update({ manual_override: value }).eq("code", code);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["fx"] }); toast.success("Saved"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="p-4 max-w-3xl space-y-6">
@@ -129,6 +148,41 @@ export default function SettingsPage() {
           />
           Notifications enabled
         </label>
+      </section>
+
+      <section className="border rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-medium">Exchange rates</h2>
+            <p className="text-sm text-muted-foreground">
+              Local prices convert to USD with these. Refreshed daily at 01:15 UTC from open.er-api.com
+              {fx.data?.asOf ? ` · rates as of ${new Date(fx.data.asOf).toLocaleDateString("en-GB")}` : ""}.
+              A manual override pins a rate until you clear it.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5" disabled={refreshFx.isPending} onClick={() => refreshFx.mutate()}>
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh now
+          </Button>
+        </div>
+        <div className="text-sm border rounded-md divide-y">
+          {(fx.data?.rows ?? []).filter((r) => r.code !== "USD").map((r) => (
+            <div key={r.code} className="px-3 py-2 grid grid-cols-[4rem_1fr_auto] items-center gap-3">
+              <span className="font-medium">{r.code}</span>
+              <span className="text-muted-foreground tabular-nums">
+                1 USD = {money(Number(r.manual_override ?? r.units_per_usd), r.code)}
+                {r.manual_override != null && <span className="ml-2 text-[hsl(var(--st-pending))]">manual override (api: {Number(r.units_per_usd).toLocaleString()})</span>}
+              </span>
+              <Input className="h-7 w-32 text-xs tabular-nums" placeholder="override…" disabled={!auth.isAdmin}
+                defaultValue={r.manual_override ?? ""}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  const n = v === "" ? null : Number(v);
+                  if (v !== "" && (!isFinite(n!) || n! <= 0)) { toast.error("Enter a positive number"); return; }
+                  if ((n ?? null) !== (r.manual_override ?? null)) setOverride.mutate({ code: r.code, value: n });
+                }} />
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="border rounded-lg p-4 flex items-center justify-between">

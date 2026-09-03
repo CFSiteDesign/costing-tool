@@ -18,7 +18,7 @@ export const STATUS_LABELS: Record<ProductStatus, string> = {
   pending_update: "Pending",
 };
 
-export interface Location { id: string; name: string; country: string; timezone: string; }
+export interface Location { id: string; name: string; country: string; timezone: string; currency: string; }
 export interface RoomType { id: string; code: string; name: string; sort_order: number; is_sample: boolean; }
 
 export interface Product {
@@ -29,6 +29,10 @@ export interface Product {
   operator_id: string | null;
   rate_usd: number | null;
   rate_raw: string | null;
+  local_amount: number | null;
+  local_currency: string | null;
+  fx_rate_used: number | null;
+  fx_as_of: string | null;
   gross_service_value: string | null;
   active_on_ground: boolean;
   bookable_on_website: boolean;

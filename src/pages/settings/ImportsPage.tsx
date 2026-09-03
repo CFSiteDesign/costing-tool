@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useFx } from "@/lib/fx";
 import { Check, X } from "lucide-react";
 
 interface Exc {
@@ -29,6 +30,9 @@ export default function ImportsPage() {
   const [field, setField] = useState("all");
   const [locFilter, setLocFilter] = useState(auth.seesAllLocations ? "all" : (auth.currentLocation?.id ?? "all"));
   const [days, setDays] = useState<Record<number, number[]>>({});
+  const fx = useFx();
+  const [rateCcy, setRateCcy] = useState<Record<number, string>>({});
+  const ccyFor = (locId: string | null) => auth.allLocations.find((l) => l.id === locId)?.currency ?? "USD";
 
   const { data: stats } = useQuery({
     queryKey: ["exc-stats", locFilter],
@@ -153,18 +157,37 @@ export default function ImportsPage() {
               </div>
             </div>
 
-            {e.field === "rate" && e.product_id && auth.isEditor && (
-              <div className="flex gap-2 items-center">
-                <Input className="h-8 w-32" inputMode="decimal" placeholder="USD rate"
-                  onKeyDown={(ev) => {
-                    if (ev.key !== "Enter") return;
-                    const n = Number((ev.target as HTMLInputElement).value);
-                    if (!isFinite(n)) return toast.error("Enter a number");
-                    resolve.mutate({ exc: e, patch: { rate_usd: n } });
-                  }} />
-                <span className="text-xs text-muted-foreground">Enter to save</span>
-              </div>
-            )}
+            {e.field === "rate" && e.product_id && auth.isEditor && (() => {
+              const local = ccyFor(e.location_id);
+              const ccy = rateCcy[e.id] ?? local;
+              return (
+                <div className="flex gap-2 items-center">
+                  <Input className="h-8 w-32" inputMode="decimal" placeholder={`amount in ${ccy}`}
+                    onKeyDown={(ev) => {
+                      if (ev.key !== "Enter") return;
+                      const n = Number((ev.target as HTMLInputElement).value);
+                      if (!isFinite(n)) return toast.error("Enter a number");
+                      const r = fx.rate(ccy);
+                      if (ccy !== "USD" && !r) return toast.error(`No FX rate for ${ccy} yet`);
+                      const usdVal = ccy === "USD" ? n : Math.round((n / r!) * 100) / 100;
+                      resolve.mutate({ exc: e, patch: {
+                        rate_usd: usdVal, local_amount: ccy === "USD" ? (local === "USD" ? n : null) : n,
+                        local_currency: local, fx_rate_used: ccy === "USD" ? 1 : r, fx_as_of: new Date().toISOString(),
+                      } });
+                    }} />
+                  {local !== "USD" && (
+                    <Select value={ccy} onValueChange={(v) => setRateCcy((m) => ({ ...m, [e.id]: v }))}>
+                      <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={local}>{local}</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <span className="text-xs text-muted-foreground">Enter to save{ccy !== "USD" && fx.rate(ccy) ? ` · converts at 1 USD = ${fx.rate(ccy)!.toLocaleString()} ${ccy}` : ""}</span>
+                </div>
+              );
+            })()}
             {e.field === "days_of_week" && e.product_id && auth.isEditor && (
               <div className="flex gap-2 items-center">
                 <DaysPicker size="sm" value={days[e.id] ?? []} onChange={(d) => setDays((s) => ({ ...s, [e.id]: d }))} />
