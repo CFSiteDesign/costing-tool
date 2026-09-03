@@ -238,3 +238,64 @@ and flagging the change in Reden's digest. No gate, no extra click on genuine ed
 - **Q12 → Kyle.** Transport is *"Rezdy only, not website"*. Does that become `bookable_on_website = false`, or a rule of its own?
 - **Q13 → Hayley/GMs.** 71 duplicate titles with conflicting rates need per-location owners.
 - **Q14 → Kyle.** Confirm 23 is the true location list — the brief says "24+".
+
+---
+
+## Round 2 — client updates doc (received 27 Aug 2026)
+
+Source: `docs/UPDATES_ROUND2.md`. Context that shaped the plan: the client (Reight Travel) has
+already built 9 real quotes of 10–14 days, one stay per day — the doc is driven by that
+experience, so the quote-builder items come first.
+
+### A. Quote builder mechanics (no decisions needed) — ~1 day
+| # | Item | Approach |
+|---|---|---|
+| 1 | Day = night, no nights field | Drop `qty` from stay UI (fix qty=1), max one stay per day, amber "no stay" warning on middle days. Existing multi-night rows (test data only) split into days. |
+| 2 | Copy stay + breakfast to next day | Button per day; creates next day if missing (date+1, same location). Copies **only** accommodation + breakfast lines. |
+| 3 | Day date sets picker weekday | Picker defaults to `weekday(day.date)`, still changeable. |
+| 4 | New day inherits date+1 and location | `addDay` seeds from the last day. |
+| 5 | Transport time slots | `transport_details.departure_times time[]`, parsed once from `availability_raw` on migration; editable per product; builder picks a slot. |
+| 6 | Save & exit | Quotes already persist every keystroke as `draft`; add an explicit "Save & exit" button so people trust it. |
+| 7 | Quote search | Reference / title / customer. |
+| — | Pax vs capacity warning | Uses existing `min_guests` / `max_guests_per_day`; badge on the line + banner. Never blocks. |
+
+### B. Currency — ~½ day + decision D1
+`products.local_amount`, `local_currency`, `fx_rate_used`, `fx_as_of`; `rate_usd` stays the quoted
+figure. Per-location currency map (THB, PHP, IDR, VND, USD for Cambodia; Laos priced in USD per
+the rate sheet). Experience list shows `฿1,200 · $34.12`. All quotes/outputs untouched (USD).
+GM enters either; the other is derived and both are stored so a price is traceable.
+
+### C. Auto-create trip + copy — ~1 day + decision D2
+Wizard: ordered stops (location, first night, nights) → generates days + one stay per night
+(room type chosen once, season auto-picked from the rate sheet's month tables — Q4 finally
+used) → each day shows that weekday's experiences, ordered by start time, as a tick-list.
+Then the copy question (D2).
+
+### D. Global events — ~½ day
+`global_events` + `global_event_responses(location_id, status)`. Accept = a product is created
+at that location; GM dashboard shows pending events; admin sees accepted / declined / no reply.
+
+### E. GM interface — ~1 day
+"My week" tab (day → rows sorted by start time; daily tours under every day; one-offs by date),
+editable product detail page with explicit Save + confirmation (replaces autosave in the
+drawer), Add-product back button with unsaved-changes warning, one-time-event checkbox +
+expiry (expired products hidden from My week and Activity), Active/Paused at creation,
+"last verified" column + a Mark-verified button.
+
+### F. STUDIO asset link — ~1 day across two repos + decision D3
+Costing tool side: ASSET column → deep link `studio?...` with tour name, day, key time, price,
+short description, plus `source=costing&product=<id>`; `product_assets` table; "View / Rebuild";
+stale flag when name/day/time/price change. STUDIO side (`~/mad-monkey-studio`, Next.js +
+Convex): read the params and prefill the brief; after a render completes, POST the file URL
+to a new `asset-callback` Edge Function (shared secret). STUDIO deploy is two steps and one is
+interactive (`npx convex deploy`).
+
+### Decisions needed
+- **D1 FX source.** Recommend daily auto-refresh from a free FX API (covers THB/PHP/IDR/VND/KHR/LAK)
+  with an admin override table and "rates as of" shown in the UI. Alternative: derive from the
+  local/USD pairs in Hayley's rate sheet (needs the Apps Script re-pasted).
+- **D2 Copy trip vs template.** Recommend "Duplicate quote" — covers both (keep any quote as a
+  template and duplicate it).
+- **D3 STUDIO write-back.** Automatic post-back needs STUDIO changes deployed. Recommend building
+  the deep link + manual "attach asset" first, automatic post-back second.
+- **D4 Order.** Recommend A → B → E → C → D → F.
