@@ -7,6 +7,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 function LongField({
   label, value, onCommit, canEdit, maxLength, rows = 3,
@@ -47,6 +50,7 @@ export function ProductDrawer({
   onCommit: (patch: Partial<Product>) => void;
   canEdit: boolean;
 }) {
+  const qc = useQueryClient();
   const { data: transport } = useQuery({
     queryKey: ["transport", product?.id],
     enabled: !!product && product.category === "transport",
@@ -79,6 +83,24 @@ export function ProductDrawer({
               <div className="font-medium">{transport.route_raw ?? "Route"}</div>
               {transport.pickup_point && <div><span className="text-muted-foreground">Pick-up:</span> {transport.pickup_point}</div>}
               {transport.dropoff_point && <div><span className="text-muted-foreground">Drop-off:</span> {transport.dropoff_point}</div>}
+              <div className="pt-1.5 space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Departure times (quotes pick from these)</Label>
+                <Input
+                  className="h-8 text-sm tabular-nums"
+                  readOnly={!canEdit}
+                  placeholder="e.g. 08:30, 11:30, 17:00"
+                  defaultValue={(transport.departure_times ?? []).map((t: string) => t.slice(0, 5)).join(", ")}
+                  onBlur={async (e) => {
+                    const slots = e.target.value.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+                    const bad = slots.find((x) => !/^([01]?\d|2[0-3]):[0-5]\d$/.test(x));
+                    if (bad) { toast.error(`"${bad}" isn't a time — use HH:MM`); return; }
+                    const { error } = await supabase.from("transport_details")
+                      .update({ departure_times: slots.map((x) => x.padStart(5, "0")) }).eq("product_id", product.id);
+                    if (error) toast.error(error.message);
+                    else { toast.success("Departure times saved"); qc.invalidateQueries({ queryKey: ["transport", product.id] }); }
+                  }}
+                />
+              </div>
             </div>
           )}
           <LongField label="Brief description" maxLength={95} rows={2}

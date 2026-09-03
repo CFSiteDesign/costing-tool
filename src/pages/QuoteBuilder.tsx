@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,10 +18,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock } from "lucide-react";
+import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle } from "lucide-react";
 
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
+
+/** 'YYYY-MM-DD' + n days, in local time (no UTC drift at midnight). */
+const addDays = (iso: string, n: number) => {
+  const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n);
+  const p = (x: number) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+/** ISO weekday 1=Mon..7=Sun for a 'YYYY-MM-DD' date. */
+const isoWeekday = (iso: string) => ((new Date(iso + "T00:00:00").getDay() + 6) % 7) + 1;
 
 /** Client wording: low / mid / high (our enum is lean / mid / high). */
 const SEASON_LABEL: Record<string, string> = { lean: "Low", mid: "Mid", high: "High" };
@@ -39,6 +48,7 @@ export default function QuoteBuilder() {
   const { id } = useParams<{ id: string }>();
   const auth = useAuth();
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [addOpen, setAddOpen] = useState<null | "accommodation" | "experience" | "transport" | "custom">(null);
   const [addDayId, setAddDayId] = useState<string | null>(null);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -81,6 +91,30 @@ export default function QuoteBuilder() {
       return (data ?? []) as Version[];
     },
   });
+  const sourceIds = useMemo(
+    () => [...new Set((lines ?? []).map((l) => l.source_product_id).filter(Boolean))] as string[],
+    [lines],
+  );
+  const { data: capacity } = useQuery({
+    queryKey: ["capacity", sourceIds],
+    enabled: sourceIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("products")
+        .select("id, min_guests, max_guests_per_day").in("id", sourceIds);
+      return Object.fromEntries((data ?? []).map((p) => [p.id, p])) as
+        Record<string, { min_guests: number | null; max_guests_per_day: number | null }>;
+    },
+  });
+  /** Warning only — the brief and the client both say never block. */
+  const capacityIssue = (l: QuoteLine): string | null => {
+    const c = l.source_product_id ? capacity?.[l.source_product_id] : null;
+    if (!c) return null;
+    const pax = l.pax ?? quote?.pax_count ?? 1;
+    if (c.max_guests_per_day && pax > c.max_guests_per_day) return `over capacity — max ${c.max_guests_per_day}`;
+    if (c.min_guests && pax < c.min_guests) return `below minimum — min ${c.min_guests}`;
+    return null;
+  };
+
   const { data: rateMeta } = useQuery({
     queryKey: ["rate-meta"],
     queryFn: async () => {
@@ -103,11 +137,38 @@ export default function QuoteBuilder() {
   };
 
   const addDay = async () => {
-    const dayNo = (days?.length ?? 0) + 1;
+    const last = (days ?? [])[(days ?? []).length - 1];
     const { error } = await supabase.from("quote_days").insert({
-      quote_id: id, day_no: dayNo, location_id: auth.currentLocation?.id ?? null,
+      quote_id: id,
+      day_no: (days?.length ?? 0) + 1,
+      date: last?.date ? addDays(last.date, 1) : null,               // A4: next date
+      location_id: last?.location_id ?? auth.currentLocation?.id ?? null,  // A4: same place
     });
     if (error) toast.error(error.message); else invalidate();
+  };
+
+  /** A2: copy ONLY the stay + breakfast onto the next day (creating it if needed). */
+  const copyDay = async (d: Day) => {
+    const src = linesFor(d.id).filter((l) => l.kind === "accommodation" || l.kind === "breakfast");
+    if (src.length === 0) { toast.error("Nothing to copy — this day has no stay"); return; }
+    let next = (days ?? []).find((x) => x.day_no === d.day_no + 1);
+    if (!next) {
+      const { data, error } = await supabase.from("quote_days").insert({
+        quote_id: id, day_no: d.day_no + 1,
+        date: d.date ? addDays(d.date, 1) : null, location_id: d.location_id,
+      }).select("*").single();
+      if (error) { toast.error(error.message); return; }
+      next = data as Day;
+    } else if (linesFor(next.id).some((l) => l.kind === "accommodation")) {
+      toast.error(`Day ${next.day_no} already has a stay (one per day)`); return;
+    }
+    const rows = src.map((l) => {
+      const { id: _id, created_at: _c, ...rest } = l as QuoteLine & Record<string, unknown>;
+      return { ...rest, day_id: next!.id };
+    });
+    const { error } = await supabase.from("quote_lines").insert(rows);
+    if (error) toast.error(error.message);
+    else { invalidate(); toast.success(`Stay and breakfast copied to day ${next.day_no}`); }
   };
 
   const patchLine = async (lineId: string, patch: Partial<QuoteLine>, isAdjustment = false) => {
@@ -217,6 +278,11 @@ export default function QuoteBuilder() {
         <div className="flex items-baseline gap-1 font-medium">
           <InlineText value={l.title} className="font-medium px-0.5"
             onCommit={(v) => { if (!v.trim()) return; patchLine(l.id, { title: v.trim() }); }} />
+          {capacityIssue(l) && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[hsl(var(--st-pending))] whitespace-nowrap">
+              <AlertTriangle className="h-3 w-3" /> {capacityIssue(l)}
+            </span>
+          )}
           {l.room_type_id && !l.title.includes(roomName(l.room_type_id)) && (
             <span className="text-muted-foreground font-normal text-xs whitespace-nowrap">
               {roomName(l.room_type_id)}{l.season ? ` · ${SEASON_LABEL[l.season] ?? l.season} season` : ""}
@@ -257,11 +323,13 @@ export default function QuoteBuilder() {
           {!l.is_comp && l.discount_amount_usd ? <span>−${l.discount_amount_usd}</span> : null}
         </div>
       </div>
-      <div className="w-14 shrink-0">
-        <InlineText numeric value={String(l.qty)} onCommit={(v) => {
-          const n = Number(v); if (!isFinite(n) || n <= 0) return toast.error("Qty must be > 0");
-          patchLine(l.id, { qty: n });
-        }} />
+      <div className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+        {l.kind === "accommodation" || l.kind === "breakfast"
+          ? (Number(l.qty) > 1 ? `${l.qty} nights` : "1 night")   // A1: day = night, no editing
+          : <InlineText numeric value={String(l.qty)} onCommit={(v) => {
+              const n = Number(v); if (!isFinite(n) || n <= 0) return toast.error("Qty must be > 0");
+              patchLine(l.id, { qty: n });
+            }} />}
       </div>
       <span className="text-muted-foreground text-xs shrink-0">×</span>
       <div className="w-20 shrink-0">
@@ -298,16 +366,21 @@ export default function QuoteBuilder() {
     </div>
   );
 
-  const AddButtons = ({ dayId }: { dayId: string | null }) => (
-    <div className="flex gap-1.5 flex-wrap pt-1">
-      {(["accommodation", "experience", "transport", "custom"] as const).map((k) => (
-        <Button key={k} variant="outline" size="sm" className="h-7 text-xs gap-1"
-          onClick={() => { setAddDayId(dayId); setAddOpen(k); }}>
-          <Plus className="h-3 w-3" /> {k === "accommodation" ? "Stay" : k[0].toUpperCase() + k.slice(1)}
-        </Button>
-      ))}
-    </div>
-  );
+  const AddButtons = ({ dayId }: { dayId: string | null }) => {
+    const hasStay = dayId != null && linesFor(dayId).some((l) => l.kind === "accommodation");
+    return (
+      <div className="flex gap-1.5 flex-wrap pt-1">
+        {(["accommodation", "experience", "transport", "custom"] as const).map((k) => (
+          <Button key={k} variant="outline" size="sm" className="h-7 text-xs gap-1"
+            disabled={k === "accommodation" && hasStay}
+            title={k === "accommodation" && hasStay ? "One stay per day — a day is a night" : undefined}
+            onClick={() => { setAddDayId(dayId); setAddOpen(k); }}>
+            <Plus className="h-3 w-3" /> {k === "accommodation" ? "Stay" : k[0].toUpperCase() + k.slice(1)}
+          </Button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="p-4 grid grid-cols-[1fr_320px] gap-4 max-xl:grid-cols-1 items-start">
@@ -340,6 +413,12 @@ export default function QuoteBuilder() {
                 <FileText className="h-3.5 w-3.5" /> Versions ({versions?.length ?? 0})
               </Button>
             </Tip>
+            <Tip label="Everything is already saved as you go. This just takes you back to the list.">
+              <Button variant="outline" size="sm" className="gap-1.5"
+                onClick={() => { toast.success("Saved as draft"); nav("/quotes"); }}>
+                <LogOut className="h-3.5 w-3.5" /> Save &amp; exit
+              </Button>
+            </Tip>
           </div>
         </div>
 
@@ -351,7 +430,20 @@ export default function QuoteBuilder() {
           </div>
         )}
 
-        {(days ?? []).map((d) => (
+        {(() => {
+          const n = (lines ?? []).filter((l) => capacityIssue(l)?.startsWith("over")).length;
+          return n > 0 ? (
+            <div className="rounded-md border border-[hsl(var(--st-pending))]/40 bg-[hsl(var(--st-pending))]/10 px-3 py-2 text-sm flex gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-[hsl(var(--st-pending))]" />
+              <span><span className="font-medium">{n} experience{n === 1 ? "" : "s"} over capacity for {quote.pax_count} pax.</span> A group this size may need to split across departures. Warning only — nothing is blocked.</span>
+            </div>
+          ) : null;
+        })()}
+
+        {(days ?? []).map((d, i) => {
+          const hasStay = linesFor(d.id).some((l) => l.kind === "accommodation");
+          const isLast = i === (days ?? []).length - 1;
+          return (
           <div key={d.id} className="border rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
               <div className="font-medium text-[15px]">Day {d.day_no}
@@ -359,8 +451,22 @@ export default function QuoteBuilder() {
                   {" · "}{auth.allLocations.find((l) => l.id === d.location_id)?.name ?? "no location"}
                   {d.date ? ` · ${d.date}` : ""}
                 </span>
+                {!hasStay && !isLast && (days ?? []).length > 1 && (
+                  <Tip label="Every day is a night. This day has no stay — add one, or copy from the day before.">
+                    <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-[hsl(var(--st-pending))]">
+                      <AlertTriangle className="h-3 w-3" /> no stay
+                    </span>
+                  </Tip>
+                )}
               </div>
               <div className="flex items-center gap-2">
+                {hasStay && (
+                  <Tip label="Copies only the stay and breakfast onto the next day (date +1, same location). Experiences and transport are not copied.">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => copyDay(d)}>
+                      <CopyPlus className="h-3.5 w-3.5" /> Copy stay and breakfast to next day
+                    </Button>
+                  </Tip>
+                )}
                 <Input type="date" className="h-7 w-36 text-xs" defaultValue={d.date ?? ""} onBlur={async (e) => {
                   await supabase.from("quote_days").update({ date: e.target.value || null }).eq("id", d.id); invalidate();
                 }} />
@@ -377,7 +483,8 @@ export default function QuoteBuilder() {
             {linesFor(d.id).map((l) => <LineRow key={l.id} l={l} />)}
             <AddButtons dayId={d.id} />
           </div>
-        ))}
+          );
+        })}
 
         <Button variant="outline" onClick={addDay} className="gap-1.5"><Plus className="h-4 w-4" /> Add day</Button>
 
@@ -477,6 +584,7 @@ export default function QuoteBuilder() {
       <AddLineDialog
         kind={addOpen} dayId={addDayId} quoteId={id!} pax={quote.pax_count}
         defaultLocation={(days ?? []).find((d) => d.id === addDayId)?.location_id ?? auth.currentLocation?.id ?? null}
+        dayDate={(days ?? []).find((d) => d.id === addDayId)?.date ?? null}
         onClose={() => setAddOpen(null)} onAdded={invalidate}
         roomTypes={roomTypes ?? []} locations={auth.allLocations}
       />
@@ -514,27 +622,28 @@ export default function QuoteBuilder() {
 
 /* ── Add-line dialog: pickers per kind ─────────────────────────────── */
 function AddLineDialog({
-  kind, dayId, quoteId, pax, defaultLocation, onClose, onAdded, roomTypes, locations,
+  kind, dayId, quoteId, pax, defaultLocation, dayDate, onClose, onAdded, roomTypes, locations,
 }: {
   kind: null | "accommodation" | "experience" | "transport" | "custom";
   dayId: string | null; quoteId: string; pax: number;
   defaultLocation: string | null;
+  dayDate: string | null;
   onClose: () => void; onAdded: () => void;
   roomTypes: RoomType[]; locations: Location[];
 }) {
   const [locId, setLocId] = useState<string | null>(null);
-  const [day, setDay] = useState<number | null>(null);
+  const [day, setDay] = useState<number | null>(dayDate ? isoWeekday(dayDate) : null);  // A3
   const [override, setOverride] = useState(false);
   const [search, setSearch] = useState("");
   // accommodation state
   const [roomId, setRoomId] = useState<string | null>(null);
   const [season, setSeason] = useState<SeasonTier>("mid");
-  const [nights, setNights] = useState("1");
   const [breakfast, setBreakfast] = useState(false);
   // custom state
   const [cTitle, setCTitle] = useState("");
   const [cPrice, setCPrice] = useState("");
   const [cPerPerson, setCPerPerson] = useState(true);
+  type PickerProduct = Product & { transport_details?: { departure_times: string[] } | null };
 
   const effLoc = locId ?? defaultLocation;
 
@@ -542,7 +651,9 @@ function AddLineDialog({
     queryKey: ["picker", kind, effLoc, day, override, search],
     enabled: !!kind && (kind === "experience" || kind === "transport") && !!effLoc,
     queryFn: async () => {
-      let q = supabase.from("products").select("*").eq("location_id", effLoc!);
+      let q = supabase.from("products")
+        .select(kind === "transport" ? "*, transport_details(departure_times)" : "*")
+        .eq("location_id", effLoc!);
       if (kind === "transport") q = q.eq("category", "transport");
       else q = q.in("category", ["mm_tour", "nightly_event", "third_party_tour", "one_time_event"]);
       if (!override) {
@@ -551,7 +662,7 @@ function AddLineDialog({
       }
       if (search.trim()) q = q.ilike("title", `%${search.trim()}%`);
       const { data } = await q.order("title").limit(60);
-      return (data ?? []) as Product[];
+      return (data ?? []) as unknown as PickerProduct[];
     },
   });
 
@@ -594,7 +705,7 @@ function AddLineDialog({
     return true;
   };
 
-  const addProduct = async (p: Product) => {
+  const addProduct = async (p: Product, slot?: string) => {
     if (p.rate_usd == null) {
       toast.error(`“${p.title}” has no numeric rate yet — fix it in Experiences first (sheet said: ${p.rate_raw ?? "blank"})`);
       return;
@@ -602,14 +713,14 @@ function AddLineDialog({
     await insert([{
       kind: kind === "transport" ? "transport" : "experience",
       source_product_id: p.id, title: p.title,
-      description: p.brief_description, starts_at: p.starts_at, ends_at: p.ends_at,
+      description: p.brief_description, starts_at: slot ?? p.starts_at, ends_at: slot ? null : p.ends_at,
       duration_minutes: p.duration_minutes, qty: 1, unit_price_usd: p.rate_usd, per_person: true,
     }]);
   };
 
   const addAccommodation = async () => {
     if (!roomId || accRate == null) { toast.error("Pick a room type with a rate"); return; }
-    const n = Math.max(1, Number(nights) || 1);
+    const n = 1;   // A1: a day is a night
     const room = roomTypes.find((r) => r.id === roomId);
     const rows: Record<string, unknown>[] = [{
       kind: "accommodation",
@@ -663,7 +774,28 @@ function AddLineDialog({
             <Input placeholder="Search…" className="h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="max-h-72 overflow-y-auto border rounded-md divide-y">
               {(products ?? []).length === 0 && <div className="p-4 text-sm text-muted-foreground text-center">Nothing matches the filter — try “Show everything”.</div>}
-              {(products ?? []).map((p) => (
+              {(products ?? []).map((p) => {
+                const slots = kind === "transport" ? (p.transport_details?.departure_times ?? []) : [];
+                if (slots.length > 0) {
+                  // A5: transport is picked from its time slots, never free text
+                  return (
+                    <div key={p.id} className="px-3 py-2 text-sm space-y-1.5">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-medium truncate">{p.title}</span>
+                        <span className="tabular-nums shrink-0">{p.rate_usd != null ? usd(p.rate_usd) : <span className="text-[hsl(var(--st-pending))] text-xs">no rate</span>}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {slots.map((t) => (
+                          <button key={t} onClick={() => addProduct(p, t)}
+                            className="rounded-full border px-2.5 py-0.5 text-xs tabular-nums hover:bg-primary hover:text-primary-foreground hover:border-primary">
+                            {shortTime(t)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
                 <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-secondary text-sm flex justify-between gap-2"
                   onClick={() => addProduct(p)}>
                   <span className="min-w-0">
@@ -678,7 +810,8 @@ function AddLineDialog({
                     {p.rate_usd != null ? usd(p.rate_usd) : <span className="text-[hsl(var(--st-pending))] text-xs">no rate</span>}
                   </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -710,10 +843,6 @@ function AddLineDialog({
                     <SelectItem value="high">High season</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Nights</Label>
-                <Input className="h-9" inputMode="numeric" value={nights} onChange={(e) => setNights(e.target.value)} />
               </div>
             </div>
             <div className="flex items-center justify-between border rounded-md px-3 py-2">

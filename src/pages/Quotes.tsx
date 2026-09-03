@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function Quotes() {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [search, setSearch] = useState("");
   const [country, setCountry] = useState("all");
   const [month, setMonth] = useState("all");
   const [open, setOpen] = useState(false);
@@ -70,9 +71,12 @@ export default function Quotes() {
 
   const countries = [...new Set((rows ?? []).map((r) => r.customers?.country).filter(Boolean))] as string[];
   const months = [...new Set((rows ?? []).map((r) => r.created_at.slice(0, 7)))];
+  const needle = search.trim().toLowerCase();
   const filtered = (rows ?? []).filter((r) =>
     (country === "all" || r.customers?.country === country) &&
-    (month === "all" || r.created_at.startsWith(month)));
+    (month === "all" || r.created_at.startsWith(month)) &&
+    (!needle || [r.reference, r.title, r.customers?.contact_name, r.customers?.company_name]
+      .some((v) => (v ?? "").toLowerCase().includes(needle))));
 
   const latestTotal = (r: QuoteRow) =>
     r.quote_versions.length ? r.quote_versions.sort((a, b) => b.version_no - a.version_no)[0].total_usd : null;
@@ -122,7 +126,8 @@ export default function Quotes() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Input placeholder="Search quotes…" className="w-56 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         <Select value={country} onValueChange={setCountry}>
           <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
