@@ -1,0 +1,1317 @@
+[
+{
+"location": "Siargao",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Siargao",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Siargao",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Siargao",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Siargao",
+"month": 7,
+"tier": "mid"
+},
+{
+"location": "Siargao",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Siargao",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Siargao",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Siargao",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Siargao",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Siargao",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Siargao",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Nacpan",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Nacpan",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Nacpan",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Nacpan",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Nacpan",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Nacpan",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Nacpan",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Nacpan",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Nacpan",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Nacpan",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Nacpan",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Nacpan",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Panglao",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Panglao",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Panglao",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Panglao",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Panglao",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Panglao",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Panglao",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Panglao",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Panglao",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Panglao",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Panglao",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Panglao",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Dumaguete",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Dumaguete",
+"month": 1,
+"tier": "mid"
+},
+{
+"location": "Dumaguete",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Dumaguete",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Dumaguete",
+"month": 2,
+"tier": "mid"
+},
+{
+"location": "Dumaguete",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Dumaguete",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Dumaguete",
+"month": 7,
+"tier": "mid"
+},
+{
+"location": "Dumaguete",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Dumaguete",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Dumaguete",
+"month": 6,
+"tier": "high"
+},
+{
+"location": "Dumaguete",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Siquijor",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Siquijor",
+"month": 1,
+"tier": "mid"
+},
+{
+"location": "Siquijor",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Siquijor",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Siquijor",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Siquijor",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Siquijor",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Siquijor",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Siquijor",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Siquijor",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Siquijor",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Siquijor",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Manila",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Manila",
+"month": 1,
+"tier": "mid"
+},
+{
+"location": "Manila",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Manila",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Manila",
+"month": 4,
+"tier": "mid"
+},
+{
+"location": "Manila",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Manila",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Manila",
+"month": 10,
+"tier": "high"
+},
+{
+"location": "Manila",
+"month": 8,
+"tier": "mid"
+},
+{
+"location": "Manila",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Manila",
+"month": 9,
+"tier": "mid"
+},
+{
+"location": "Manila",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Phnom Penh",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Phnom Penh",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Phnom Penh",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Phnom Penh",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Phnom Penh",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Phnom Penh",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Phnom Penh",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Phnom Penh",
+"month": 7,
+"tier": "mid"
+},
+{
+"location": "Phnom Penh",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Phnom Penh",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Phnom Penh",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Phnom Penh",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Siem Reap",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Siem Reap",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Siem Reap",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Siem Reap",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Siem Reap",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Siem Reap",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Siem Reap",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Siem Reap",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Siem Reap",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Siem Reap",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Siem Reap",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Siem Reap",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Koh Rong",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Koh Rong",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Koh Rong",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Koh Rong",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Koh Rong",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Koh Rong",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Koh Rong",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Koh Rong",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Koh Rong",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Koh Rong",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Koh Rong",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Koh Rong",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Koh Sdach",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Koh Sdach",
+"month": 1,
+"tier": "mid"
+},
+{
+"location": "Koh Sdach",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Koh Sdach",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Koh Sdach",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Koh Sdach",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Koh Sdach",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Koh Sdach",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Koh Sdach",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Koh Sdach",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Koh Sdach",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Koh Sdach",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Bangkok",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Bangkok",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Bangkok",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Bangkok",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 7,
+"tier": "mid"
+},
+{
+"location": "Bangkok",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Bangkok",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Bangkok",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Pai",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Pai",
+"month": 4,
+"tier": "mid"
+},
+{
+"location": "Pai",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Pai",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Pai",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Pai",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Pai",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Pai",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Pai",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Pai",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Pai",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Pai",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Chiang Mai",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Chiang Mai",
+"month": 4,
+"tier": "mid"
+},
+{
+"location": "Chiang Mai",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Chiang Mai",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Chiang Mai",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Chiang Mai",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Chiang Mai",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Chiang Mai",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Chiang Mai",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Chiang Mai",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Chiang Mai",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Chiang Mai",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Phuket",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Phuket",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Phuket",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Phuket",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Phuket",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Phuket",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Phuket",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Phuket",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Phuket",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Phuket",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Phuket",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Phuket",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Luang Prabang",
+"month": 4,
+"tier": "mid"
+},
+{
+"location": "Luang Prabang",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Luang Prabang",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Luang Prabang",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Luang Prabang",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Luang Prabang",
+"month": 10,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Luang Prabang",
+"month": 12,
+"tier": "high"
+},
+{
+"location": "Vang Vieng",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Vang Vieng",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Vang Vieng",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Vang Vieng",
+"month": 7,
+"tier": "lean"
+},
+{
+"location": "Vang Vieng",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Vang Vieng",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Vang Vieng",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Vang Vieng",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Vang Vieng",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Vang Vieng",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Vang Vieng",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Vang Vieng",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 1,
+"tier": "lean"
+},
+{
+"location": "Kuta Lombok",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Kuta Lombok",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 2,
+"tier": "lean"
+},
+{
+"location": "Kuta Lombok",
+"month": 3,
+"tier": "mid"
+},
+{
+"location": "Kuta Lombok",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 12,
+"tier": "lean"
+},
+{
+"location": "Kuta Lombok",
+"month": 6,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 7,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 8,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 9,
+"tier": "high"
+},
+{
+"location": "Kuta Lombok",
+"month": 10,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 1,
+"tier": "lean"
+},
+{
+"location": "Gili Trawangan",
+"month": 3,
+"tier": "mid"
+},
+{
+"location": "Gili Trawangan",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 2,
+"tier": "lean"
+},
+{
+"location": "Gili Trawangan",
+"month": 4,
+"tier": "mid"
+},
+{
+"location": "Gili Trawangan",
+"month": 6,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 11,
+"tier": "lean"
+},
+{
+"location": "Gili Trawangan",
+"month": 7,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 12,
+"tier": "lean"
+},
+{
+"location": "Gili Trawangan",
+"month": 8,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 9,
+"tier": "high"
+},
+{
+"location": "Gili Trawangan",
+"month": 10,
+"tier": "high"
+},
+{
+"location": "Nusa Lembongan",
+"month": 1,
+"tier": "lean"
+},
+{
+"location": "Nusa Lembongan",
+"month": 8,
+"tier": "mid"
+},
+{
+"location": "Nusa Lembongan",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Nusa Lembongan",
+"month": 2,
+"tier": "lean"
+},
+{
+"location": "Nusa Lembongan",
+"month": 9,
+"tier": "mid"
+},
+{
+"location": "Nusa Lembongan",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Nusa Lembongan",
+"month": 3,
+"tier": "lean"
+},
+{
+"location": "Nusa Lembongan",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Nusa Lembongan",
+"month": 6,
+"tier": "high"
+},
+{
+"location": "Nusa Lembongan",
+"month": 11,
+"tier": "lean"
+},
+{
+"location": "Nusa Lembongan",
+"month": 7,
+"tier": "high"
+},
+{
+"location": "Nusa Lembongan",
+"month": 12,
+"tier": "lean"
+},
+{
+"location": "Uluwatu",
+"month": 1,
+"tier": "lean"
+},
+{
+"location": "Uluwatu",
+"month": 3,
+"tier": "mid"
+},
+{
+"location": "Uluwatu",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 2,
+"tier": "lean"
+},
+{
+"location": "Uluwatu",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Uluwatu",
+"month": 5,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 6,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 7,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 8,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 9,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 10,
+"tier": "high"
+},
+{
+"location": "Uluwatu",
+"month": 11,
+"tier": "high"
+},
+{
+"location": "Hoi An",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Hoi An",
+"month": 1,
+"tier": "mid"
+},
+{
+"location": "Hoi An",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Hoi An",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Hoi An",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Hoi An",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Hoi An",
+"month": 10,
+"tier": "lean"
+},
+{
+"location": "Hoi An",
+"month": 6,
+"tier": "mid"
+},
+{
+"location": "Hoi An",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Hoi An",
+"month": 7,
+"tier": "mid"
+},
+{
+"location": "Hoi An",
+"month": 11,
+"tier": "mid"
+},
+{
+"location": "Hoi An",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Hanoi",
+"month": 6,
+"tier": "lean"
+},
+{
+"location": "Hanoi",
+"month": 5,
+"tier": "mid"
+},
+{
+"location": "Hanoi",
+"month": 1,
+"tier": "high"
+},
+{
+"location": "Hanoi",
+"month": 10,
+"tier": "mid"
+},
+{
+"location": "Hanoi",
+"month": 2,
+"tier": "high"
+},
+{
+"location": "Hanoi",
+"month": 8,
+"tier": "lean"
+},
+{
+"location": "Hanoi",
+"month": 12,
+"tier": "mid"
+},
+{
+"location": "Hanoi",
+"month": 3,
+"tier": "high"
+},
+{
+"location": "Hanoi",
+"month": 9,
+"tier": "lean"
+},
+{
+"location": "Hanoi",
+"month": 4,
+"tier": "high"
+},
+{
+"location": "Hanoi",
+"month": 11,
+"tier": "high"
+}
+]

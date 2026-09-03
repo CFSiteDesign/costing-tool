@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Wand2, CopyPlus } from "lucide-react";
 
 interface QuoteRow {
   id: string; reference: string; title: string; status: string; pax_count: number; created_at: string;
@@ -85,6 +85,8 @@ export default function Quotes() {
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-semibold">Quotes</h1>
+        <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => nav("/quotes/auto")}><Wand2 className="h-4 w-4" /> Auto-create trip</Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> New quote</Button>
@@ -124,6 +126,7 @@ export default function Quotes() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -155,11 +158,12 @@ export default function Quotes() {
               <th className="font-medium px-3 py-2.5 text-right">Latest total</th>
               <th className="font-medium px-3 py-2.5 text-right">Versions</th>
               <th className="font-medium px-3 py-2.5">Status</th>
+              <th className="w-10"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">No quotes yet — create the first one.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No quotes yet — create the first one.</td></tr>
             )}
             {filtered.map((r) => (
               <tr key={r.id} className="border-t hover:bg-secondary/40 h-11 cursor-pointer" onClick={() => nav(`/quotes/${r.id}`)}>
@@ -177,6 +181,16 @@ export default function Quotes() {
                     <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: `hsl(var(${STATUS_COLORS[r.status]}))` }} />
                     {r.status}
                   </span>
+                </td>
+                <td className="px-1 py-1">
+                  <button title="Duplicate this trip into a new quote" className="text-muted-foreground hover:text-foreground p-1"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const { data, error } = await supabase.rpc("duplicate_quote", { p_quote_id: r.id });
+                      if (error) { toast.error(error.message); return; }
+                      qc.invalidateQueries({ queryKey: ["quotes"] });
+                      toast.success("Trip duplicated"); nav(`/quotes/${data}`);
+                    }}><CopyPlus className="h-4 w-4" /></button>
                 </td>
               </tr>
             ))}
