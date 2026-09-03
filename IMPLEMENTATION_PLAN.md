@@ -241,7 +241,7 @@ and flagging the change in Reden's digest. No gate, no extra click on genuine ed
 
 ---
 
-## Round 2 — client updates doc (received 27 Aug 2026)
+## Round 2 — client updates doc (received 27 Aug 2026) — **BUILT 3 Sep 2026, all groups live**
 
 Source: `docs/UPDATES_ROUND2.md`. Context that shaped the plan: the client (Reight Travel) has
 already built 9 real quotes of 10–14 days, one stay per day — the doc is driven by that
@@ -299,3 +299,14 @@ interactive (`npx convex deploy`).
 - **D3 STUDIO write-back.** Automatic post-back needs STUDIO changes deployed. Recommend building
   the deep link + manual "attach asset" first, automatic post-back second.
 - **D4 Order.** Recommend A → B → E → C → D → F.
+
+### Round 2 outcome (3 Sep 2026)
+All six groups shipped, both repos. Decisions taken as recommended: D1 FX from
+open.er-api.com daily + admin override; D2 "Duplicate quote" covers copy-trip and template;
+D3 STUDIO deep link + automatic post-back both built (STUDIO commit + `npx convex deploy -y`,
+`MM_ASSET_SECRET` set on prod exuberant-anaconda-353); D4 order A→B→E→C→D→F.
+One addition to the client's five deep-link fields: the hostel name, because STUDIO's event
+form can't generate without a location. Verified end-to-end: signed post-back attaches the
+asset, forged signature rejected, price edit marks it out of date.
+Not done: walkthrough PDF refresh (still describes the autosave drawer and predates My week,
+currency, auto-trip) — regenerate before the next GM rollout.
