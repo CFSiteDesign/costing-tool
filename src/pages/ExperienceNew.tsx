@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 import { useFx, money } from "@/lib/fx";
 
 export default function ExperienceNew() {
@@ -22,7 +24,19 @@ export default function ExperienceNew() {
     title: "", category: "mm_tour" as Category, rate: "", rateCcy: "", brief: "", long: "",
     days: [] as number[], starts: "", ends: "", minGuests: "1", maxGuests: "",
     meetingPoint: "", inclusions: "", thingsToBring: "", photoUrl: "", bookable: false,
+    oneTime: false, expiresOn: "", status: "active" as "active" | "paused",
   });
+  const filled = Object.entries(f).some(([k, v]) => !["category", "minGuests", "status", "rateCcy"].includes(k) && (Array.isArray(v) ? v.length > 0 : typeof v === "boolean" ? v : String(v).trim() !== ""));
+  useEffect(() => {
+    if (!filled) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [filled]);
+  const back = () => {
+    if (filled && !window.confirm("You've started filling this in. Leave without saving?")) return;
+    nav(-1);
+  };
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
   const [busy, setBusy] = useState(false);
 
@@ -31,9 +45,11 @@ export default function ExperienceNew() {
     if (!auth.currentLocation) return;
     if (!f.title.trim()) { toast.error("Title is required"); return; }
     if (!f.brief.trim()) { toast.error("Brief description is required"); return; }
-    if (f.category !== "one_time_event" && f.days.length === 0) {
+    const category: Category = f.oneTime ? "one_time_event" : f.category;
+    if (category !== "one_time_event" && f.days.length === 0) {
       toast.error("Pick the days it runs"); return;
     }
+    if (f.oneTime && !f.expiresOn) { toast.error("A one-time event needs an expiry date"); return; }
     const typed = f.rate.trim() === "" ? null : Number(f.rate);
     if (f.rate.trim() !== "" && !isFinite(typed!)) { toast.error("Rate must be a number"); return; }
     const ccy = f.rateCcy || localCcy;
@@ -44,8 +60,10 @@ export default function ExperienceNew() {
     setBusy(true);
     const { error } = await supabase.from("products").insert({
       location_id: auth.currentLocation.id,
-      category: f.category,
+      category,
       title: f.title.trim(),
+      expires_on: f.oneTime ? f.expiresOn : null,
+      active_on_ground: f.status === "active",
       rate_usd: rate,
       local_amount: localAmount,
       local_currency: localCcy,
@@ -63,7 +81,7 @@ export default function ExperienceNew() {
       things_to_bring: f.thingsToBring.trim() || null,
       photo_album_url: f.photoUrl.trim() || null,
       bookable_on_website: f.bookable,
-      status: "active",
+      status: f.status,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -73,7 +91,10 @@ export default function ExperienceNew() {
 
   return (
     <div className="p-4 max-w-2xl">
-      <h1 className="text-xl font-semibold mb-1">Add product</h1>
+      <div className="flex items-center gap-2 mb-1">
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={back}><ArrowLeft className="h-4 w-4" /></Button>
+        <h1 className="text-xl font-semibold">Add product</h1>
+      </div>
       <p className="text-sm text-muted-foreground mb-4">
         Adding to <span className="font-medium text-foreground">{auth.currentLocation?.name}</span>.
         Required fields are enforced — nothing incomplete enters the database.
@@ -86,7 +107,7 @@ export default function ExperienceNew() {
           </div>
           <div className="space-y-1.5">
             <Label>Category *</Label>
-            <Select value={f.category} onValueChange={(v) => set("category", v)}>
+            <Select value={f.oneTime ? "one_time_event" : f.category} disabled={f.oneTime} onValueChange={(v) => set("category", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
@@ -163,13 +184,36 @@ export default function ExperienceNew() {
           <Label>Photo album URL (minimum 6 images)</Label>
           <Input type="url" placeholder="https://…" value={f.photoUrl} onChange={(e) => set("photoUrl", e.target.value)} />
         </div>
+        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 items-end">
+          <div className="space-y-1.5">
+            <Label>Starts as</Label>
+            <Select value={f.status} onValueChange={(v) => set("status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active — running now</SelectItem>
+                <SelectItem value="paused">Paused — not yet running</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2.5 text-sm">
+              <Switch checked={f.oneTime} onCheckedChange={(v) => set("oneTime", v)} /> One-time event
+            </label>
+            {f.oneTime && (
+              <div className="space-y-1">
+                <Input type="date" value={f.expiresOn} onChange={(e) => set("expiresOn", e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Expiry date — after this it drops off My week and the list.</p>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-2.5 pt-1">
           <Switch checked={f.bookable} onCheckedChange={(v) => set("bookable", v)} id="bk" />
           <Label htmlFor="bk">Bookable on the Mad Monkey website</Label>
         </div>
         <div className="flex gap-2 pt-2">
           <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Add product"}</Button>
-          <Button type="button" variant="outline" onClick={() => nav(-1)}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={back}>Cancel</Button>
         </div>
       </form>
     </div>

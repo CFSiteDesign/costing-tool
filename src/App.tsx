@@ -8,6 +8,8 @@ import AppShell from "@/components/app/AppShell";
 import Login from "./pages/Login";
 import Experiences from "./pages/Experiences";
 import ExperienceNew from "./pages/ExperienceNew";
+import ExperienceDetail from "./pages/ExperienceDetail";
+import MyWeek from "./pages/MyWeek";
 import Activity from "./pages/Activity";
 import Quotes from "./pages/Quotes";
 import QuoteBuilder from "./pages/QuoteBuilder";
@@ -34,6 +36,8 @@ const App = () => (
               <Route path="/" element={<Navigate to="/experiences" replace />} />
               <Route path="/experiences" element={<Experiences />} />
               <Route path="/experiences/new" element={<ExperienceNew />} />
+              <Route path="/experiences/:id" element={<ExperienceDetail />} />
+              <Route path="/week" element={<MyWeek />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/quotes/:id" element={<QuoteBuilder />} />

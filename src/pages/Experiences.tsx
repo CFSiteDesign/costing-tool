@@ -7,7 +7,6 @@ import { daysLabel, shortTime, usd } from "@/lib/format";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
 import { RateCell } from "@/components/app/RateCell";
-import { ProductDrawer } from "@/components/app/ProductDrawer";
 import { Tip, TipHead } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import { Plus, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, ChevronLeft, ChevronRight, AlertTriangle, ShieldCheck } from "lucide-react";
 
 const PAGE = 50;
 
@@ -29,9 +28,11 @@ export default function Experiences() {
   const [day, setDay] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [showExpired, setShowExpired] = useState(false);
+  const nav = useNavigate();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const key = ["products", locId, category, status, day, search, page];
+  const key = ["products", locId, category, status, day, search, page, showExpired];
   const { data, isLoading } = useQuery({
     queryKey: key,
     enabled: !!locId,
@@ -42,6 +43,7 @@ export default function Experiences() {
       if (status !== "all") q = q.eq("status", status);
       if (day) q = q.contains("days_of_week", [day]);
       if (search.trim()) q = q.ilike("title", `%${search.trim()}%`);
+      if (!showExpired) q = q.or(`expires_on.is.null,expires_on.gte.${today}`);   // E3: expired drop out
       const { data, count, error } = await q
         .order("category").order("title")
         .range(page * PAGE, page * PAGE + PAGE - 1);
@@ -91,12 +93,16 @@ export default function Experiences() {
   const pages = Math.max(1, Math.ceil(total / PAGE));
   const canEdit = auth.isEditor;
 
-  const openProduct = useMemo(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
-
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-semibold">Experiences</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold">Experiences</h1>
+          <div className="flex rounded-md border overflow-hidden text-sm">
+            <span className="px-3 py-1.5 bg-primary text-primary-foreground font-medium">List</span>
+            <Link to="/week" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">Week</Link>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           {(exceptionCount ?? 0) > 0 && (
             <Tip label="Things the spreadsheet import couldn't read with confidence — mostly rates written as words. Click to work the list; most items are one tap.">
@@ -137,6 +143,9 @@ export default function Experiences() {
           </SelectContent>
         </Select>
         <DayFilter value={day} onChange={(d) => { setDay(d); setPage(0); }} />
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Switch checked={showExpired} onCheckedChange={(v) => { setShowExpired(v); setPage(0); }} /> Show expired
+        </label>
         <div className="ml-auto text-sm text-muted-foreground tabular-nums">
           {total} product{total === 1 ? "" : "s"}
         </div>
@@ -155,21 +164,22 @@ export default function Experiences() {
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
+                <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Verified" tip="When someone last confirmed these details are current. Click the shield to mark it verified today." /></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && rows.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={9} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && rows.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No products match.</td></tr>
+                <tr><td colSpan={9} className="px-3 py-10 text-center text-muted-foreground">No products match.</td></tr>
               )}
               {rows.map((p) => (
                 <tr key={p.id} className="border-t hover:bg-secondary/40 h-11">
                   <td className="px-3 py-1 sticky left-0 bg-background z-10">
                     <button
                       className="text-left font-medium hover:underline underline-offset-2 line-clamp-1"
-                      onClick={() => setOpenId(p.id)}
+                      onClick={() => nav(`/experiences/${p.id}`)}
                       title={p.title}
                     >
                       {p.title}
@@ -241,6 +251,21 @@ export default function Experiences() {
                       />
                     </Tip>
                   </td>
+                  <td className="px-3 py-1 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-xs tabular-nums ${(p as unknown as { last_verified_at: string | null }).last_verified_at ? "text-muted-foreground" : "text-[hsl(var(--st-pending))]"}`}>
+                        {(() => { const v = (p as unknown as { last_verified_at: string | null }).last_verified_at; return v ? new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "never"; })()}
+                      </span>
+                      {canEdit && (
+                        <Tip label="Mark verified today">
+                          <button className="text-muted-foreground hover:text-[hsl(var(--st-active))]" onClick={async () => {
+                            const { data: me } = await supabase.auth.getUser();
+                            commit(p.id, { last_verified_at: new Date().toISOString(), last_verified_by: me.user?.id } as Partial<Product>);
+                          }}><ShieldCheck className="h-3.5 w-3.5" /></button>
+                        </Tip>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -261,12 +286,7 @@ export default function Experiences() {
         )}
       </div>
 
-      <ProductDrawer
-        product={openProduct}
-        onClose={() => setOpenId(null)}
-        onCommit={(patch) => openProduct && commit(openProduct.id, patch)}
-        canEdit={canEdit}
-      />
+
     </div>
   );
 }

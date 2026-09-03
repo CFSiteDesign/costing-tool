@@ -2,11 +2,12 @@ import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, FileText, History, Settings, ChevronDown } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/experiences", label: "Experiences", icon: Compass },
+  { to: "/week", label: "My week", icon: CalendarDays },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/activity", label: "Activity", icon: History },
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
