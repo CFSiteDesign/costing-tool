@@ -115,7 +115,7 @@ export default function Experiences() {
           <h1 className="text-xl font-semibold">Experiences</h1>
           <div className="flex rounded-md border overflow-hidden text-sm">
             <span className="px-3 py-1.5 bg-primary text-primary-foreground font-medium">List</span>
-            <Link to="/week" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">Week</Link>
+            <Tip label="Day-by-day view of what runs this week, sorted by start time."><Link to="/week" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">Week</Link></Tip>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -158,9 +158,11 @@ export default function Experiences() {
           </SelectContent>
         </Select>
         <DayFilter value={day} onChange={(d) => { setDay(d); setPage(0); }} />
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Switch checked={showExpired} onCheckedChange={(v) => { setShowExpired(v); setPage(0); }} /> Show expired
-        </label>
+        <Tip label="One-time events past their expiry date are hidden. Switch on to see them.">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-help">
+            <Switch checked={showExpired} onCheckedChange={(v) => { setShowExpired(v); setPage(0); }} /> Show expired
+          </label>
+        </Tip>
         <div className="ml-auto text-sm text-muted-foreground tabular-nums">
           {total} product{total === 1 ? "" : "s"}
         </div>
@@ -171,11 +173,11 @@ export default function Experiences() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-secondary text-muted-foreground text-left">
-                <th className="font-medium px-3 py-2.5 min-w-[260px] sticky left-0 bg-secondary z-10">Title</th>
-                <th className="font-medium px-3 py-2.5">Category</th>
+                <th className="font-medium px-3 py-2.5 min-w-[260px] sticky left-0 bg-secondary z-10"><TipHead label="Title" tip="Click a name to open the full product page — every field editable, with a Save button." /></th>
+                <th className="font-medium px-3 py-2.5"><TipHead label="Category" tip="MM Tours (MADFIVE), Nightly Events, 3rd Party Tours, One-Time Events, Transport. One-time events carry an expiry and drop off once it passes." /></th>
                 <th className="font-medium px-3 py-2.5 text-right w-36"><TipHead label="Rate" tip="Local price with the USD figure alongside. Type either one — the other is worked out from today's FX rate. Quotes always use USD. Italic text means the spreadsheet had words instead of a number." /></th>
                 <th className="font-medium px-3 py-2.5 w-40"><TipHead label="Days" tip="The days this runs. Click to change — this drives the 'what runs on a Monday?' filter and the quote builder." /></th>
-                <th className="font-medium px-3 py-2.5 w-28">Times</th>
+                <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Times" tip="Start and finish. Edit on the product page. Transport uses departure time slots instead." /></th>
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>

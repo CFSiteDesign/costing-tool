@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Tip } from "@/components/app/Tip";
 import { Plus, Wand2, CopyPlus } from "lucide-react";
 
 interface QuoteRow {
@@ -86,10 +87,10 @@ export default function Quotes() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-semibold">Quotes</h1>
         <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => nav("/quotes/auto")}><Wand2 className="h-4 w-4" /> Auto-create trip</Button>
+        <Tip label="Stops and dates in, a whole day-by-day trip out — stays, breakfast and that day's experiences to tick. Fastest way to build a 10-day itinerary."><Button size="sm" variant="outline" className="gap-1.5" onClick={() => nav("/quotes/auto")}><Wand2 className="h-4 w-4" /> Auto-create trip</Button></Tip>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> New quote</Button>
+            <Button size="sm" className="gap-1.5" title="Start an empty quote and build it day by day"><Plus className="h-4 w-4" /> New quote</Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>New quote</DialogTitle></DialogHeader>
@@ -183,7 +184,7 @@ export default function Quotes() {
                   </span>
                 </td>
                 <td className="px-1 py-1">
-                  <button title="Duplicate this trip into a new quote" className="text-muted-foreground hover:text-foreground p-1"
+                  <button title="Duplicate into a new draft — same days, stays and experiences. Use any quote as a template this way." className="text-muted-foreground hover:text-foreground p-1"
                     onClick={async (e) => {
                       e.stopPropagation();
                       const { data, error } = await supabase.rpc("duplicate_quote", { p_quote_id: r.id });

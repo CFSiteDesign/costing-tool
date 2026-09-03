@@ -9,6 +9,7 @@ import { shortTime, usd } from "@/lib/format";
 import { money } from "@/lib/fx";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Tip, TipHead } from "@/components/app/Tip";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -65,14 +66,14 @@ export default function MyWeek() {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">My week</h1>
           <div className="flex rounded-md border overflow-hidden text-sm">
-            <Link to="/experiences" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">List</Link>
+            <Tip label="Back to the full product list"><Link to="/experiences" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">List</Link></Tip>
             <span className="px-3 py-1.5 bg-primary text-primary-foreground font-medium">Week</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, -7))}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button>
-          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button>
+          <Tip label="Previous week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, -7))}><ChevronLeft className="h-4 w-4" /></Button></Tip>
+          <Tip label="Jump back to the current week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button></Tip>
+          <Tip label="Next week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button></Tip>
           <span className="ml-2 text-sm text-muted-foreground tabular-nums">
             {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
           </span>
@@ -84,9 +85,9 @@ export default function MyWeek() {
           <thead>
             <tr className="bg-secondary text-muted-foreground text-left">
               <th className="font-medium px-3 py-2.5 w-40">Day</th>
-              <th className="font-medium px-3 py-2.5">Experience</th>
-              <th className="font-medium px-3 py-2.5 w-28">Time</th>
-              <th className="font-medium px-3 py-2.5 w-40 text-right">Price</th>
+              <th className="font-medium px-3 py-2.5"><TipHead label="Experience" tip="Everything running at this hostel that day. Daily tours appear on every day they run; one-off and global events on their date. Click to open." /></th>
+              <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Time" tip="Start–finish. Rows are sorted by start time." /></th>
+              <th className="font-medium px-3 py-2.5 w-40 text-right"><TipHead label="Price" tip="Local price with USD alongside. Quotes always use USD." /></th>
               <th className="font-medium px-3 py-2.5 w-32">Status</th>
             </tr>
           </thead>

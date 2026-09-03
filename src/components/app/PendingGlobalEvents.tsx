@@ -55,8 +55,8 @@ export function PendingGlobalEvents() {
               {e.notes && <div className="text-xs mt-0.5 italic">{e.notes}</div>}
             </div>
             <div className="flex gap-1 shrink-0">
-              <Button size="sm" className="h-8 gap-1" disabled={respond.isPending} onClick={() => respond.mutate({ eventId: e.id, status: "accepted" })}><Check className="h-3.5 w-3.5" /> Accept</Button>
-              <Button size="sm" variant="outline" className="h-8 gap-1" disabled={respond.isPending} onClick={() => respond.mutate({ eventId: e.id, status: "declined" })}><X className="h-3.5 w-3.5" /> Decline</Button>
+              <Button size="sm" className="h-8 gap-1" title="Adds it to your product list right away — edit the details there like any other product" disabled={respond.isPending} onClick={() => respond.mutate({ eventId: e.id, status: "accepted" })}><Check className="h-3.5 w-3.5" /> Accept</Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1" title="Not running this at your hostel. Head office sees who declined." disabled={respond.isPending} onClick={() => respond.mutate({ eventId: e.id, status: "declined" })}><X className="h-3.5 w-3.5" /> Decline</Button>
             </div>
           </div>
         );

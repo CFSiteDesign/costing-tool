@@ -147,11 +147,11 @@ export default function ImportsPage() {
               </div>
               <div className="flex gap-1 shrink-0">
                 {(e.field === "active_on_ground" || e.field === "status" || e.field === "event_date" || e.field === "category") && (
-                  <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => resolve.mutate({ exc: e })}>
+                  <Button size="sm" variant="outline" className="h-8 gap-1" title="The value the import chose is correct — close this item" onClick={() => resolve.mutate({ exc: e })}>
                     <Check className="h-3.5 w-3.5" /> Looks right
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={() => resolve.mutate({ exc: e, dismiss: true })}>
+                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" title="Dismiss without changing anything" onClick={() => resolve.mutate({ exc: e, dismiss: true })}>
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>

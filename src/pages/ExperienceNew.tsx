@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Tip } from "@/components/app/Tip";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { useFx, money } from "@/lib/fx";
@@ -135,7 +136,7 @@ export default function ExperienceNew() {
         </div>
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between">
-            <Label>Brief description *</Label>
+            <Tip label="Goes to the website word for word, so it's capped at 95 characters."><Label className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Brief description *</Label></Tip>
             <span className={`text-[11px] tabular-nums ${f.brief.length > 95 ? "text-destructive" : "text-muted-foreground"}`}>{f.brief.length}/95</span>
           </div>
           <Textarea rows={2} maxLength={95} value={f.brief} onChange={(e) => set("brief", e.target.value)} />
@@ -186,7 +187,7 @@ export default function ExperienceNew() {
         </div>
         <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 items-end">
           <div className="space-y-1.5">
-            <Label>Starts as</Label>
+            <Tip label="Active = running and quotable now. Paused = in the database but hidden from quoting until you switch it on."><Label className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Starts as</Label></Tip>
             <Select value={f.status} onValueChange={(v) => set("status", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -196,9 +197,9 @@ export default function ExperienceNew() {
             </Select>
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2.5 text-sm">
+            <Tip label="A dated one-off (Tequila Day, a festival) rather than a weekly tour. It gets an expiry date and drops off automatically afterwards."><label className="flex items-center gap-2.5 text-sm cursor-help">
               <Switch checked={f.oneTime} onCheckedChange={(v) => set("oneTime", v)} /> One-time event
-            </label>
+            </label></Tip>
             {f.oneTime && (
               <div className="space-y-1">
                 <Input type="date" value={f.expiresOn} onChange={(e) => set("expiresOn", e.target.value)} />

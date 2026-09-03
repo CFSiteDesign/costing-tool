@@ -272,16 +272,18 @@ export default function QuoteBuilder() {
         overId === l.id && dragId && dragId !== l.id && "border-t-2 border-accent",
       )}
     >
-      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+      <Tip label="Drag to reorder within this day"><GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" /></Tip>
       <span className="w-14 shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">{l.kind === "accommodation" ? "stay" : l.kind}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1 font-medium">
           <InlineText value={l.title} className="font-medium px-0.5"
             onCommit={(v) => { if (!v.trim()) return; patchLine(l.id, { title: v.trim() }); }} />
           {capacityIssue(l) && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[hsl(var(--st-pending))] whitespace-nowrap">
-              <AlertTriangle className="h-3 w-3" /> {capacityIssue(l)}
-            </span>
+            <Tip label="This experience's capacity doesn't fit the group size. A warning only — a big group may split across two departures, or you can change the line's pax.">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[hsl(var(--st-pending))] whitespace-nowrap cursor-help">
+                <AlertTriangle className="h-3 w-3" /> {capacityIssue(l)}
+              </span>
+            </Tip>
           )}
           {l.room_type_id && !l.title.includes(roomName(l.room_type_id)) && (
             <span className="text-muted-foreground font-normal text-xs whitespace-nowrap">
@@ -295,7 +297,7 @@ export default function QuoteBuilder() {
         <div className="text-[11px] text-muted-foreground px-0.5 flex items-center gap-1.5">
           <Popover>
             <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-secondary hover:text-foreground">
+              <button title="Set a start and finish time — internal only, never shown on the client quote" className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-secondary hover:text-foreground">
                 <Clock className="h-3 w-3" />
                 {l.starts_at
                   ? `${shortTime(l.starts_at)}${l.ends_at ? `–${shortTime(l.ends_at)}` : ""}`
@@ -373,7 +375,11 @@ export default function QuoteBuilder() {
         {(["accommodation", "experience", "transport", "custom"] as const).map((k) => (
           <Button key={k} variant="outline" size="sm" className="h-7 text-xs gap-1"
             disabled={k === "accommodation" && hasStay}
-            title={k === "accommodation" && hasStay ? "One stay per day — a day is a night" : undefined}
+            title={k === "accommodation" && hasStay ? "One stay per day — a day is a night"
+              : k === "accommodation" ? "Add this night's bed: hostel, room type and season — the rate fills in from Hayley's sheet"
+              : k === "experience" ? "Add a tour or event. The list is filtered to what runs at this hostel on this day"
+              : k === "transport" ? "Add a transfer — picked from its departure time slots"
+              : "Anything not in the database: extra meals, F&B packages, a one-off"}
             onClick={() => { setAddDayId(dayId); setAddOpen(k); }}>
             <Plus className="h-3 w-3" /> {k === "accommodation" ? "Stay" : k[0].toUpperCase() + k.slice(1)}
           </Button>
@@ -467,7 +473,7 @@ export default function QuoteBuilder() {
                     </Button>
                   </Tip>
                 )}
-                <Input type="date" className="h-7 w-36 text-xs" defaultValue={d.date ?? ""} onBlur={async (e) => {
+                <Input type="date" title="The date sets which weekday the experience picker opens on" className="h-7 w-36 text-xs" defaultValue={d.date ?? ""} onBlur={async (e) => {
                   await supabase.from("quote_days").update({ date: e.target.value || null }).eq("id", d.id); invalidate();
                 }} />
                 <Select value={d.location_id ?? ""} onValueChange={async (v) => {
@@ -572,10 +578,12 @@ export default function QuoteBuilder() {
             onBlur={(e) => patchQuote({ terms_block: e.target.value })}
           />
         </details>
-        <Button className="w-full" disabled={(lines ?? []).length === 0 || generate.isPending}
-          onClick={() => generate.mutate()}>
-          {generate.isPending ? "Freezing…" : "Generate agreement version"}
-        </Button>
+        <Tip label="Freezes every price and description into a numbered version with a share link for the client. Later edits to products never change it — change requests make a new version.">
+          <Button className="w-full" disabled={(lines ?? []).length === 0 || generate.isPending}
+            onClick={() => generate.mutate()}>
+            {generate.isPending ? "Freezing…" : "Generate agreement version"}
+          </Button>
+        </Tip>
         <p className="text-[11px] text-muted-foreground">
           Freezes every price and description into an immutable version. Later edits to products never re-price it.
         </p>
@@ -786,7 +794,7 @@ function AddLineDialog({
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {slots.map((t) => (
-                          <button key={t} onClick={() => addProduct(p, t)}
+                          <button key={t} onClick={() => addProduct(p, t)} title="Departure time — click to add this transfer at this slot"
                             className="rounded-full border px-2.5 py-0.5 text-xs tabular-nums hover:bg-primary hover:text-primary-foreground hover:border-primary">
                             {shortTime(t)}
                           </button>
@@ -834,7 +842,7 @@ function AddLineDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Season tier</Label>
+                <Tip label="Low / mid / high season sets the bed rate. Auto-create trip picks this from the date for you; here you choose."><Label className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Season tier</Label></Tip>
                 <Select value={season} onValueChange={(v) => setSeason(v as SeasonTier)}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>

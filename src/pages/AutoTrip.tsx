@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Tip } from "@/components/app/Tip";
 import { Plus, Trash2, Wand2, ArrowLeft } from "lucide-react";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -165,7 +166,7 @@ export default function AutoTrip() {
         <div className="space-y-1.5 col-span-2"><Label>Trip title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Reight Travel Cambodia 10 Days" /></div>
         <div className="space-y-1.5"><Label>Pax</Label><Input inputMode="numeric" value={pax} onChange={(e) => setPax(e.target.value)} /></div>
         <div className="space-y-1.5">
-          <Label>Room type for every night</Label>
+          <Tip label="Applied to every night of the trip. You can change individual nights in the builder afterwards."><Label className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Room type for every night</Label></Tip>
           <Select value={roomId ?? ""} onValueChange={setRoomId}>
             <SelectTrigger><SelectValue placeholder="Dorm or Private" /></SelectTrigger>
             <SelectContent>{(roomTypes ?? []).filter((r) => !r.is_sample).map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
@@ -173,12 +174,12 @@ export default function AutoTrip() {
         </div>
         <div className="space-y-1.5"><Label>Contact</Label><Input value={contact} onChange={(e) => setContact(e.target.value)} /></div>
         <div className="space-y-1.5"><Label>Company / agent</Label><Input value={company} onChange={(e) => setCompany(e.target.value)} /></div>
-        <label className="flex items-center gap-2 text-sm col-span-2"><Switch checked={breakfast} onCheckedChange={setBreakfast} /> Breakfast every night</label>
+        <Tip label="Adds a breakfast line to every night at that hostel's per-person rate."><label className="flex items-center gap-2 text-sm col-span-2 cursor-help"><Switch checked={breakfast} onCheckedChange={setBreakfast} /> Breakfast every night</label></Tip>
       </section>
 
       {/* 2. stops */}
       <section className="border rounded-lg p-4 space-y-2">
-        <div className="font-medium">Stops, in order</div>
+        <Tip label="Each stop: which hostel, the date of the first night there, how many nights. The next stop's date follows on automatically."><div className="font-medium cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50 w-fit">Stops, in order</div></Tip>
         {stops.map((s, i) => (
           <div key={i} className="grid grid-cols-[1fr_10rem_5rem_2rem] gap-2 items-center max-sm:grid-cols-2">
             <Select value={s.location_id} onValueChange={(v) => setStops((a) => a.map((x, j) => j === i ? { ...x, location_id: v } : x))}>
@@ -211,7 +212,7 @@ export default function AutoTrip() {
                 <div className="flex items-baseline justify-between flex-wrap gap-2">
                   <div className="font-medium text-[15px]">Day {d.day_no} <span className="text-muted-foreground font-normal text-sm">· {locName(d.location_id)} · {fmt(d.date)}</span></div>
                   <div className="text-xs text-muted-foreground tabular-nums">
-                    Stay {roomId ? (rate != null ? `${usd(rate)} pp` : <span className="text-[hsl(var(--st-pending))]">no rate</span>) : "—"} · {SEASON_LABEL[d.season ?? "mid"]} season{d.season ? "" : " (assumed)"}
+                    Stay {roomId ? (rate != null ? `${usd(rate)} pp` : <span className="text-[hsl(var(--st-pending))]">no rate</span>) : "—"} · <Tip label={d.season ? "Season picked automatically from this hostel's month table in the rate sheet." : "The rate sheet has no season for this month here — assumed mid. Check the rate."}><span className="cursor-help underline decoration-dotted underline-offset-4">{SEASON_LABEL[d.season ?? "mid"]} season{d.season ? "" : " (assumed)"}</span></Tip>
                     {b != null && ` · breakfast ${usd(b)} pp`}
                   </div>
                 </div>
@@ -234,7 +235,7 @@ export default function AutoTrip() {
             );
           })}
           <div className="flex justify-end pt-1">
-            <Button className="gap-1.5" disabled={creating} onClick={create}><Wand2 className="h-4 w-4" /> {creating ? "Creating…" : "Create the trip"}</Button>
+            <Tip label="Creates the quote with every day, one stay per night, breakfast if ticked, and the experiences you ticked — then opens it in the builder."><Button className="gap-1.5" disabled={creating} onClick={create}><Wand2 className="h-4 w-4" /> {creating ? "Creating…" : "Create the trip"}</Button></Tip>
           </div>
         </section>
       )}

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { Tip } from "@/components/app/Tip";
 import { RefreshCw, ArrowRight } from "lucide-react";
 import { useFx, money } from "@/lib/fx";
 
@@ -160,9 +161,9 @@ export default function SettingsPage() {
               A manual override pins a rate until you clear it.
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5" disabled={refreshFx.isPending} onClick={() => refreshFx.mutate()}>
+          <Tip label="Pulls today's rates immediately instead of waiting for the 01:15 UTC refresh. Manual overrides are never touched."><Button variant="outline" size="sm" className="gap-1.5" disabled={refreshFx.isPending} onClick={() => refreshFx.mutate()}>
             <RefreshCw className="h-3.5 w-3.5" /> Refresh now
-          </Button>
+          </Button></Tip>
         </div>
         <div className="text-sm border rounded-md divide-y">
           {(fx.data?.rows ?? []).filter((r) => r.code !== "USD").map((r) => (
@@ -172,7 +173,7 @@ export default function SettingsPage() {
                 1 USD = {money(Number(r.manual_override ?? r.units_per_usd), r.code)}
                 {r.manual_override != null && <span className="ml-2 text-[hsl(var(--st-pending))]">manual override (api: {Number(r.units_per_usd).toLocaleString()})</span>}
               </span>
-              <Input className="h-7 w-32 text-xs tabular-nums" placeholder="override…" disabled={!auth.isAdmin}
+              <Input className="h-7 w-32 text-xs tabular-nums" placeholder="override…" disabled={!auth.isAdmin} title="Pin a rate (units per 1 USD). Stays until you clear the box — the daily refresh won't overwrite it."
                 defaultValue={r.manual_override ?? ""}
                 onBlur={(e) => {
                   const v = e.target.value.trim();

@@ -60,7 +60,7 @@ export function RateCell({
       if (o) { setLocal(product.local_amount != null ? String(product.local_amount) : ""); setDollars(product.rate_usd != null ? String(product.rate_usd) : ""); }
     }}>
       <PopoverTrigger asChild>
-        <button className="w-full text-right px-1.5 py-0.5 rounded text-sm tabular-nums hover:bg-secondary cursor-text min-h-[26px]">
+        <button title={isUsdHostel ? "Click to change the USD price" : `Click to change. Type the ${currency} price or the USD price — the other is worked out from today's rate.`} className="w-full text-right px-1.5 py-0.5 rounded text-sm tabular-nums hover:bg-secondary cursor-text min-h-[26px]">
           {display()}
         </button>
       </PopoverTrigger>

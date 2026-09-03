@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Tip } from "@/components/app/Tip";
 import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 
@@ -170,12 +171,12 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={verify} title="Confirms these details are current as of today">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={verify} title="Stamps today's date as 'last verified' — a quick way to say these details have been checked and are still right">
               <ShieldCheck className="h-3.5 w-3.5" /> Mark verified
             </Button>
             {savedAt && !dirty && <span className="text-xs text-[hsl(var(--st-active))] inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Saved {savedAt}</span>}
             {dirty && <span className="text-xs text-[hsl(var(--st-pending))]">Unsaved changes</span>}
-            <Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button>
+            <Tip label="Nothing changes until you press Save. You'll see a confirmation when it has."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
           </div>
         )}
       </div>
@@ -197,7 +198,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Rate {ccy !== "USD" ? `(${ccy} or USD)` : "(USD)"}</Label>
+          <Tip label={ccy !== "USD" ? `Type the local price or the USD price — the other is worked out from today's exchange rate. Quotes always use USD.` : "This hostel prices in USD."}><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Rate {ccy !== "USD" ? `(${ccy} or USD)` : "(USD)"}</Label></Tip>
           <div className="flex gap-2">
             {ccy !== "USD" && (
               <Input inputMode="decimal" placeholder={ccy} readOnly={!canEdit} className="tabular-nums" value={f.local}
@@ -210,7 +211,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           {product.rate_raw && product.rate_usd == null && <p className="text-[11px] text-[hsl(var(--st-pending))]">Sheet said: “{product.rate_raw}”</p>}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Days it runs</Label>
+          <Tip label="Drives the 'what runs on a Monday?' filter, My week, and which days the quote builder offers it."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Days it runs</Label></Tip>
           <div><DaysPicker value={f.days} onChange={(d) => canEdit && set("days", d)} /></div>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -219,12 +220,12 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Mins</Label><Input inputMode="numeric" readOnly={!canEdit} value={f.duration} onChange={(e) => set("duration", e.target.value)} /></div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Min to run</Label><Input inputMode="numeric" placeholder="n/a" readOnly={!canEdit} value={f.min} onChange={(e) => set("min", e.target.value)} /></div>
+          <div className="space-y-1"><Tip label="Minimum guests for this to run, and the maximum per day. Quotes warn (never block) when a group doesn't fit. Leave blank if not applicable."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Min to run</Label></Tip><Input inputMode="numeric" placeholder="n/a" readOnly={!canEdit} value={f.min} onChange={(e) => set("min", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Max pax</Label><Input inputMode="numeric" placeholder="n/a" readOnly={!canEdit} value={f.max} onChange={(e) => set("max", e.target.value)} /></div>
         </div>
         {f.category === "one_time_event" && (
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Expires on</Label>
+            <Tip label="After this date the event disappears from My week and the list (a 'Show expired' switch brings it back)."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Expires on</Label></Tip>
             <Input type="date" readOnly={!canEdit} value={f.expires_on} onChange={(e) => set("expires_on", e.target.value)} />
             <p className="text-[11px] text-muted-foreground">After this date it drops off My week and the list.</p>
           </div>
@@ -241,7 +242,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <div className="space-y-1 col-span-2"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Route</Label><Input readOnly={!canEdit} value={f.route} onChange={(e) => set("route", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Pick-up</Label><Input readOnly={!canEdit} value={f.pickup} onChange={(e) => set("pickup", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Drop-off</Label><Input readOnly={!canEdit} value={f.dropoff} onChange={(e) => set("dropoff", e.target.value)} /></div>
-          <div className="space-y-1 col-span-2"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Departure times (quotes pick from these)</Label><Input className="tabular-nums" placeholder="08:30, 11:30, 17:00" readOnly={!canEdit} value={f.slots} onChange={(e) => set("slots", e.target.value)} /></div>
+          <div className="space-y-1 col-span-2"><Tip label="Comma-separated 24h times, e.g. 08:30, 11:30, 17:00. In the quote builder this transfer is picked by slot, never typed."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Departure times (quotes pick from these)</Label></Tip><Input className="tabular-nums" placeholder="08:30, 11:30, 17:00" readOnly={!canEdit} value={f.slots} onChange={(e) => set("slots", e.target.value)} /></div>
         </div>
       )}
 

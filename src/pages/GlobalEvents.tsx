@@ -77,7 +77,7 @@ export default function GlobalEvents() {
           <p className="text-sm text-muted-foreground">Add once, and every hostel gets it to accept or decline. Accepting creates the product at that hostel.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm" className="gap-1.5" title="Add once — every hostel gets it to accept or decline. Accepting creates the product at that hostel."><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>New global event</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -128,7 +128,7 @@ export default function GlobalEvents() {
                   <span className="font-medium truncate">{ev.title}</span>
                   <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[ev.category]}{ev.event_date ? ` · ${new Date(ev.event_date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}{ev.rate_usd != null ? ` · $${ev.rate_usd}` : ""}</span>
                 </div>
-                <div className="flex gap-3 text-xs font-medium tabular-nums">
+                <div className="flex gap-3 text-xs font-medium tabular-nums" title="Accepted = product created at that hostel. Declined = they passed. No reply = still waiting. Open to see each hostel.">
                   <span style={{ color: "hsl(var(--st-active))" }}>{s.accepted.length} accepted</span>
                   <span style={{ color: "hsl(var(--st-remove))" }}>{s.declined.length} declined</span>
                   <span style={{ color: "hsl(var(--st-pending))" }}>{s.pending.length} no reply</span>
