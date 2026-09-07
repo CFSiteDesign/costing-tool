@@ -20,7 +20,7 @@ interface TransportRow extends Product {
 
 const hours = (m: number | null) => m == null ? "" : m % 60 === 0 ? `${m / 60}h` : m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
 
-/** Phase 2: transport gets its own tab — a searchable list of every transfer, bus, boat and rental at this hostel. */
+/** Phase 2: transport gets its own tab - a searchable list of every transfer, bus, boat and rental at this hostel. */
 export default function Transport() {
   const auth = useAuth();
   const nav = useNavigate();
@@ -124,7 +124,7 @@ export default function Transport() {
                       {slots.length > 0 ? (
                         <div className="flex flex-wrap gap-1">{slots.map((s) => <span key={s} className="rounded-full border px-2 py-0.5 text-xs tabular-nums">{shortTime(s)}</span>)}</div>
                       ) : r.starts_at ? <span className="tabular-nums text-muted-foreground">{shortTime(r.starts_at)}</span>
-                      : <Tip label="No departure times yet — add them on the product page so quotes can pick a slot."><span className="text-xs text-[hsl(var(--st-pending))] cursor-help">no times</span></Tip>}
+                      : <Tip label="No departure times yet - add them on the product page so quotes can pick a slot."><span className="text-xs text-[hsl(var(--st-pending))] cursor-help">no times</span></Tip>}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground tabular-nums">{hours(r.duration_minutes) || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{price(r)}</td>

@@ -124,7 +124,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     setSaving(false);
     if (error) { toast.error(`Not saved: ${error.message}`); return; }
     setSavedAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
-    toast.success(verifiedAt ? "Saved — now needs verifying again" : "Saved");
+    toast.success(verifiedAt ? "Saved. It now needs verifying again" : "Saved");
     qc.invalidateQueries({ queryKey: ["product", product.id] });
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["my-week"] });
@@ -176,7 +176,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
             </Button>
             {savedAt && !dirty && <span className="text-xs text-[hsl(var(--st-active))] inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Saved {savedAt}</span>}
             {dirty && <span className="text-xs text-[hsl(var(--st-pending))]">Unsaved changes</span>}
-            <Tip label="Nothing changes until you press Save. Saving clears the verified stamp — mark it verified again once you've checked it."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
+            <Tip label="Nothing changes until you press Save. Saving clears the verified stamp, so mark it verified again once you've checked it."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
           </div>
         )}
       </div>

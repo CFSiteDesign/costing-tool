@@ -19,7 +19,7 @@ const mondayOf = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x
 const plus = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-/** Who runs it — the phase-2 "MM or third party" column. */
+/** Who runs it - the phase-2 "MM or third party" column. */
 const RUN_BY: Record<Product["category"], string> = {
   mm_tour: "Mad Monkey", nightly_event: "Mad Monkey", third_party_tour: "Third party", one_time_event: "One-off", transport: "Transport",
 };
@@ -27,7 +27,7 @@ const RUN_BY: Record<Product["category"], string> = {
 const isHighlight = (p: Product) => p.status === "signature" || p.category === "mm_tour";
 const HI = "hsl(var(--st-signature))";
 
-/** E1: the week, day by day — what runs at this hostel and when. Transport lives in its own tab. */
+/** E1: the week, day by day - what runs at this hostel and when. Transport lives in its own tab. */
 export default function MyWeek() {
   const auth = useAuth();
   const nav = useNavigate();
@@ -139,7 +139,7 @@ export default function MyWeek() {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">Daily tours appear under every day they run. One-off and global events appear on their date. Expired events are hidden. Highlighted rows are Mad Monkey tours and Signature tours. Transport is not shown here — it has its own <Link to="/transport" className="underline underline-offset-2">Transport</Link> tab.</p>
+      <p className="text-xs text-muted-foreground">Daily tours appear under every day they run. One-off and global events appear on their date. Expired events are hidden. Highlighted rows are Mad Monkey tours and Signature tours. Transport is not shown here - it has its own <Link to="/transport" className="underline underline-offset-2">Transport</Link> tab.</p>
     </div>
   );
 }

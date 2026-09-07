@@ -23,7 +23,7 @@ interface PendingEvent {
 type Overrides = Record<string, unknown>;
 const fmtDate = (d: string | null) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
 
-/** D + phase 2 / GE2: what a GM sees — global events waiting for this hostel's answer. Click one to see everything and adjust it before accepting. */
+/** D + phase 2 / GE2: what a GM sees - global events waiting for this hostel's answer. Click one to see everything and adjust it before accepting. */
 export function PendingGlobalEvents() {
   const auth = useAuth();
   const qc = useQueryClient();
@@ -52,7 +52,7 @@ export function PendingGlobalEvents() {
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["my-week"] });
       setOpenId(null);
-      toast.success(status === "accepted" ? (changed ? "Accepted with your changes — it's now in your product list" : "Accepted — it's now in your product list") : "Declined");
+      toast.success(status === "accepted" ? (changed ? "Accepted with your changes - it's now in your product list" : "Accepted - it's now in your product list") : "Declined");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -67,7 +67,7 @@ export function PendingGlobalEvents() {
         const e = r.global_events;
         return (
           <div key={r.global_event_id} className="flex items-start justify-between gap-3 bg-background rounded-md border px-3 py-2">
-            <button className="min-w-0 text-sm text-left flex-1 hover:underline underline-offset-2" onClick={() => setOpenId(e.id)} title="Open — full details, assets, and edit before you accept">
+            <button className="min-w-0 text-sm text-left flex-1 hover:underline underline-offset-2" onClick={() => setOpenId(e.id)} title="Open - full details, assets, and edit before you accept">
               <div className="font-medium">{e.title}
                 <span className="text-muted-foreground font-normal text-xs">
                   {e.event_date ? ` · ${fmtDate(e.event_date)}` : e.days_of_week?.length ? ` · ${daysLabel(e.days_of_week)}` : ""}{timeSpan(e) ? ` · ${timeSpan(e)}` : ""}{e.rate_usd != null ? ` · $${e.rate_usd}` : ""}
@@ -167,7 +167,7 @@ function EventDialog({ ev, busy, onClose, onAccept, onDecline }: { ev: PendingEv
           )}
         </div>
         <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-          <span className="text-xs text-muted-foreground">{changedKeys.length ? `${changedKeys.length} change${changedKeys.length === 1 ? "" : "s"} — head office will see what you changed` : "No changes — accepts exactly as sent"}</span>
+          <span className="text-xs text-muted-foreground">{changedKeys.length ? `${changedKeys.length} change${changedKeys.length === 1 ? "" : "s"} - head office will see what you changed` : "No changes - accepts exactly as sent"}</span>
           <div className="flex gap-1.5">
             <Button variant="outline" size="sm" disabled={busy} onClick={onDecline} title="Not running this at your hostel"><X className="h-3.5 w-3.5" /> Decline</Button>
             <Button size="sm" disabled={busy} onClick={accept} title="Creates the product at your hostel with these details"><Check className="h-3.5 w-3.5" /> {changedKeys.length ? "Accept with these details" : "Accept"}</Button>

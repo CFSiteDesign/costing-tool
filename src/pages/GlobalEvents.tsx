@@ -39,16 +39,16 @@ export function emailStatus(ev: GEvent): { text: string; warn: boolean } {
   if (!r) {
     if (ev.notified_at) return { text: "GMs emailed", warn: false };
     const fresh = Date.now() - new Date(ev.created_at).getTime() < 2 * 60_000;
-    return fresh ? { text: "GM email queued", warn: false } : { text: "No GM email — launched before GM emails were added", warn: true };
+    return fresh ? { text: "GM email queued", warn: false } : { text: "No GM email - launched before GM emails were added", warn: true };
   }
-  if (r.noResendKey) return { text: `GM email not sent — email sending isn't switched on yet (${r.recipients} GM${r.recipients === 1 ? "" : "s"} would get it)`, warn: true };
+  if (r.noResendKey) return { text: `GM email not sent - email sending isn't switched on yet (${r.recipients} GM${r.recipients === 1 ? "" : "s"} would get it)`, warn: true };
   if (r.failed) return { text: `Emailed ${r.sent} of ${r.recipients} GMs · ${r.failed} failed`, warn: true };
   return { text: `Emailed ${r.sent} GM${r.sent === 1 ? "" : "s"}`, warn: false };
 }
 
 const EMPTY_ASSETS = ["", "", "", "", "", ""];
 
-/** Round 2 / D + phase 2: add once at global level, push to every GM, see who said what — and click any event for the full picture. */
+/** Round 2 / D + phase 2: add once at global level, push to every GM, see who said what - and click any event for the full picture. */
 export default function GlobalEvents() {
   const auth = useAuth();
   const qc = useQueryClient();
@@ -98,7 +98,7 @@ export default function GlobalEvents() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["global-events"] }); setOpen(false);
       setF({ title: "", category: "one_time_event", event_date: "", expires_on: "", days: [], starts: "", ends: "", rate: "", brief: "", long: "", inclusions: "", bring: "", photo: "", website: false, notes: "", assets: [...EMPTY_ASSETS] });
-      toast.success("Sent to every hostel — GMs are being emailed");
+      toast.success("Sent to every hostel - GMs are being emailed");
       setTimeout(() => qc.invalidateQueries({ queryKey: ["global-events"] }), 4000);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -113,7 +113,7 @@ export default function GlobalEvents() {
   const changedList = (o: Record<string, unknown> | null) => o ? Object.keys(o).map((k) => OVERRIDE_LABEL[k] ?? k).join(", ") : "";
 
   const Chip = ({ r }: { r: Resp }) => (
-    <Tip label={r.status === "accepted" ? (r.overrides ? `Accepted with changes: ${changedList(r.overrides)}` : "Accepted as sent — product created at this hostel") : r.status === "declined" ? "Declined — not running it" : "No reply yet"}>
+    <Tip label={r.status === "accepted" ? (r.overrides ? `Accepted with changes: ${changedList(r.overrides)}` : "Accepted as sent - product created at this hostel") : r.status === "declined" ? "Declined - not running it" : "No reply yet"}>
       <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs cursor-help"
         style={{ color: `hsl(var(${COLOR[r.status]}))`, borderColor: `hsl(var(${COLOR[r.status]}) / 0.4)`, background: `hsl(var(${COLOR[r.status]}) / 0.08)` }}>
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: `hsl(var(${COLOR[r.status]}))` }} />
@@ -130,7 +130,7 @@ export default function GlobalEvents() {
           <p className="text-sm text-muted-foreground">Add once, and every hostel gets it to accept or decline. Accepting creates the product at that hostel. Click an event for the full picture.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm" className="gap-1.5" title="Add once — every hostel gets it to accept or decline, and every GM gets an email. Accepting creates the product at that hostel."><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm" className="gap-1.5" title="Add once - every hostel gets it to accept or decline, and every GM gets an email. Accepting creates the product at that hostel."><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>New global event</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -188,7 +188,7 @@ export default function GlobalEvents() {
         {(data?.events ?? []).map((ev) => {
           const s = summary(ev.id); const em = emailStatus(ev);
           return (
-            <button key={ev.id} className="w-full text-left border rounded-lg px-4 py-3 hover:bg-secondary/40 flex items-center justify-between gap-3 flex-wrap" onClick={() => setView(ev)} title="Open — full details, assets, who has answered">
+            <button key={ev.id} className="w-full text-left border rounded-lg px-4 py-3 hover:bg-secondary/40 flex items-center justify-between gap-3 flex-wrap" onClick={() => setView(ev)} title="Open - full details, assets, who has answered">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
                   <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -241,7 +241,7 @@ export default function GlobalEvents() {
                     <span style={{ color: "hsl(var(--st-active))" }}>{s.accepted.length} accepted</span>
                     <span style={{ color: "hsl(var(--st-remove))" }}>{s.declined.length} declined</span>
                     <span style={{ color: "hsl(var(--st-pending))" }}>{s.pending.length} no reply</span>
-                    <span className="text-muted-foreground font-normal">· a pencil means the GM changed details before accepting — hover to see what</span>
+                    <span className="text-muted-foreground font-normal">· a pencil means the GM changed details before accepting - hover to see what</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">{rs.map((r) => <Chip key={r.location_id} r={r} />)}</div>
                   {rs.some((r) => r.overrides) && (

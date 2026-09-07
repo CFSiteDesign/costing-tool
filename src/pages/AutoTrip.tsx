@@ -29,7 +29,7 @@ interface Stop { location_id: string; first_night: string; nights: string; }
 const nightsOf = (s: Stop) => Math.max(0, Math.floor(Number(s.nights)) || 0);
 interface GenDay { day_no: number; date: string; location_id: string; season: SeasonTier | null; }
 
-/** Round 2 / C: the second way in — stops + dates in, a whole trip out. */
+/** Round 2 / C: the second way in - stops + dates in, a whole trip out. */
 export default function AutoTrip() {
   const auth = useAuth();
   const nav = useNavigate();
@@ -138,7 +138,7 @@ export default function AutoTrip() {
       if (qe) throw qe;
       const { data: dayRows, error: de } = await supabase.from("quote_days")
         .insert(days.map((d) => ({ quote_id: q.id, day_no: d.day_no, date: d.date, location_id: d.location_id,
-          notes: d.season ? null : "Season unknown for this month — defaulted to mid, check the rate" })))
+          notes: d.season ? null : "Season unknown for this month - defaulted to mid, check the rate" })))
         .select("id, day_no");
       if (de) throw de;
       const dayId = new Map((dayRows ?? []).map((r) => [r.day_no, r.id]));
@@ -165,7 +165,7 @@ export default function AutoTrip() {
       }
       const { error: le } = await supabase.from("quote_lines").insert(lines);
       if (le) throw le;
-      toast.success(`Trip created — ${days.length} days, ${lines.length} lines`);
+      toast.success(`Trip created - ${days.length} days, ${lines.length} lines`);
       nav(`/quotes/${q.id}`);
     } catch (e) { toast.error((e as Error).message); setCreating(false); }
   };
@@ -240,7 +240,7 @@ export default function AutoTrip() {
       {days.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <Tip label="Listed in time order. Two things that run at the same time can't both be ticked — the second one greys out and says what it clashes with."><div className="font-medium cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">{days.length} days generated — tick what to include</div></Tip>
+            <Tip label="Listed in time order. Two things that run at the same time can't both be ticked - the second one greys out and says what it clashes with."><div className="font-medium cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">{days.length} days generated - tick what to include</div></Tip>
             <span className="text-xs text-muted-foreground">{pickedCount} experience{pickedCount === 1 ? "" : "s"} picked</span>
           </div>
           {days.map((d) => {
@@ -251,7 +251,7 @@ export default function AutoTrip() {
                 <div className="flex items-baseline justify-between flex-wrap gap-2">
                   <div className="font-medium text-[15px]">Day {d.day_no} <span className="text-muted-foreground font-normal text-sm">· {locName(d.location_id)} · {fmt(d.date)}</span></div>
                   <div className="text-xs text-muted-foreground tabular-nums">
-                    Stay {roomId ? (rate != null ? `${usd(rate)} pp` : <span className="text-[hsl(var(--st-pending))]">no rate</span>) : "—"} · <Tip label={d.season ? "Season picked automatically from this hostel's month table in the rate sheet." : "The rate sheet has no season for this month here — assumed mid. Check the rate."}><span className="cursor-help underline decoration-dotted underline-offset-4">{SEASON_LABEL[d.season ?? "mid"]} season{d.season ? "" : " (assumed)"}</span></Tip>
+                    Stay {roomId ? (rate != null ? `${usd(rate)} pp` : <span className="text-[hsl(var(--st-pending))]">no rate</span>) : "—"} · <Tip label={d.season ? "Season picked automatically from this hostel's month table in the rate sheet." : "The rate sheet has no season for this month here - assumed mid. Check the rate."}><span className="cursor-help underline decoration-dotted underline-offset-4">{SEASON_LABEL[d.season ?? "mid"]} season{d.season ? "" : " (assumed)"}</span></Tip>
                     {b != null && ` · breakfast ${usd(b)} pp`}
                   </div>
                 </div>
@@ -277,7 +277,7 @@ export default function AutoTrip() {
             );
           })}
           <div className="flex justify-end pt-1">
-            <Tip label="Creates the quote with every day, one stay per night, breakfast if ticked, and the experiences you ticked in time order — then opens it in the builder."><Button className="gap-1.5" disabled={creating} onClick={create}><Wand2 className="h-4 w-4" /> {creating ? "Creating…" : "Create the trip"}</Button></Tip>
+            <Tip label="Creates the quote with every day, one stay per night, breakfast if ticked, and the experiences you ticked in time order - then opens it in the builder."><Button className="gap-1.5" disabled={creating} onClick={create}><Wand2 className="h-4 w-4" /> {creating ? "Creating…" : "Create the trip"}</Button></Tip>
           </div>
         </section>
       )}
