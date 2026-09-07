@@ -2,13 +2,14 @@ import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/experiences", label: "Experiences", icon: Compass },
   { to: "/week", label: "My week", icon: CalendarDays },
-  { to: "/quotes", label: "Quotes", icon: FileText },
+  { to: "/transport", label: "Transport", icon: Bus },
+  { to: "/quotes", label: "Quotes", icon: FileText, quoting: true },   // hidden from GMs (phase 2)
   { to: "/activity", label: "Activity", icon: History },
   { to: "/global-events", label: "Global events", icon: Globe, headOffice: true },
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
@@ -18,7 +19,7 @@ export default function AppShell() {
   const auth = useAuth();
   const loc = useLocation();
 
-  if (auth.loading) {
+  if (auth.loading || (auth.session && !auth.rolesLoaded)) {
     return <div className="h-screen grid place-items-center text-muted-foreground text-sm">Loading…</div>;
   }
   if (!auth.session) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
@@ -31,7 +32,7 @@ export default function AppShell() {
           <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7 lg:hidden" />
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
-          {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office"))).map((n) => (
+          {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office")) && (!n.quoting || auth.canQuote)).map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
@@ -89,4 +90,11 @@ export default function AppShell() {
       </div>
     </div>
   );
+}
+
+/** Route guard: quotes are a head-office / sales tool. GMs are sent back to Experiences. */
+export function RequireQuoting() {
+  const auth = useAuth();
+  if (!auth.canQuote) return <Navigate to="/experiences" replace />;
+  return <Outlet />;
 }

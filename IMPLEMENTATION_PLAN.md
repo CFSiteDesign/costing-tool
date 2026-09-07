@@ -310,3 +310,26 @@ form can't generate without a location. Verified end-to-end: signed post-back at
 asset, forged signature rejected, price edit marks it out of date.
 Not done: walkthrough PDF refresh (still describes the autosave drawer and predates My week,
 currency, auto-trip) — regenerate before the next GM rollout.
+
+## Phase 2 — client updates doc (received 8 Sep 2026) — **BUILT 8 Sep 2026**
+
+Source: `docs/UPDATES_PHASE2.md` (verbatim) plus one verbal item: hide quotes from GMs.
+
+| Area | Item | What was built |
+|---|---|---|
+| Auto-trip | Ordered by time; block two things at the same time; end time shown | Tick-list already time-sorted; each row now shows start–finish (finish worked out from duration when not set). Ticking one greys out anything whose window overlaps, with "clashes with X" and a tooltip. Same block in the quote-builder experience picker ("Show everything" overrides). Shared logic in `src/lib/clash.ts`. Lines are inserted in time order. |
+| Auto-trip | Nights box couldn't be cleared | Nights kept as text while typing; normalised to ≥1 on blur. |
+| Auto-trip | Can't pick a date that's passed | Each stop's date has a minimum: today for the first stop, the previous stop's check-out for later ones. Picking earlier is refused with a message; a red border + note if a later edit makes it invalid; Create refuses too. |
+| My week | Highlight Signature / MM tours | Teal tint, left bar and star on Signature-status and MM Tour rows. |
+| My week | Category column (MM / third party) | New column: category label + who runs it (Mad Monkey / Third party / One-off). |
+| My week | No transport | Transport excluded from the query; footer links to the Transport tab. |
+| Experiences | Edited ⇒ verify again | DB trigger `products_clear_verified` (before update) clears `last_verified_*` when any content field changes (remarks excluded); `transport_clear_verified` does the same for slot / pick-up edits. UI: "needs verifying" in amber on the product page, Save tooltip and toast say so, list tooltip updated. |
+| Global events | Up to 6 asset links, one box each | `global_events.asset_urls text[]` (max 6, http(s) only). On accept they are copied into `product_assets` (source `global`, asset 1 = latest) so the GM's Asset column shows them. |
+| Global events | GM can click + edit before accepting | Pending banner: click the title or **Edit** → dialog with every field editable (title, rate, date/days, times, expiry, descriptions, inclusions, things to bring) + head-office assets. Only changed fields are sent as `p_overrides` to `respond_global_event(…, jsonb)`, applied to the created product and stored on `global_event_responses.overrides`. |
+| Global events | Does the GM get an email? | Not before. Now: after-insert trigger → pg_net → new Edge Function `global-event-notify` emails every GM of every active hostel (via Resend) with the details and a link. Result stored in `global_events.notified_at / notify_result` and shown to admin. **Needs RESEND_API_KEY + verified sender; until then it records "would send" and shows "email sending isn't switched on yet". GM profile emails are still the `@madmonkey.test` placeholders — swap to real addresses first.** |
+| Global events | Admin sees details after launch | Click any event → dialog with every field, asset links, message, email status, and every hostel's answer; a pencil marks hostels that accepted with changes, listing what they changed. |
+| Transport | Own tab with search | New `/transport` tab (sidebar, all roles): search across route / places / operator / type, type filter, "show paused", departure-slot chips, journey time, local + USD price, status. Rows open the product page. Transport is now excluded from the Experiences list and its category filter; "Add transport" deep-links the add form with the category set. |
+| Quotes | Hide from GMs | Sidebar hides Quotes unless admin / head office / sales; `/quotes*` routes redirect GMs to Experiences; RLS on quotes, quote_days, quote_lines, quote_versions and customers now requires `can_quote()`; `duplicate_quote` and `generate_quote_version` refuse other roles. Verified via the API as a GM (empty results, RPC refused) and as admin (rows). |
+
+Verified 8 Sep 2026: GM API lock-out; re-verify trigger (remarks edit keeps the stamp, title edit clears it); test global event → 23 GMs resolved by the notify function (no Resend key, so "would send"); GM accept with overrides created the product with the changed title / rate / start, two `global` assets, the date rule, and the overrides recorded on the response.
+Not done: walkthrough PDF refresh (still out of date).

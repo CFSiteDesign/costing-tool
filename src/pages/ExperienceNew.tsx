@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORY_LABELS, type Category } from "@/lib/types";
@@ -21,8 +21,10 @@ export default function ExperienceNew() {
   const nav = useNavigate();
   const fx = useFx();
   const localCcy = auth.currentLocation?.currency ?? "USD";
+  const [params] = useSearchParams();
+  const initialCategory = (["mm_tour","nightly_event","third_party_tour","one_time_event","transport"].includes(params.get("category") ?? "") ? params.get("category") : "mm_tour") as Category;   // phase 2: Transport tab deep-links here
   const [f, setF] = useState({
-    title: "", category: "mm_tour" as Category, rate: "", rateCcy: "", brief: "", long: "",
+    title: "", category: initialCategory, rate: "", rateCcy: "", brief: "", long: "",
     days: [] as number[], starts: "", ends: "", minGuests: "1", maxGuests: "",
     meetingPoint: "", inclusions: "", thingsToBring: "", photoUrl: "", bookable: false,
     oneTime: false, expiresOn: "", status: "active" as "active" | "paused",

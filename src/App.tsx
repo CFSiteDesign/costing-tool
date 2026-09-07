@@ -4,12 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import AppShell from "@/components/app/AppShell";
+import AppShell, { RequireQuoting } from "@/components/app/AppShell";
 import Login from "./pages/Login";
 import Experiences from "./pages/Experiences";
 import ExperienceNew from "./pages/ExperienceNew";
 import ExperienceDetail from "./pages/ExperienceDetail";
 import MyWeek from "./pages/MyWeek";
+import Transport from "./pages/Transport";
 import Activity from "./pages/Activity";
 import Quotes from "./pages/Quotes";
 import QuoteBuilder from "./pages/QuoteBuilder";
@@ -40,10 +41,13 @@ const App = () => (
               <Route path="/experiences/new" element={<ExperienceNew />} />
               <Route path="/experiences/:id" element={<ExperienceDetail />} />
               <Route path="/week" element={<MyWeek />} />
+              <Route path="/transport" element={<Transport />} />
               <Route path="/activity" element={<Activity />} />
-              <Route path="/quotes" element={<Quotes />} />
-              <Route path="/quotes/auto" element={<AutoTrip />} />
-              <Route path="/quotes/:id" element={<QuoteBuilder />} />
+              <Route element={<RequireQuoting />}>
+                <Route path="/quotes" element={<Quotes />} />
+                <Route path="/quotes/auto" element={<AutoTrip />} />
+                <Route path="/quotes/:id" element={<QuoteBuilder />} />
+              </Route>
               <Route path="/global-events" element={<GlobalEvents />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/imports" element={<ImportsPage />} />

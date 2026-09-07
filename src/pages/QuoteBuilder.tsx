@@ -7,6 +7,7 @@ import { computeTotals, lineTotal, type PricedLine } from "@/pricing/engine";
 import { usd, shortTime, timeAgo } from "@/lib/format";
 import type { Location, Product, QuoteLine, RoomType, SeasonTier } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
+import { clashes, timeSpan } from "@/lib/clash";
 import { InlineText } from "@/components/app/InlineCell";
 import { Tip } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
@@ -593,6 +594,7 @@ export default function QuoteBuilder() {
         kind={addOpen} dayId={addDayId} quoteId={id!} pax={quote.pax_count}
         defaultLocation={(days ?? []).find((d) => d.id === addDayId)?.location_id ?? auth.currentLocation?.id ?? null}
         dayDate={(days ?? []).find((d) => d.id === addDayId)?.date ?? null}
+        existing={linesFor(addDayId)}
         onClose={() => setAddOpen(null)} onAdded={invalidate}
         roomTypes={roomTypes ?? []} locations={auth.allLocations}
       />
@@ -630,12 +632,13 @@ export default function QuoteBuilder() {
 
 /* ── Add-line dialog: pickers per kind ─────────────────────────────── */
 function AddLineDialog({
-  kind, dayId, quoteId, pax, defaultLocation, dayDate, onClose, onAdded, roomTypes, locations,
+  kind, dayId, quoteId, pax, defaultLocation, dayDate, existing, onClose, onAdded, roomTypes, locations,
 }: {
   kind: null | "accommodation" | "experience" | "transport" | "custom";
   dayId: string | null; quoteId: string; pax: number;
   defaultLocation: string | null;
   dayDate: string | null;
+  existing: QuoteLine[];   // phase 2: what's already on this day, to block time clashes
   onClose: () => void; onAdded: () => void;
   roomTypes: RoomType[]; locations: Location[];
 }) {
@@ -803,15 +806,19 @@ function AddLineDialog({
                     </div>
                   );
                 }
+                // phase 2: two things can't run at the same time on the same day (Show everything overrides)
+                const clash = override ? undefined : existing.find((l) => (l.kind === "experience" || l.kind === "transport") && clashes(l, p));
                 return (
-                <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-secondary text-sm flex justify-between gap-2"
+                <button key={p.id} className={cn("w-full text-left px-3 py-2 text-sm flex justify-between gap-2", clash ? "opacity-60 cursor-not-allowed" : "hover:bg-secondary")}
+                  disabled={!!clash} title={clash ? `Runs at the same time as ${clash.title} (${timeSpan(clash)}). Remove that line first, or use Show everything.` : undefined}
                   onClick={() => addProduct(p)}>
                   <span className="min-w-0">
                     <span className="font-medium block truncate">{p.title}</span>
                     <span className="text-xs text-muted-foreground">
                       {CATEGORY_LABELS[p.category]}
-                      {p.starts_at ? ` · ${shortTime(p.starts_at)}${p.ends_at ? `–${shortTime(p.ends_at)}` : ""}` : ""}
-                      {p.duration_minutes ? ` · ${Math.round(p.duration_minutes / 60)}h` : ""}
+                      {p.starts_at ? ` · ${timeSpan(p)}` : ""}
+                      {p.duration_minutes && !p.ends_at ? ` · ${Math.round(p.duration_minutes / 60)}h` : ""}
+                      {clash && <span className="text-[hsl(var(--st-remove))]"> · clashes with {clash.title}</span>}
                     </span>
                   </span>
                   <span className="tabular-nums shrink-0 self-center">

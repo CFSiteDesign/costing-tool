@@ -124,7 +124,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     setSaving(false);
     if (error) { toast.error(`Not saved: ${error.message}`); return; }
     setSavedAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
-    toast.success("Saved");
+    toast.success(verifiedAt ? "Saved — now needs verifying again" : "Saved");
     qc.invalidateQueries({ queryKey: ["product", product.id] });
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["my-week"] });
@@ -164,7 +164,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
             <div className="flex items-center gap-2 text-sm text-muted-foreground px-1 mt-0.5">
               {loc?.name} · {CATEGORY_LABELS[f.category]} · <StatusBadge status={f.status} />
               <span className="ml-2 text-xs">
-                {verifiedAt ? `verified ${new Date(verifiedAt).toLocaleDateString("en-GB")}` : "never verified"}
+                {verifiedAt ? `verified ${new Date(verifiedAt).toLocaleDateString("en-GB")}` : <Tip label="Every edit clears the verified stamp. Check the details are right, then press Mark verified."><span className="text-[hsl(var(--st-pending))] cursor-help">needs verifying</span></Tip>}
               </span>
             </div>
           </div>
@@ -176,7 +176,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
             </Button>
             {savedAt && !dirty && <span className="text-xs text-[hsl(var(--st-active))] inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Saved {savedAt}</span>}
             {dirty && <span className="text-xs text-[hsl(var(--st-pending))]">Unsaved changes</span>}
-            <Tip label="Nothing changes until you press Save. You'll see a confirmation when it has."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
+            <Tip label="Nothing changes until you press Save. Saving clears the verified stamp — mark it verified again once you've checked it."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
           </div>
         )}
       </div>

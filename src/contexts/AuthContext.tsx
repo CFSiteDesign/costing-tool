@@ -9,6 +9,8 @@ interface AuthState {
   roles: Role[];
   isAdmin: boolean;
   isEditor: boolean;
+  canQuote: boolean;             // quotes are hidden from GMs (phase 2)
+  rolesLoaded: boolean;
   seesAllLocations: boolean;
   myLocations: Location[];       // GM scoping
   allLocations: Location[];      // whatever RLS lets this user read
@@ -31,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => localStorage.getItem("mm.location"),
   );
   const [fullName, setFullName] = useState("");
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -42,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session) { setRoles([]); setMyLocations([]); setAllLocations([]); return; }
+    if (!session) { setRoles([]); setMyLocations([]); setAllLocations([]); setRolesLoaded(false); return; }
     (async () => {
       const uid = session.user.id;
       const [r, ul, locs, prof] = await Promise.all([
@@ -57,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const mine = new Set((ul.data ?? []).map((x) => x.location_id));
       setMyLocations(((locs.data ?? []) as Location[]).filter((l) => mine.has(l.id)));
       setFullName(prof.data?.full_name ?? session.user.email ?? "");
+      setRolesLoaded(true);
     })();
   }, [session]);
 
@@ -73,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: roles.includes("admin"),
     isEditor: roles.some((r) => r === "admin" || r === "head_office" || r === "gm"),
     seesAllLocations: seesAll,
+    canQuote: seesAll,
+    rolesLoaded,
     myLocations, allLocations, currentLocation,
     setCurrentLocationId: (id) => {
       if (id) localStorage.setItem("mm.location", id); else localStorage.removeItem("mm.location");

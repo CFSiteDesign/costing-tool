@@ -40,7 +40,7 @@ export default function Experiences() {
     enabled: !!locId,
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      let q = supabase.from("products").select("*", { count: "exact" }).eq("location_id", locId!);
+      let q = supabase.from("products").select("*", { count: "exact" }).eq("location_id", locId!).neq("category", "transport");   // phase 2: transport has its own tab
       if (category !== "all") q = q.eq("category", category);
       if (status !== "all") q = q.eq("status", status);
       if (day) q = q.contains("days_of_week", [day]);
@@ -147,7 +147,7 @@ export default function Experiences() {
           <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            {Object.entries(CATEGORY_LABELS).filter(([k]) => k !== "transport").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={(v) => { setStatus(v as ProductStatus | "all"); setPage(0); }}>
@@ -174,14 +174,14 @@ export default function Experiences() {
             <thead>
               <tr className="bg-secondary text-muted-foreground text-left">
                 <th className="font-medium px-3 py-2.5 min-w-[260px] sticky left-0 bg-secondary z-10"><TipHead label="Title" tip="Click a name to open the full product page — every field editable, with a Save button." /></th>
-                <th className="font-medium px-3 py-2.5"><TipHead label="Category" tip="MM Tours (MADFIVE), Nightly Events, 3rd Party Tours, One-Time Events, Transport. One-time events carry an expiry and drop off once it passes." /></th>
+                <th className="font-medium px-3 py-2.5"><TipHead label="Category" tip="MM Tours (MADFIVE), Nightly Events, 3rd Party Tours, One-Time Events. One-time events carry an expiry and drop off once it passes. Transport has its own tab." /></th>
                 <th className="font-medium px-3 py-2.5 text-right w-36"><TipHead label="Rate" tip="Local price with the USD figure alongside. Type either one — the other is worked out from today's FX rate. Quotes always use USD. Italic text means the spreadsheet had words instead of a number." /></th>
                 <th className="font-medium px-3 py-2.5 w-40"><TipHead label="Days" tip="The days this runs. Click to change — this drives the 'what runs on a Monday?' filter and the quote builder." /></th>
                 <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Times" tip="Start and finish. Edit on the product page. Transport uses departure time slots instead." /></th>
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
-                <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Verified" tip="When someone last confirmed these details are current. Click the shield to mark it verified today." /></th>
+                <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Verified" tip="When someone last confirmed these details are current. Any edit clears it, so a product needs verifying again after changes. Click the shield to mark it verified today." /></th>
                 <th className="font-medium px-3 py-2.5 w-36"><TipHead label="Asset" tip="The social graphic for this experience. Create opens STUDIO prefilled; View shows the latest one; it flags itself out of date when the name, day, time or price change." /></th>
               </tr>
             </thead>
