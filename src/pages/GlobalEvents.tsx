@@ -36,7 +36,11 @@ const fmtDate = (d: string | null) => d ? new Date(d + "T00:00:00").toLocaleDate
 /** GE3: what happened to the GM email. */
 export function emailStatus(ev: GEvent): { text: string; warn: boolean } {
   const r = ev.notify_result;
-  if (!r) return { text: ev.notified_at ? "GMs emailed" : "GM email queued", warn: false };
+  if (!r) {
+    if (ev.notified_at) return { text: "GMs emailed", warn: false };
+    const fresh = Date.now() - new Date(ev.created_at).getTime() < 2 * 60_000;
+    return fresh ? { text: "GM email queued", warn: false } : { text: "No GM email — launched before GM emails were added", warn: true };
+  }
   if (r.noResendKey) return { text: `GM email not sent — email sending isn't switched on yet (${r.recipients} GM${r.recipients === 1 ? "" : "s"} would get it)`, warn: true };
   if (r.failed) return { text: `Emailed ${r.sent} of ${r.recipients} GMs · ${r.failed} failed`, warn: true };
   return { text: `Emailed ${r.sent} GM${r.sent === 1 ? "" : "s"}`, warn: false };
