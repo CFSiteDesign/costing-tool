@@ -345,3 +345,9 @@ badge): edit, approve, reject, approve-all per hostel; approving writes the time
 Run result: 109 new experiences, 317 proposals queued, 105 exceptions, 495 row numbers updated.
 Not done: Reden's login (auth user creation was blocked for the assistant; create in Supabase Auth and
 grant `head_office`), walkthrough PDF still out of date.
+
+## Detailed itinerary from a quote (client ask 10 Sep 2026) — PLANNED, not started
+Plan and data audit in `docs/ITINERARY_PLAN.md`. Generator from quote + products (times, itinerary text
+parsed to timed bullets, meeting point, inclusions, transfers, stays), fully editable document editor at
+`/quotes/:id/itinerary`, on-brand public page `/it/:slug` + print PDF. Photo slots empty for now (no
+Rezdy / website connection; Charlie to scope with Dhany as phase 2). ≈ 2 days.
