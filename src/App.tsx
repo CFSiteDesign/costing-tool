@@ -18,6 +18,8 @@ import AutoTrip from "./pages/AutoTrip";
 import GlobalEvents from "./pages/GlobalEvents";
 import Approvals from "./pages/Approvals";
 import Agreement from "./pages/Agreement";
+import ItineraryEditor from "./pages/ItineraryEditor";
+import ItineraryPublic from "./pages/ItineraryPublic";
 import SettingsPage from "./pages/settings/SettingsPage";
 import ImportsPage from "./pages/settings/ImportsPage";
 import NotFound from "./pages/NotFound";
@@ -36,6 +38,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/a/:slug" element={<Agreement />} />
+            <Route path="/it/:slug" element={<ItineraryPublic />} />
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/experiences" replace />} />
               <Route path="/experiences" element={<Experiences />} />
@@ -48,6 +51,7 @@ const App = () => (
                 <Route path="/quotes" element={<Quotes />} />
                 <Route path="/quotes/auto" element={<AutoTrip />} />
                 <Route path="/quotes/:id" element={<QuoteBuilder />} />
+                <Route path="/quotes/:id/itinerary" element={<ItineraryEditor />} />
               </Route>
               <Route path="/global-events" element={<GlobalEvents />} />
               <Route path="/approvals" element={<Approvals />} />

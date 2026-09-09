@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle, Sparkles } from "lucide-react";
 
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
@@ -418,6 +418,11 @@ export default function QuoteBuilder() {
             <Tip label="Frozen agreement versions. Each one keeps the prices from the moment it was generated — later edits never change a sent quote.">
               <Button variant="outline" size="sm" onClick={() => setVersionsOpen(true)} className="gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Versions ({versions?.length ?? 0})
+              </Button>
+            </Tip>
+            <Tip label="The client-facing day by day itinerary. Claude writes it from this quote, you edit it, then share the link or print the PDF.">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => nav(`/quotes/${id}/itinerary`)}>
+                <Sparkles className="h-3.5 w-3.5" /> Detailed itinerary
               </Button>
             </Tip>
             <Tip label="Everything is already saved as you go. This just takes you back to the list.">
