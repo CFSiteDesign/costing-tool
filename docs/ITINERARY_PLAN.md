@@ -72,6 +72,11 @@ vibe, photo_url, source_line_id, flagged}, accommodation, notes[]}, closing. Edi
 empty photo slot per activity (upload to the `itinerary-photos` bucket or paste a URL), Generate,
 Regenerate day, Save with "Saved hh:mm", Copy share link, Print / PDF. Quoting roles only.
 
+**Logo rule (Charlie, 10 Sep).** The real Mad Monkey logo file (`public/mm-logo.png`, black on white,
+1200×451; `mm-logo-white.png` on dark) sits top-left of the document on screen and top-left of **every
+printed page** (fixed print header that repeats per A4 sheet, page number bottom-right). Never generated,
+never described to the model; the model only writes text, the template places the logo.
+
 **4. The asset (½ day).** Public page `/it/:slug` via `get_itinerary(slug)` (anon RPC, like the agreement):
 Mad Monkey dark header with the logo, Montserrat, day cards in the ALL IN trip-page style (photo, timed
 lines, highlights, vibe, accommodation), inclusions / not included / transfers up top, mobile friendly,
