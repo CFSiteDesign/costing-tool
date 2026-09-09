@@ -333,3 +333,15 @@ Source: `docs/UPDATES_PHASE2.md` (verbatim) plus one verbal item: hide quotes fr
 
 Verified 8 Sep 2026: GM API lock-out; re-verify trigger (remarks edit keeps the stamp, title edit clears it); test global event → 23 GMs resolved by the notify function (no Resend key, so "would send"); GM accept with overrides created the product with the changed title / rate / start, two `global` assets, the date rule, and the overrides recorded on the response.
 Not done: walkthrough PDF refresh (still out of date).
+
+## Times re-sync from the flow chart (client request 9 Sep 2026) — **BUILT & RUN 9 Sep 2026**
+
+Source: `docs/TIMES_RESYNC.md` (client message verbatim + results). Finish time now auto-filled from
+start + duration on every save (`products_fill_times`, backfilled). Re-runnable pull script
+`tools/import_flowchart.py` reads every visible tab (hidden / OLD skipped), proposes start / finish from
+the ITINERARY column into `product_time_proposals`, inserts experiences added since 23 Aug, and logs
+housekeeping exceptions. New `/approvals` page ("Approvals" in the sidebar, admin + head office, pending
+badge): edit, approve, reject, approve-all per hostel; approving writes the times to the product.
+Run result: 109 new experiences, 317 proposals queued, 105 exceptions, 495 row numbers updated.
+Not done: Reden's login (auth user creation was blocked for the assistant; create in Supabase Auth and
+grant `head_office`), walkthrough PDF still out of date.

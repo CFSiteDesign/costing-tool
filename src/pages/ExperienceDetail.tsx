@@ -218,6 +218,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Start</Label><Input type="time" readOnly={!canEdit} value={f.starts_at} onChange={(e) => set("starts_at", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Finish</Label><Input type="time" readOnly={!canEdit} value={f.ends_at} onChange={(e) => set("ends_at", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Mins</Label><Input inputMode="numeric" readOnly={!canEdit} value={f.duration} onChange={(e) => set("duration", e.target.value)} /></div>
+          <p className="col-span-3 text-[11px] text-muted-foreground">Start and finish are both needed for quotes and My week. Leave Finish blank and it is worked out from Start + Mins when you save.</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1"><Tip label="Minimum guests for this to run, and the maximum per day. Quotes warn (never block) when a group doesn't fit. Leave blank if not applicable."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Min to run</Label></Tip><Input inputMode="numeric" placeholder="n/a" readOnly={!canEdit} value={f.min} onChange={(e) => set("min", e.target.value)} /></div>

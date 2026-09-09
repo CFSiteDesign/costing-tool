@@ -1,8 +1,10 @@
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -12,12 +14,20 @@ const NAV = [
   { to: "/quotes", label: "Quotes", icon: FileText, quoting: true },   // hidden from GMs (phase 2)
   { to: "/activity", label: "Activity", icon: History },
   { to: "/global-events", label: "Global events", icon: Globe, headOffice: true },
+  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, headOffice: true },   // times queue (9 Sep 2026)
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
 export default function AppShell() {
   const auth = useAuth();
   const loc = useLocation();
+  const isHeadOffice = auth.isAdmin || auth.roles.includes("head_office");
+  const { data: pendingApprovals } = useQuery({
+    queryKey: ["pending-approvals"],
+    enabled: !!auth.session && isHeadOffice,
+    refetchInterval: 60_000,
+    queryFn: async () => (await supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0,
+  });
 
   if (auth.loading || (auth.session && !auth.rolesLoaded)) {
     return <div className="h-screen grid place-items-center text-muted-foreground text-sm">Loading…</div>;
@@ -48,6 +58,7 @@ export default function AppShell() {
             >
               <n.icon className="h-4 w-4 shrink-0" />
               <span className="max-lg:hidden">{n.label}</span>
+              {n.to === "/approvals" && (pendingApprovals ?? 0) > 0 && <span className="ml-auto rounded-full bg-[hsl(var(--st-pending))] text-white text-[10px] font-semibold px-1.5 py-0.5 tabular-nums max-lg:hidden" title={`${pendingApprovals} waiting`}>{pendingApprovals}</span>}
             </NavLink>
           ))}
         </nav>
