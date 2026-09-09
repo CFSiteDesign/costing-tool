@@ -40,34 +40,46 @@ talk to Dhany about a Rezdy connection and scope that as phase 2.
 | Photos | products.photo_album_url is a real link on 4% of products; no Rezdy or website connection | empty slot per activity; paste a URL or upload; phase 2 = Rezdy |
 | Hostel address, reception contact | flow chart rows 1–28 (not imported) | manual now; a follow-up to the re-pull script can import them |
 
-## Build
-**1. Data + generator (½ day).** `quote_itineraries` (one per quote): `doc jsonb`, `share_slug`,
-`updated_at / updated_by`. Document shape: header, inclusions[], not_included[], optional[],
-transfers[], days[] → blocks[] (kind: activity | stay | meal | transfer | free | note; time, title, body,
-bullets[], highlights[], vibe, photo_url, source_line_id, edited). `generate_itinerary(quote_id)` builds it
-from the quote + products with the mapping above. "Regenerate from quote" keeps any block marked edited,
-refreshes the rest, adds new lines, flags removed ones. Public read via `get_itinerary(slug)` RPC (anon,
-SECURITY DEFINER, same pattern as the agreement). Storage bucket `itinerary-photos` for uploads.
+## Build (revised 10 Sep 2026: AI writes the whole document)
 
-**2. Editor (1 day).** `/quotes/:id/itinerary`, opened from a "Detailed itinerary" button in the builder.
-Reads like the finished page, every field editable in place, add / move / delete blocks, "needs filling"
-markers on empty auto fields (hidden in the output), photo slot per block (upload or paste URL, swap
-any time), explicit Save with "Saved hh:mm" like the product page, Regenerate, Preview, Copy share link,
-Print / PDF. Quoting roles only (admin, head office, sales).
+Charlie's call: AI for the whole thing, spitting out an on-brand asset. So the split becomes: the tool
+assembles the facts, Claude writes the document, the tool renders it in the Mad Monkey look, people edit.
 
-**3. Public page + PDF (½ day).** `/it/:slug`, Mad Monkey dark header, Montserrat, day cards in the ALL
-IN trip-page style (image, timed lines, highlights, vibe, accommodation), inclusions / not included /
-transfers up top, mobile friendly, print stylesheet for an A4 PDF. Optional: the agreement page links to
-the itinerary and vice versa, so a client gets one pack.
+**1. Fact pack (¼ day).** `itinerary_facts(quote_id)` returns one JSON object: trip (title, reference, pax,
+client, nights, route), days (day, date, hostel, country), and every line with its product data (times,
+duration, meeting point, itinerary text, brief/long description, inclusions, exclusions, things to bring,
+cancellation, rate), stays with room type, breakfast, transport with vehicle / route / departure slot.
+Nothing is written here, so nothing is invented here.
 
-**4. Follow-ups (later).** Per-hostel defaults (check in / out, Meet Up time, luggage note, address,
-reception contact) imported from the flow chart header rows; Rezdy / website photo pull (Dhany, phase 2);
-lunch / dinner as real fields on products so meal counts stop being a guess.
+**2. Generator (½ day).** Edge Function `itinerary-generate` calling Claude with:
+- a cached system prefix: the document format (taken from Hayley's reference: header, package
+  inclusions with meal counts, not included, optional extras, transfers, day by day with timed lines and an
+  accommodation line per day, last day check-out), the Mad Monkey voice with the ALL IN itinerary copy as
+  examples, the house rules (2pm check in, 7pm Meet Up with a free drink, 11am check out, luggage note when
+  leaving a hostel, "free day" pattern, multi-day tours expanded into their own days);
+- the fact pack as the user turn;
+- structured output (`output_config.format`) in the document schema below, so the result always renders.
+After the response, a deterministic check compares every time, price and product name in the output
+against the fact pack and marks any mismatch in the editor ("check this"). Model is a setting; recommend
+Sonnet 5 (≈ $0.25 per 10-day itinerary with the prefix cached), Haiku 4.5 ≈ $0.10, Opus 5 ≈ $0.60.
+Also per-day regeneration with an instruction ("shorter", "mention the pool") for fixes without a full rewrite.
 
-Total ≈ 2 days, sequence 1 → 2 → 3.
+**3. Document + editor (¾ day).** `quote_itineraries` (quote_id, doc jsonb, share_slug, model, generated_at,
+updated_at/by). Schema: header {title, subtitle, nights, route[]}, inclusions[], not_included[], optional[],
+transfers[], days[] → {day_no, date, title, intro, blocks[] {time, title, body, bullets[], highlights[],
+vibe, photo_url, source_line_id, flagged}, accommodation, notes[]}, closing. Editor at
+`/quotes/:id/itinerary`: reads like the finished page, every field editable, add / move / delete blocks,
+empty photo slot per activity (upload to the `itinerary-photos` bucket or paste a URL), Generate,
+Regenerate day, Save with "Saved hh:mm", Copy share link, Print / PDF. Quoting roles only.
 
+**4. The asset (½ day).** Public page `/it/:slug` via `get_itinerary(slug)` (anon RPC, like the agreement):
+Mad Monkey dark header with the logo, Montserrat, day cards in the ALL IN trip-page style (photo, timed
+lines, highlights, vibe, accommodation), inclusions / not included / transfers up top, mobile friendly,
+print stylesheet for an A4 PDF. Link between the agreement and the itinerary so the client gets one pack.
+
+Total ≈ 2 days. Needs: `ANTHROPIC_API_KEY` as a Supabase secret before the generator can run.
 ## Decisions needed
-- D1 Photos: manual for now (decided by Charlie 10 Sep).
+- D1 Photos: manual for now (decided by Charlie 10 Sep). Generation: AI writes the whole document from the fact pack (decided by Charlie 10 Sep).
 - D2 Standard daily blocks: 2pm check in, 7pm Meet Up with a free drink, 11am check out. Confirm these hold everywhere or give per-hostel values.
 - D3 Meal counts: derive lunch / dinner from inclusions text, or leave blank to type? Recommend derive and show as editable.
 - D4 One client pack: itinerary link on the agreement page and vice versa? Recommend yes.

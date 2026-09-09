@@ -347,7 +347,8 @@ Not done: Reden's login (auth user creation was blocked for the assistant; creat
 grant `head_office`), walkthrough PDF still out of date.
 
 ## Detailed itinerary from a quote (client ask 10 Sep 2026) — PLANNED, not started
-Plan and data audit in `docs/ITINERARY_PLAN.md`. Generator from quote + products (times, itinerary text
-parsed to timed bullets, meeting point, inclusions, transfers, stays), fully editable document editor at
+Plan and data audit in `docs/ITINERARY_PLAN.md`. Revised 10 Sep: Claude writes the whole document from a
+fact pack (quote + products) via an Edge Function with structured output; deterministic check on times and
+prices afterwards; fully editable document editor at
 `/quotes/:id/itinerary`, on-brand public page `/it/:slug` + print PDF. Photo slots empty for now (no
 Rezdy / website connection; Charlie to scope with Dhany as phase 2). ≈ 2 days.
