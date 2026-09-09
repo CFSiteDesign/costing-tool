@@ -92,6 +92,18 @@ export function ItineraryDocument({ doc, pax, reference, updatedAt, showPrint = 
                     <span className="ml-auto text-[11px] text-[#6c6c6c] font-semibold uppercase tracking-wider">{fmtDayDate(d.date) ?? d.hostel}</span>
                   </div>
                   {d.intro && <p className="mb-2">{d.intro}</p>}
+                  {d.highlights?.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-[10.5px] font-bold uppercase tracking-wider mb-1"><span className="bg-[#d9f99d] px-1.5 py-0.5 rounded">Today’s highlights</span></div>
+                      <List items={d.highlights} />
+                    </div>
+                  )}
+                  {d.vibe && (
+                    <div className="mb-2">
+                      <div className="text-[10.5px] font-bold uppercase tracking-wider mb-1"><span className="bg-[#d9f99d] px-1.5 py-0.5 rounded">The vibe</span></div>
+                      <p className="italic">{d.vibe}</p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     {d.blocks.map((b) => <Block key={b.id} b={b} />)}
                   </div>

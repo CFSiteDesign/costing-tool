@@ -17,6 +17,8 @@ export interface ItineraryDay {
   hostel: string;
   title: string;
   intro: string;
+  highlights: string[];      // multi-day tour days ("today's highlights")
+  vibe: string;              // multi-day tour days ("the vibe")
   blocks: ItineraryBlock[];
   accommodation: string;
   notes: string[];

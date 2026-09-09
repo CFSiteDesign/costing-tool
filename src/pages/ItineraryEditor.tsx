@@ -187,6 +187,10 @@ export default function ItineraryEditor() {
                 </Popover>
               </div>
               <Field label="Intro" value={d.intro} onChange={(v) => patchDay(d.day_no, { intro: v })} rows={2} />
+              <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                <Field label="Today's highlights (multi-day tours, one per line)" value={lines(d.highlights ?? [])} onChange={(v) => patchDay(d.day_no, { highlights: unlines(v) })} rows={3} />
+                <Field label="The vibe (multi-day tours)" value={d.vibe ?? ""} onChange={(v) => patchDay(d.day_no, { vibe: v })} rows={3} />
+              </div>
               <div className="space-y-3">
                 {d.blocks.map((b, i) => (
                   <div key={b.id} className={`rounded-md border p-3 space-y-2 ${b.flagged ? "border-[hsl(var(--st-pending))]/50 bg-[hsl(var(--st-pending))]/5" : ""}`}>

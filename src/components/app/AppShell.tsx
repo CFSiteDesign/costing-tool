@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
+import { Tip } from "@/components/app/Tip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,20 +10,32 @@ import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe,
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/experiences", label: "Experiences", icon: Compass },
-  { to: "/week", label: "My week", icon: CalendarDays },
-  { to: "/transport", label: "Transport", icon: Bus },
-  { to: "/quotes", label: "Quotes", icon: FileText, quoting: true },   // hidden from GMs (phase 2)
-  { to: "/activity", label: "Activity", icon: History },
-  { to: "/global-events", label: "Global events", icon: Globe, headOffice: true },
-  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, headOffice: true },   // times queue (9 Sep 2026)
-  { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+  { to: "/experiences", label: "Experiences", icon: Compass, tip: "Every tour and event at this hostel: rates, days, times, status." },
+  { to: "/week", label: "My week", icon: CalendarDays, tip: "What runs this week, day by day, in time order." },
+  { to: "/transport", label: "Transport", icon: Bus, tip: "Every transfer, bus, boat and rental, with departure times." },
+  { to: "/quotes", label: "Quotes", icon: FileText, quoting: true, tip: "Group trip quotes, agreements and detailed itineraries." },   // hidden from GMs (phase 2)
+  { to: "/activity", label: "Activity", icon: History, tip: "Every change, who made it and when." },
+  { to: "/global-events", label: "Global events", icon: Globe, headOffice: true, tip: "Events sent to every hostel to accept or decline." },
+  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, headOffice: true, tip: "Start and finish times waiting for head office approval." },   // times queue (9 Sep 2026)
+  { to: "/settings", label: "Settings", icon: Settings, adminOnly: true, tip: "Rate sync, Reden emails, currencies, imports." },
 ];
+
+/** True when the sidebar is the icon rail (below Tailwind's lg breakpoint, e.g. half a desktop screen). */
+function useCollapsedSidebar() {
+  const [collapsed, setCollapsed] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const h = (e: MediaQueryListEvent) => setCollapsed(e.matches);
+    mq.addEventListener("change", h); return () => mq.removeEventListener("change", h);
+  }, []);
+  return collapsed;
+}
 
 export default function AppShell() {
   const auth = useAuth();
   const loc = useLocation();
   const isHeadOffice = auth.isAdmin || auth.roles.includes("head_office");
+  const collapsed = useCollapsedSidebar();
   const { data: pendingApprovals } = useQuery({
     queryKey: ["pending-approvals"],
     enabled: !!auth.session && isHeadOffice,
@@ -42,11 +56,11 @@ export default function AppShell() {
           <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7 lg:hidden" />
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
-          {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office")) && (!n.quoting || auth.canQuote)).map((n) => (
+          {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office")) && (!n.quoting || auth.canQuote)).map((n) => {
+            const link = (
             <NavLink
               key={n.to}
               to={n.to}
-              title={n.label}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors relative max-lg:justify-center",
@@ -60,7 +74,10 @@ export default function AppShell() {
               <span className="max-lg:hidden">{n.label}</span>
               {n.to === "/approvals" && (pendingApprovals ?? 0) > 0 && <span className="ml-auto rounded-full bg-[hsl(var(--st-pending))] text-white text-[10px] font-semibold px-1.5 py-0.5 tabular-nums max-lg:hidden" title={`${pendingApprovals} waiting`}>{pendingApprovals}</span>}
             </NavLink>
-          ))}
+            );
+            // collapsed rail: the name (and what the page is for) on hover, to the right of the icon
+            return collapsed ? <Tip key={n.to} side="right" label={`${n.label}${n.to === "/approvals" && pendingApprovals ? ` (${pendingApprovals} waiting)` : ""}: ${n.tip}`}>{link}</Tip> : link;
+          })}
         </nav>
         <div className="p-3 text-[11px] text-muted-foreground max-lg:hidden">
           Experience Database & Costing Tool

@@ -1,10 +1,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { VOICE_EXAMPLES, REFERENCE_DOC } from "./voice.ts";
 
 // Detailed itinerary writer (10 Sep 2026). Claude writes the whole document from the quote's fact pack;
 // the tool renders it. Facts in, words out: the model never sees a price and is told to invent nothing.
 // Body: { quote_id, mode: "full" | "day", day_no?, instruction? }. Runs as the calling user (RLS applies).
+// The voice examples + reference document live in sync_config ('itinerary_voice', seeded from voice.ts in the
+// repo) so the prompt can be tuned without a redeploy. The model is sync_config 'itinerary_model'.
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
@@ -24,9 +25,10 @@ const BLOCK_SCHEMA = {
 };
 const DAY_SCHEMA = {
   type: "object", additionalProperties: false,
-  required: ["day_no", "date", "hostel", "title", "intro", "blocks", "accommodation", "notes"],
+  required: ["day_no", "date", "hostel", "title", "intro", "highlights", "vibe", "blocks", "accommodation", "notes"],
   properties: {
     day_no: { type: "integer" }, date: { type: "string" }, hostel: { type: "string" }, title: { type: "string" }, intro: { type: "string" },
+    highlights: STR_LIST, vibe: { type: "string" },
     blocks: { type: "array", items: BLOCK_SCHEMA }, accommodation: { type: "string" }, notes: STR_LIST,
   },
 };
@@ -55,7 +57,7 @@ HOUSE LINES (Mad Monkey standard, use them):
 - Last day: "11am: Check out + onward travel".
 - Accommodation line: "Mad Monkey {hostel}, shared dorm" for Dorm room types, "Mad Monkey {hostel}, private room" for Private; on tour nights use what the tour text says (homestay, onboard the boat), otherwise "".
 
-BLOCKS. One block per timed thing, in time order. time is a clock time like "7pm" or "8:45am". For a booked activity: title = the product name exactly, body = one to three sentences in the voice, bullets = its hour by hour steps taken from the product's itinerary text (each bullet starts with the time when the text has one), highlights and vibe empty unless it is a multi-day tour. For a day inside a multi-day tour (the fact pack marks these with covered_by), write that day like the reference: title, intro, highlights (3 to 6 short items from the tour's own itinerary text) and vibe (one short paragraph), and keep blocks to the timed lines only.
+BLOCKS. One block per timed thing, in time order. time is a clock time like "7pm" or "8:45am". For a booked activity: title = the product name exactly, body = one to three sentences in the voice, bullets = its hour by hour steps taken from the product's itinerary text (each bullet starts with the time when the text has one), highlights and vibe empty unless it is a multi-day tour. For a day inside a multi-day tour (the fact pack marks these with covered_by), write that day like the reference: title, intro, then the DAY's own highlights (3 to 6 short items from the tour's own itinerary text) and the DAY's vibe (one short paragraph), and keep blocks to the timed lines only (often there are none). Day-level highlights and vibe are only for multi-day tour days; leave them empty on ordinary days.
 
 FREE DAYS. "Free day to explore {city}." One or two sentences: the guest experience team can recommend things to do. Then the Meet Up lines and the accommodation line.
 
@@ -65,11 +67,7 @@ TRANSFERS list: one line per transport line in the quote, "{vehicle} {origin} to
 
 NOT INCLUDED: flights, airport transfers (available on request), private room upgrades (available on request), optional or additional activities (available on request), meals not specifically mentioned, personal expenses, travel insurance. Adjust only if the fact pack contradicts one.`;
 
-function voiceBlock() {
-  return `MAD MONKEY VOICE, examples from the ALL IN trip pages (match this tone):\n\n` +
-    VOICE_EXAMPLES.map((v) => `${v.title}\n${v.body}`).join("\n\n") +
-    `\n\nREFERENCE DOCUMENT (format and level of detail to match; the wording is a human's, do not copy it for other trips):\n\n${REFERENCE_DOC}`;
-}
+const FALLBACK_VOICE = `MAD MONKEY VOICE: like the ALL IN trip pages. Second person, present tense, short punchy sentences, warm and a bit cheeky, concrete details over adjectives. Example: "Out the door at 8am and onto the water at Lan Ha Bay, Halong's quieter, wilder neighbour. Days are for swimming straight off the boat, tubing and beach volleyball. Come sunset the boat party starts and the limestone towers turn gold."`;
 
 // ── fact pack helpers ──
 type Line = { id: string; kind: string; title: string; starts_at: string | null; ends_at: string | null; duration_minutes: number | null; product: Record<string, unknown> | null };
@@ -149,32 +147,38 @@ Deno.serve(async (req: Request) => {
   const { data: facts, error: fe } = await user.rpc("itinerary_facts", { p_quote_id: body.quote_id });
   if (fe) return json({ error: fe.message }, 403);
   annotate(facts);
-  const { data: cfg } = await admin.from("sync_config").select("value").eq("key", "itinerary_model").maybeSingle();
-  const model = cfg?.value || DEFAULT_MODEL;
+  const { data: cfgRows } = await admin.from("sync_config").select("key, value").in("key", ["itinerary_model", "itinerary_voice"]);
+  const cfg = Object.fromEntries((cfgRows ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
+  const model = cfg.itinerary_model || DEFAULT_MODEL;
+  const voice = cfg.itinerary_voice || FALLBACK_VOICE;
   const { data: me } = await user.auth.getUser();
 
   const client = new Anthropic({ apiKey });
-  const system: Anthropic.TextBlockParam[] = [
-    { type: "text", text: RULES + "\n\n" + voiceBlock(), cache_control: { type: "ephemeral" } },
-    { type: "text", text: "FACT PACK (the only source of truth):\n" + JSON.stringify(facts), cache_control: { type: "ephemeral" } },
-  ];
+  // The rules + voice block is identical for every quote, so it is the only thing worth caching.
+  // Day calls carry just their own day's facts; only the header call needs the whole pack.
+  const base: Anthropic.TextBlockParam = { type: "text", text: RULES + "\n\n" + voice, cache_control: { type: "ephemeral" } };
+  const systemFor = (extra?: string): Anthropic.TextBlockParam[] => extra ? [base, { type: "text", text: extra }] : [base];
   const usage = { input: 0, output: 0, cache_read: 0, cache_write: 0 };
-  const call = async (prompt: string, schema: Record<string, unknown>, max_tokens: number) => {
+  const call = async (prompt: string, schema: Record<string, unknown>, max_tokens: number, system?: string) => {
     const r = await client.messages.create({
-      model, max_tokens, system,
+      model, max_tokens, system: systemFor(system),
+      thinking: { type: "disabled" },   // a writing task with a fixed schema; keeps max_tokens for the words
       messages: [{ role: "user", content: prompt }],
       output_config: { format: { type: "json_schema", schema } },
     } as Anthropic.MessageCreateParamsNonStreaming);
     usage.input += r.usage.input_tokens; usage.output += r.usage.output_tokens;
     usage.cache_read += r.usage.cache_read_input_tokens ?? 0; usage.cache_write += r.usage.cache_creation_input_tokens ?? 0;
+    console.log(JSON.stringify({ call: prompt.slice(0, 24), stop: r.stop_reason, out: r.usage.output_tokens, cache_read: r.usage.cache_read_input_tokens, cache_write: r.usage.cache_creation_input_tokens }));
     if (r.stop_reason === "refusal") throw new Error("The writer declined this request");
+    if (r.stop_reason === "max_tokens") throw new Error(`The writer ran out of room on "${prompt.slice(0, 30)}…" (${max_tokens} tokens)`);
     const text = r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
-    return JSON.parse(text);
+    try { return JSON.parse(text); }
+    catch { throw new Error(`Bad JSON from the writer (stop ${r.stop_reason}, ${text.length} chars): ${text.slice(0, 160)}`); }
   };
   const dayPrompt = (d: Day, instruction?: string) => {
     const total = facts.days.length;
     const around = facts.days.map((x: Day) => `Day ${x.day_no}: ${x.hostel}${x.lines.filter((l) => l.kind === "experience" || l.kind === "transport").map((l) => ", " + l.title.replace(/\s+/g, " ")).join("")}`).join("\n");
-    return `Write Day ${d.day_no} of ${total} only.\n\nThis day's facts:\n${JSON.stringify(d)}\n\nThe whole trip for context (do not write these other days):\n${around}\n\n` +
+    return `Write Day ${d.day_no} of ${total} only. The trip is "${facts.quote.title}" for ${facts.quote.pax} travellers.\n\nThis day's facts (the only source of truth for this day):\n${JSON.stringify(d)}\n\nThe whole trip for context (do not write these other days):\n${around}\n\n` +
       (d.covered_by?.length ? `This day is day ${d.covered_by[0].day_index} of ${d.covered_by[0].total_days} of "${d.covered_by[0].title.replace(/\s+/g, " ")}". Write it in the multi-day tour style (title, intro, highlights, vibe) using only that tour's itinerary and description text.\n\n` : "") +
       (d.day_no === 1 ? "This is the arrival day: start with check in.\n" : "") + (d.day_no === total ? "This is the last night: tomorrow is check out + onward travel, mention it in the closing note.\n" : "") +
       (instruction ? `\nThe person editing asked for this change: ${instruction}\n` : "") + `\nReturn the Day object.`;
@@ -187,7 +191,7 @@ Deno.serve(async (req: Request) => {
       if (!row) return json({ error: "Generate the itinerary first" }, 400);
       const d = facts.days.find((x: Day) => x.day_no === body.day_no);
       if (!d) return json({ error: "day not found" }, 400);
-      const day = await call(dayPrompt(d, body.instruction), DAY_SCHEMA, 4000);
+      const day = await call(dayPrompt(d, body.instruction), DAY_SCHEMA, 6000);
       const doc = row.doc; const idx = doc.days.findIndex((x: any) => x.day_no === body.day_no);
       const fresh = finishDay(day);
       doc.flags = check(facts.days, [fresh]);
@@ -197,8 +201,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // full: header first (creates the cache), then every day in parallel
-    const header = await call(`Write the header section for the whole trip: title (the trip name), subtitle (nights and route), nights, route, intro (two or three sentences), package inclusions with meal counts, not included, optional extras, transfers, and a one or two sentence closing. Return the header object.`, HEADER_SCHEMA, 3000);
-    const days = await Promise.all(facts.days.map((d: Day) => call(dayPrompt(d), DAY_SCHEMA, 4000)));
+    const header = await call(`Write the header section for the whole trip: title (the trip name), subtitle (nights and route), nights, route, intro (two or three sentences), package inclusions with meal counts, not included, optional extras, transfers, and a one or two sentence closing. Return the header object.`, HEADER_SCHEMA, 4000, "FACT PACK (the only source of truth):\n" + JSON.stringify(facts));
+    const days = await Promise.all(facts.days.map((d: Day) => call(dayPrompt(d), DAY_SCHEMA, 6000)));
     const outDays = days.map(finishDay).sort((a, b) => a.day_no - b.day_no);
     const flags = check(facts.days, outDays);
     const doc = { ...header, days: outDays, flags };
@@ -212,6 +216,7 @@ Deno.serve(async (req: Request) => {
 
 function finishDay(day: any) {
   day.date = day.date || null;
+  day.highlights = day.highlights ?? []; day.vibe = day.vibe ?? "";
   day.blocks = (day.blocks ?? []).map((b: any) => ({ id: crypto.randomUUID(), ...b, source_line_id: b.source_line_id || null, photo_url: null, flagged: null }));
   return day;
 }
