@@ -1,6 +1,10 @@
-# AI prompt box for GMs (planned 13 Sep 2026)
+# MIMO, the Mad Monkey assistant (planned 13 Sep 2026)
 
-## The ask (Charlie's Granola notes)
+## The ask (Charlie's Granola notes, plus 13 Sep direction)
+- Lives behind a button on the sidebar that opens an assistant, not a bar on the Experiences page.
+- Called MIMO. Super clean UI. Give it personality.
+
+## The ask (Granola notes)
 - GMs edit experiences through a simple prompt box, e.g. "Change price of Wens Pub to $10".
 - AI is the intelligence layer between what the GM typed and the data.
 - Handles mismatches (GM says "pub crawl", the product is named differently).
@@ -18,9 +22,9 @@ So every existing safeguard still fires: the change log, "edited means verify ag
 queue for website products, the stale flag on assets, and the hostel scoping in the database.
 
 ## Flow, step by step
-1. **GM types** into a bar above the Experiences table: "Tell me what to change…". Examples appear on
-   focus ("Pub crawl now $12", "Move karaoke to 8pm", "Pause the cooking class", "Beer pong runs Mon
-   Wed Fri").
+1. **GM opens MIMO** from the sidebar (or Cmd/Ctrl + K) and types: "Pub crawl now $12", "Move karaoke
+   to 8pm", "Pause the cooking class", "Beer pong runs Mon Wed Fri". MIMO is a panel, so it works from
+   any page, My week included.
 2. **The function** (`prompt-edit`, Edge Function, runs as the GM so RLS applies) loads that hostel's
    products (id, title, category, price in USD and local, days, start, finish, status, active, website)
    and sends them with the sentence to Claude, structured output only.
@@ -28,8 +32,8 @@ queue for website products, the stale flag on assets, and the hostel scoping in 
    (exact / likely / unsure), any alternatives, the field, old and new value, and a one line reason. If
    the sentence is ambiguous it returns a question instead ("Which pub crawl, the Tuesday one or the
    Level 2 package?").
-4. **Step 1 of confirmation: the card.** "Here's what I'll change" with product, field, old → new, in
-   plain words ("Wednesday Pub Crawl · price · $8.00 → $10.00 (฿280 → ฿350)"). Unsure matches show the
+4. **Step 1 of confirmation: the card.** MIMO says what it will change, then a card: product, field,
+   old → new, in plain words ("Wednesday Pub Crawl · price · $8.00 → $10.00 (฿280 → ฿350)"). Unsure matches show the
    alternatives as chips to pick. The new value is editable on the card before confirming.
 5. **Step 2: Confirm.** Big changes need a second explicit "Yes, I'm sure": a price moving more than
    40% or to zero (the same threshold the table already uses), pausing, a rename, a change to a product
@@ -37,15 +41,62 @@ queue for website products, the stale flag on assets, and the hostel scoping in 
 6. **Step 3: Applied, with Undo.** The row updates, a toast confirms, and an Undo link puts the old
    value back with one click. Undo is itself an edit, so the change log shows both.
 
-Several changes in one sentence give one card each; confirm all or one at a time. Clarifications are a
-short back and forth (at most three turns) kept in the page, not saved as a conversation.
+Several changes in one sentence give one card each; confirm all or one at a time. The conversation
+stays in the panel for the session and is not saved.
 
-## What the prompt box may change (allow-list)
+Because the product list is already in front of the model, MIMO also answers questions for free:
+"What runs on a Thursday?", "What's the sunrise tour priced at?", "Which events have no finish
+time?". Read-only answers, no card, no confirm. Recommended for phase 1 because it is the thing that
+makes MIMO feel like a colleague rather than a form.
+
+## Where MIMO lives, and how it looks (super clean)
+- **Sidebar.** One entry under the page list, set apart by a hairline: the monkey head (the real
+  `mm-head.png`) and the word MIMO. On the collapsed rail it is the head alone, with the usual hover
+  tooltip. Cmd/Ctrl + K opens it from anywhere.
+- **The panel.** Slides in from the right, 420px, full height, white, one hairline border, nothing
+  floating over the page. Header: the head, "MIMO", the hostel as a small chip, a close cross. That is
+  the whole header.
+- **Messages.** No chat bubbles. MIMO's lines are plain text on the left with the head shown once per
+  group; the GM's lines are short grey chips on the right. Cards sit inline with a hairline border and
+  three actions: Confirm, Change (edits the value in place), Cancel. Strong confirms add one line and a
+  Yes button. Applied changes collapse to one green line with Undo.
+- **Input.** One line at the bottom, "Tell MIMO what to change", Enter sends. Empty state is a
+  greeting plus three chips (Change a price, Move a time, Pause something). No help text, no tips
+  carousel, no onboarding.
+- **Mobile.** Full-screen sheet, same content.
+- **Nothing else on any page changes.** No floating bubble, no banner, no badge.
+
+## Personality
+MIMO is the sharpest person on the hostel team: knows every tour, every price and every day of the
+week, gets things done fast, and has a bit of Mad Monkey cheek without ever making the GM feel daft.
+
+Rules of voice:
+- Short. One or two sentences at a time, one question at a time.
+- Plain words, British spelling, no em dashes, no emojis, no exclamation mark pile-ups.
+- Says what it did, not how clever it was. Never "Great question".
+- Honest about limits, and always offers the nearest thing it can do.
+- Uses the GM's first name and knows the hostel it is standing in.
+- Cheek is light and aimed at the situation, never the person.
+
+Sample lines (the tone to build to):
+- Greeting: "Hey Kassy. What needs changing at Siem Reap?"
+- Proposal: "Got it. Wednesday Pub Crawl goes from $8 to $10, that's ฿350 at today's rate."
+- Unsure match: "Two things look like a pub crawl here. The Wednesday one, or the Level 2 package?"
+- Strong confirm: "That's a 60% jump. Sure?"
+- Applied: "Done. It's live on the list and Reden gets a note because it's on the website."
+- Time shift: "Karaoke now starts at 8pm. I've moved the finish to 11pm so it still runs three hours. Say if that's wrong."
+- Can't delete: "Nothing here ever gets deleted, so I've set it to paused instead. It stays in the database and drops out of quotes."
+- Off the allow-list: "I can't change the category from here. It's the first dropdown on the product page."
+- Not found: "No Sunset Cruise at Siem Reap. Closest I've got is Road 60. Want that?"
+- Question: "Thursdays you've got Kulen Waterfalls at 8am, Quad Bike at 4:30pm and Pub Crawl at 8pm."
+- Error: "That didn't save. Nothing changed. Try again in a second."
+
+## What MIMO may change (allow-list)
 price (USD or local), start, finish, duration, days it runs, status (active / paused / signature /
 pending update), active on the ground, listed on website, title, brief description, meeting point,
 minimum and maximum guests, expiry date for one-time events.
 
-Not through the prompt box: deleting (nothing is ever deleted; "remove X" becomes pause with a note
+Not through MIMO: deleting (nothing is ever deleted; "remove X" becomes pause with a note
 saying so), changing category, anything at another hostel, anything about quotes, creating a product
 (phase 2: "add a Thursday quiz at 8pm" opens the Add product form prefilled, it does not create).
 
@@ -76,11 +127,11 @@ two products with similar names, sentences with two changes, sentences asking fo
 allow-list. Kept in `tools/data/prompt_eval.json` so the prompt or model can be changed later without
 guessing whether matching got worse.
 
-## Build (about 2 days)
+## Build (about 2.5 days)
 1. Edge Function `prompt-edit`: product list, prompt, structured output schema, validation, rate limit,
    log row. Half a day.
-2. Experiences page: the bar, proposal cards, alternatives, confirm and strong confirm, apply via the
-   existing update, Undo. Three quarters of a day.
+2. The panel: sidebar entry, slide-over, messages, cards, alternatives, confirm and strong confirm,
+   apply via the existing update, Undo, keyboard shortcut, mobile sheet. One day.
 3. `prompt_edits` table + Settings view. Quarter of a day.
 4. The test set and a tuning pass on the real product names. Quarter of a day.
 
@@ -89,3 +140,4 @@ guessing whether matching got worse.
 - D2 Renames through the prompt box: allowed with the strong confirm (recommended), or product page only.
 - D3 Creating products by prompt: phase 2 as a prefilled form (recommended), or never.
 - D4 Model: Sonnet 5 (recommended) or Haiku 4.5.
+- D5 Questions as well as edits in phase 1 (recommended, no extra cost) or edits only.
