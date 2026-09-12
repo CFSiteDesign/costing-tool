@@ -352,3 +352,10 @@ fact pack (quote + products) via an Edge Function with structured output; determ
 prices afterwards; fully editable document editor at
 `/quotes/:id/itinerary`, on-brand public page `/it/:slug` + print PDF. Photo slots empty for now (no
 Rezdy / website connection; Charlie to scope with Dhany as phase 2). ≈ 2 days.
+
+## AI prompt box for GMs (Granola notes 13 Sep 2026) — PLANNED, not started
+Plan and logic in `docs/PROMPT_BOX_PLAN.md`. GM types a sentence; an Edge Function gives Claude that
+hostel's product list and gets back a structured proposal (product, field, old, new, confidence,
+alternatives); the app validates it, shows a card, the GM confirms (strong confirm for big changes),
+the app applies it through the normal update so every existing safeguard fires, with Undo. The model
+never writes. Allow-listed fields only, no deletes, no other hostels, no quotes. About 2 days.
