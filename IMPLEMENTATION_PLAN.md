@@ -361,3 +361,5 @@ the app applies it through the normal update so every existing safeguard fires, 
 never writes. Allow-listed fields only, no deletes, no other hostels, no quotes. About 2 days.
 
 - **Sidebar collapse (13 Sep 2026): BUILT.** Toggle in the sidebar footer, remembered per browser (`mm.sidebar`); below lg the rail is still forced and the toggle hides.
+
+- **Delete a day (client request, 13 Sep 2026): BUILT.** Trash icon on each day header in the quote builder with a confirm dialog. The day's lines go with it; later days move up one and their dates shift back a day so the trip stays continuous (the dialog says so and reminds them to check weekday-dependent experiences).
