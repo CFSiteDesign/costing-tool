@@ -58,7 +58,7 @@ VALUES. Use only the value formats in the schema. Days: Mon=1 … Sun=7; "every 
 
 CONVERSATION. You remember this conversation. "It", "that", "this one", "the same one", "the other one" and "make it X instead" refer to the product in your last reply, or to the product the GM is looking at (NOW block). A follow-up after an answer ("what time does karaoke start?" then "push it back an hour") is a proposal on that product, worked out from the facts you just gave. "What about Wednesday?" keeps the shape of the previous question. A correction ("no, the Wednesday one") replaces your earlier match and keeps the rest of the change. If a proposal was cancelled and they ask again, propose it again. Never ask for something they already told you in this conversation. When the GM is on a product page, a bare change ("price 12", "not on Sundays") applies to that product.
 
-ANSWERS. Answer the question asked with the fields that matter to it and nothing else: a price question gets the price (and the local price when there is one); a time question gets start, finish and days; "what's on" gets every product that runs that day, all of them, in time order with their start times, active ones only unless they ask about paused ones; "tonight" means from 5pm. Say times the way the team does, 8pm and 8:30pm, never 20:00. "Today", "tonight", "tomorrow" and "this week" use the NOW block. Paused products, and one-time events past their expiry, are not on: say so when it changes the answer. More than six items: give the count and the first six, then offer the rest. Bookings, guests, revenue and quotes are not in your list: say so and where they live (bookings in Rezdy, quotes with head office). When the obvious next step is something you can do, offer it in a few words, once ("Want it changed?").
+ANSWERS. Answer the question asked with the fields that matter to it and nothing else: a price question gets the price (and the local price when there is one); a time question gets start, finish and days; "what's on" for today or tomorrow comes straight from the run sheets in NOW, which are complete and already in time order: list every entry (for "tonight", every entry from 5pm) and nothing that is not on the sheet. For other days work it out from PRODUCTS: active ones only, unless they ask about paused ones. One-time events do not run weekly, they are on only on their expiry date. Say times the way the team does, 8pm and 8:30pm, never 20:00. "Today", "tonight", "tomorrow" and "this week" use the NOW block. Paused products, and one-time events past their expiry, are not on: say so when it changes the answer. More than six items: give the count and the first six, then offer the rest. Bookings, guests, revenue and quotes are not in your list: say so and where they live (bookings in Rezdy, quotes with head office). When the obvious next step is something you can do, offer it in a few words, once ("Want it changed?").
 
 FACTS. Everything you say about a product comes from the PRODUCTS list. If it is not there, say so.`;
 
@@ -206,7 +206,16 @@ PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, l
   const viewing = body.context?.product_id ? byId.get(String(body.context.product_id)) : undefined;
   const page = typeof body.context?.page === "string" ? body.context.page.replace(/[^\w ]/g, "").slice(0, 40) : "";
   const where = viewing ? `The GM is on the product page for "${viewing.title}" (id ${viewing.id}), so "this" means that product.` : page && page !== "product" ? `The GM is on the ${page} page.` : "";
-  const now = `NOW\n${nowLine}${where ? `\n${where}` : ""}`;
+  // Today's and tomorrow's run sheets, worked out here so "what's on" answers are complete and in order.
+  const dow = (d: Date) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(fmt({ weekday: "short" }, d)) + 1;
+  const isoDate = (d: Date) => fmt({ year: "numeric", month: "2-digit", day: "2-digit" }, d).split("/").reverse().join("-");
+  const runSheet = (d: Date) => {
+    const day = dow(d), date = isoDate(d);
+    const on = list.filter((p) => p.active_on_ground && p.status !== "paused" && p.category !== "transport" && (p.category === "one_time_event" ? p.expires_on === date : (p.days_of_week ?? []).includes(day)))
+      .sort((a, b) => (a.starts_at ? toMin(a.starts_at.slice(0, 5)) : 1e9) - (b.starts_at ? toMin(b.starts_at.slice(0, 5)) : 1e9));
+    return on.length ? on.map((p) => `${p.title}${p.starts_at ? ` ${t12(p.starts_at.slice(0, 5))}` : " (no set time)"}`).join("; ") : "nothing";
+  };
+  const now = `NOW\n${nowLine}${where ? `\n${where}` : ""}\nToday's run sheet, active products in time order: ${runSheet(new Date())}\nTomorrow's run sheet: ${runSheet(new Date(Date.now() + 86400e3))}`;
 
   const client = new Anthropic({ apiKey });
   const started = Date.now();

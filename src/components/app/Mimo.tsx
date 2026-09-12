@@ -48,6 +48,12 @@ export function MimoNavButton({ collapsed }: { collapsed: boolean }) {
 }
 
 const PAGES: [RegExp, string][] = [[/^\/experiences/, "Experiences list"], [/^\/week/, "My week"], [/^\/transport/, "Transport"], [/^\/activity/, "Activity"], [/^\/quotes/, "Quotes"], [/^\/global-events/, "Global events"], [/^\/approvals/, "Approvals"], [/^\/settings/, "Settings"]];
+/** Time-of-day greeting on the GM's own clock: morning until noon, afternoon until 5pm, evening after (and through the small hours). */
+function greeting(first: string, d = new Date()) {
+  const h = d.getHours();
+  const part = h >= 5 && h < 12 ? "Good morning" : h >= 12 && h < 17 ? "Good afternoon" : "Good evening";
+  return first ? `${part}, ${first}` : part;
+}
 const CHIPS = ["Change a price", "Move a time", "Pause something"];
 const FILL: Record<string, string> = { "Change a price": "Change the price of ", "Move a time": "Move ", "Pause something": "Pause " };
 
@@ -72,6 +78,8 @@ export function MimoPanel() {
   const endRef = useRef<HTMLDivElement>(null);
   const rawFirst = (auth.fullName || "").trim().split(/\s+/)[0] || "";
   const first = /^(gm|admin|test|user)$/i.test(rawFirst) || (auth.session?.user.email ?? "").endsWith("@madmonkey.test") ? "" : rawFirst;
+  // recomputed each time the panel opens, so a tab left open all day still greets the right part of the day
+  const hello = useMemo(() => greeting(first), [first, open]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [met, setMet] = useState<boolean | null>(null);   // null = not loaded yet
   const [step, setStep] = useState(0);
   useEffect(() => { (async () => {
@@ -155,7 +163,7 @@ export function MimoPanel() {
           )}
           {turns.length === 0 && met === true && (
             <div className="space-y-3 pt-6">
-              <p className="text-[15px]">Hey{first ? ` ${first}` : ""}. What needs changing at {loc?.name ?? "your hostel"}?</p>
+              <p className="text-[15px]">{hello}. What needs changing at {loc?.name ?? "your hostel"}?</p>
               <div className="flex flex-wrap gap-1.5">
                 {CHIPS.map((c) => <button key={c} className="rounded-full border px-3 py-1 text-[13px] text-muted-foreground hover:text-foreground hover:bg-secondary" onClick={() => { setText(FILL[c]); inputRef.current?.focus(); }}>{c}</button>)}
               </div>
@@ -268,7 +276,7 @@ function ChangeCard({ c, onConfirm, onCancel, onUndo, onPick, onChange, busy }: 
 /** First time only: three short screens. Stored on the profile, so once per person on any device. */
 function MeetMimo({ step, setStep, hostel, first, onTry, onDone }: { step: number; setStep: (n: number) => void; hostel: string; first: string; onTry: (example: string) => void; onDone: () => void }) {
   const screens = [
-    { title: `Hey${first ? ` ${first}` : ""}. I'm MIMO.`, body: `I look after the experiences at ${hostel}. Tell me what to change in plain words and I'll sort it, no forms.` },
+    { title: `${greeting(first)}. I'm MIMO.`, body: `I look after the experiences at ${hostel}. Tell me what to change in plain words and I'll sort it, no forms.` },
     { title: "What I can do", body: "Prices, times, days, status, descriptions, meeting points, guest limits and expiry dates. I'll show you exactly what I'm about to change and wait for your OK, and you can undo. I can also answer questions like \"what runs on a Thursday?\"" },
     { title: "What I won't do", body: "Delete anything (nothing here ever gets deleted, I pause instead), change categories, or touch quotes or other hostels. For those, the product page is the place." },
   ];

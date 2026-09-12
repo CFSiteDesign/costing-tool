@@ -181,3 +181,8 @@ products by prompt (phase 2).
 - **Fullscreen.** A toggle in the panel header (Maximize icon) widens the slide-over to the whole screen
   with the conversation and input in a centred column; remembered per browser (`mm.mimo.wide`). Hidden on
   phones, where the panel is already full width.
+- **Run sheets.** The NOW block carries today's and tomorrow's run sheet (active, non-transport products
+  on that weekday, one-time events only on their expiry date, in start-time order), worked out in the
+  function, so "what's on tonight" is complete and never invents a one-off. Function v5.
+- **Greeting.** Panel and walkthrough open with Good morning / afternoon / evening plus the first name,
+  on the GM's own clock (morning to noon, afternoon to 5pm, evening after), recomputed on each open.

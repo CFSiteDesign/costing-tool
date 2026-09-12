@@ -6,7 +6,8 @@ const env = Object.fromEntries(fs.readFileSync(".env", "utf8").split("\n").filte
 const URL = env.VITE_SUPABASE_URL, KEY = env.VITE_SUPABASE_ANON_KEY;
 const email = process.env.MIMO_EVAL_EMAIL, password = process.env.MIMO_EVAL_PASSWORD;
 if (!email || !password) { console.error("set MIMO_EVAL_EMAIL and MIMO_EVAL_PASSWORD"); process.exit(1); }
-const MODELS = ["claude-sonnet-5", "claude-opus-5"];
+// MIMO_EVAL_MODELS=claude-sonnet-5 and MIMO_EVAL_ONLY=tonight narrow a run.
+const MODELS = (process.env.MIMO_EVAL_MODELS ?? "claude-sonnet-5,claude-opus-5").split(",");
 const SCENARIOS = [
   { name: "Typo + price change", turns: ["the pub crwal is 12 bucks now"] },
   { name: "Ambiguous product", turns: ["move the pool thing to 3pm"] },
@@ -23,7 +24,7 @@ const loc = locs[0]; if (!loc) { console.error("no such hostel"); process.exit(1
 const memory = (t) => t.content + ((t.changes ?? []).length ? `\n(proposed: ${t.changes.map((c) => `${c.product_title}: ${c.label} ${c.old} -> ${c.new}`).join("; ")})` : "");
 
 const results = [];
-for (const sc of SCENARIOS) {
+for (const sc of SCENARIOS.filter((x) => !process.env.MIMO_EVAL_ONLY || x.name.toLowerCase().includes(process.env.MIMO_EVAL_ONLY.toLowerCase()))) {
   const row = { scenario: sc.name, turns: sc.turns, by: {} };
   for (const model of MODELS) {
     const history = []; const replies = [];
@@ -41,6 +42,6 @@ for (const sc of SCENARIOS) {
   }
   results.push(row);
 }
-const out = `tools/data/mimo_eval_${new Date().toISOString().slice(0, 10)}.json`;
+const out = process.env.MIMO_EVAL_ONLY ? `tools/data/mimo_eval_last.json` : `tools/data/mimo_eval_${new Date().toISOString().slice(0, 10)}.json`;
 fs.writeFileSync(out, JSON.stringify({ hostel: loc.name, ran_at: new Date().toISOString(), results }, null, 2));
 console.log("wrote", out);
