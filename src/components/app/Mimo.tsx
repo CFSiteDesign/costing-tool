@@ -7,7 +7,7 @@ import { Tip } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { X, Check, Undo2, Pencil, Send } from "lucide-react";
+import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2 } from "lucide-react";
 
 /** MIMO: the Mad Monkey assistant. A clean slide-over; the model proposes, the person confirms, the app applies. */
 
@@ -64,6 +64,8 @@ export function MimoPanel() {
     return { page: name };
   }, [pathname]);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [wide, setWideState] = useState(() => { try { return localStorage.getItem("mm.mimo.wide") === "1"; } catch { return false; } });   // fullscreen, remembered
+  const setWide = (v: boolean) => { setWideState(v); try { localStorage.setItem("mm.mimo.wide", v ? "1" : "0"); } catch { /* private mode */ } };
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -132,15 +134,21 @@ export function MimoPanel() {
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-black/10 sm:hidden" onClick={() => setOpen(false)} />}
-      <aside className={cn("fixed top-0 right-0 z-50 h-full w-full sm:w-[420px] bg-background border-l flex flex-col transition-transform duration-200", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
-        <div className="h-14 shrink-0 border-b flex items-center gap-2.5 px-4">
+      <aside className={cn("fixed top-0 right-0 z-50 h-full w-full bg-background border-l flex flex-col transition-[transform,width] duration-200 motion-reduce:transition-none", wide ? "sm:w-full" : "sm:w-[420px]", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
+        <div className={cn("h-14 shrink-0 border-b flex items-center gap-2.5 px-4", wide && "sm:px-6")}>
           <img src="/mm-head.png" alt="" className="h-6 w-6" />
           <span className="font-semibold">MIMO</span>
           {loc && <span className="text-[11px] rounded-full border px-2 py-0.5 text-muted-foreground">{loc.name}</span>}
-          <button className="ml-auto text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)} aria-label="Close"><X className="h-4 w-4" /></button>
+          <Tip side="bottom" label={wide ? "Back to the side panel" : "Fullscreen"}>
+            <button className="ml-auto hidden sm:inline-flex text-muted-foreground hover:text-foreground" onClick={() => setWide(!wide)} aria-label={wide ? "Exit fullscreen" : "Fullscreen"}>
+              {wide ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+          </Tip>
+          <button className="ml-auto sm:ml-0 text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-[14px]">
+        <div className={cn("flex-1 overflow-y-auto px-4 py-4 text-[14px]", wide && "sm:text-[15px] sm:py-8")}>
+        <div className={cn("space-y-4", wide && "mx-auto w-full max-w-2xl")}>
           {turns.length === 0 && met === false && (
             <MeetMimo step={step} setStep={setStep} hostel={loc?.name ?? "your hostel"} first={first}
               onTry={(example) => { finishMeet(); setText(example); inputRef.current?.focus(); }} onDone={finishMeet} />
@@ -168,10 +176,13 @@ export function MimoPanel() {
           {busy && <Thinking prompt={[...turns].reverse().find((t) => t.role === "user")?.content ?? ""} hostel={loc?.name ?? "your hostel"} ccy={loc?.currency ?? "local"} />}
           <div ref={endRef} />
         </div>
+        </div>
 
-        <form className="shrink-0 border-t p-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); send(text); }}>
-          <Input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tell MIMO what to change" className="h-10" disabled={busy || !loc} maxLength={600} />
-          <Button type="submit" size="icon" className="h-10 w-10 shrink-0" disabled={busy || !text.trim()} aria-label="Send"><Send className="h-4 w-4" /></Button>
+        <form className={cn("shrink-0 border-t p-3", wide && "sm:py-4")} onSubmit={(e) => { e.preventDefault(); send(text); }}>
+          <div className={cn("flex gap-2", wide && "mx-auto w-full max-w-2xl")}>
+            <Input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tell MIMO what to change" className="h-10" disabled={busy || !loc} maxLength={600} />
+            <Button type="submit" size="icon" className="h-10 w-10 shrink-0" disabled={busy || !text.trim()} aria-label="Send"><Send className="h-4 w-4" /></Button>
+          </div>
         </form>
       </aside>
     </>

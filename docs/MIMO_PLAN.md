@@ -178,3 +178,6 @@ products by prompt (phase 2).
   MIMO never writes to products. First run 12 Sep 2026 (UTC): both models correct on all five; Opus fuller
   on "what's on tonight" (Sonnet missed Pool BBQ), Opus put a card with alternatives on the ambiguous
   one where Sonnet only asked; latency similar (4 to 12s). Staying on Sonnet 5.
+- **Fullscreen.** A toggle in the panel header (Maximize icon) widens the slide-over to the whole screen
+  with the conversation and input in a centred column; remembered per browser (`mm.mimo.wide`). Hidden on
+  phones, where the panel is already full width.
