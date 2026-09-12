@@ -145,7 +145,7 @@ export function MimoPanel() {
             <MeetMimo step={step} setStep={setStep} hostel={loc?.name ?? "your hostel"} first={first}
               onTry={(example) => { finishMeet(); setText(example); inputRef.current?.focus(); }} onDone={finishMeet} />
           )}
-          {turns.length === 0 && met !== false && (
+          {turns.length === 0 && met === true && (
             <div className="space-y-3 pt-6">
               <p className="text-[15px]">Hey{first ? ` ${first}` : ""}. What needs changing at {loc?.name ?? "your hostel"}?</p>
               <div className="flex flex-wrap gap-1.5">
