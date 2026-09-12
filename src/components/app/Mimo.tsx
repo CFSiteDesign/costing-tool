@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tip } from "@/components/app/Tip";
@@ -37,15 +38,16 @@ export function MimoProvider({ children }: { children: React.ReactNode }) {
 export function MimoNavButton({ collapsed }: { collapsed: boolean }) {
   const { open, toggle } = useMimo();
   const btn = (
-    <button onClick={toggle} className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors max-lg:justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
+    <button onClick={toggle} className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors", collapsed && "justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
       <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0" />
-      <span className="max-lg:hidden">MIMO</span>
-      <span className="ml-auto text-[10px] text-muted-foreground/70 max-lg:hidden">⌘K</span>
+      {!collapsed && <span>MIMO</span>}
+      {!collapsed && <span className="ml-auto text-[10px] text-muted-foreground/70">⌘K</span>}
     </button>
   );
   return collapsed ? <Tip side="right" label="MIMO: tell it what to change at your hostel, in plain words. It checks with you before anything changes.">{btn}</Tip> : btn;
 }
 
+const PAGES: [RegExp, string][] = [[/^\/experiences/, "Experiences list"], [/^\/week/, "My week"], [/^\/transport/, "Transport"], [/^\/activity/, "Activity"], [/^\/quotes/, "Quotes"], [/^\/global-events/, "Global events"], [/^\/approvals/, "Approvals"], [/^\/settings/, "Settings"]];
 const CHIPS = ["Change a price", "Move a time", "Pause something"];
 const FILL: Record<string, string> = { "Change a price": "Change the price of ", "Move a time": "Move ", "Pause something": "Pause " };
 
@@ -54,6 +56,13 @@ export function MimoPanel() {
   const auth = useAuth();
   const qc = useQueryClient();
   const loc = auth.currentLocation;
+  const { pathname } = useLocation();
+  const pageCtx = useMemo(() => {   // where the GM is, so "this one" and a bare "price 12" land on the product in front of them
+    const m = pathname.match(/^\/experiences\/([0-9a-f-]{36})$/i);
+    if (m) return { page: "product", product_id: m[1] };
+    const name = PAGES.find(([r]) => r.test(pathname))?.[1] ?? "app";
+    return { page: name };
+  }, [pathname]);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,7 +100,7 @@ export function MimoPanel() {
     setTurns(history); setText(""); setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("mimo", {
-        body: { location_id: loc.id, messages: history.slice(-8).map((t) => ({ role: t.role, content: t.role === "assistant" ? assistantMemory(t) : t.content })) },
+        body: { location_id: loc.id, context: pageCtx, messages: history.slice(-12).map((t) => ({ role: t.role, content: t.role === "assistant" ? assistantMemory(t) : t.content })) },
       });
       if (error) throw new Error(error.message);
       if (data?.error && !data?.reply) throw new Error(data.error);
@@ -147,7 +156,7 @@ export function MimoPanel() {
           {turns.map((t, i) => t.role === "user" ? (
             <div key={i} className="flex justify-end"><span className="max-w-[85%] rounded-2xl bg-secondary px-3 py-1.5 text-[13.5px]">{t.content}</span></div>
           ) : (
-            <div key={i} className="flex gap-2.5">
+            <div key={i} className="flex gap-2.5 animate-mimo-in motion-reduce:animate-none">
               <img src="/mm-head.png" alt="" className="h-5 w-5 mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1 space-y-2">
                 <p className="leading-relaxed">{t.content}</p>
@@ -156,7 +165,7 @@ export function MimoPanel() {
               </div>
             </div>
           ))}
-          {busy && <div className="flex gap-2.5 items-center text-muted-foreground text-[13px]"><img src="/mm-head.png" alt="" className="h-5 w-5 opacity-60" /><span className="animate-pulse">…</span></div>}
+          {busy && <Thinking prompt={[...turns].reverse().find((t) => t.role === "user")?.content ?? ""} hostel={loc?.name ?? "your hostel"} ccy={loc?.currency ?? "local"} />}
           <div ref={endRef} />
         </div>
 
@@ -166,6 +175,44 @@ export function MimoPanel() {
         </form>
       </aside>
     </>
+  );
+}
+
+/** What MIMO says while she works. A pool picked from what was asked, then the general lines; {hostel} and {ccy} fill in. */
+const LINES: Record<string, string[]> = {
+  price: ["Doing the sums in dollars and {ccy}", "Checking the going rate at {hostel}", "Counting the bananas", "Making sure a backpacker would still pay it"],
+  time: ["Working out what day it is at {hostel}", "Moving the clocks", "Checking it doesn't land on top of the pub crawl", "Sorting the start from the finish"],
+  pause: ["Finding the off switch", "Nothing gets deleted here, only paused", "Checking what that leaves on this week"],
+  ask: ["Reading the board at {hostel}", "Flicking through the tour desk", "Pulling up the week", "Asking the troop"],
+  general: ["Having a think", "Swinging through the list", "Reading the fine print so you don't have to", "Sniffing out the right tour", "Getting the monkeys in a row", "Rifling through the tour desk", "Nearly there"],
+};
+function poolFor(msg: string) {
+  const m = msg.toLowerCase();
+  if (/[$£€฿₫₱]|price|cost|rate|charge|cheaper|dollar|bucks/.test(m)) return "price";
+  if (/\d\s*(am|pm)\b|o'clock|start|finish|\bend|time|earlier|later|\bmove|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\b(mon|tue|wed|thu|fri|sat|sun)s?\b|daily|weekly/.test(m)) return "time";
+  if (/pause|stop|remove|delete|kill|switch off|turn off|cancel|take .* down|hide/.test(m)) return "pause";
+  if (/\?|^what|^which|^when|^who|^how|^show|^list|^tell/.test(m)) return "ask";
+  return "general";
+}
+const shuffle = <T,>(a: T[]) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+function Thinking({ prompt, hostel, ccy }: { prompt: string; hostel: string; ccy: string }) {
+  const lines = useMemo(() => {
+    const k = poolFor(prompt);
+    return [...shuffle(LINES[k]), ...(k === "general" ? [] : shuffle(LINES.general))].map((l) => l.replace("{hostel}", hostel).replace("{ccy}", ccy));
+  }, [prompt, hostel, ccy]);
+  const [i, setI] = useState(0);
+  useEffect(() => { setI(0); const t = setInterval(() => setI((n) => (n + 1) % lines.length), 2400); return () => clearInterval(t); }, [lines]);
+  return (
+    <div className="flex gap-2.5 items-center text-muted-foreground text-[13px]" aria-live="polite">
+      <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0 animate-mimo-bob motion-reduce:animate-none" />
+      <span key={i} className="flex items-baseline gap-1 animate-mimo-in motion-reduce:animate-none">
+        {lines[i]}
+        <span className="flex gap-[3px] ml-0.5 translate-y-[-1px]" aria-hidden>
+          {[0, 1, 2].map((d) => <i key={d} className="block h-[3px] w-[3px] rounded-full bg-current animate-mimo-dot motion-reduce:animate-none" style={{ animationDelay: `${d * 160}ms` }} />)}
+        </span>
+      </span>
+    </div>
   );
 }
 

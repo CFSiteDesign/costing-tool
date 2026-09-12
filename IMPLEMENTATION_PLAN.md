@@ -359,3 +359,5 @@ hostel's product list and gets back a structured proposal (product, field, old, 
 alternatives); the app validates it, shows a card, the GM confirms (strong confirm for big changes),
 the app applies it through the normal update so every existing safeguard fires, with Undo. The model
 never writes. Allow-listed fields only, no deletes, no other hostels, no quotes. About 2 days.
+
+- **Sidebar collapse (13 Sep 2026): BUILT.** Toggle in the sidebar footer, remembered per browser (`mm.sidebar`); below lg the rail is still forced and the toggle hides.

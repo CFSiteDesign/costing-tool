@@ -159,3 +159,22 @@ guessing whether matching got worse.
   with the product page offered; a two-change sentence gave two cards.
 Not built yet: head-office view of `prompt_edits` under Settings, the 30-sentence eval set, creating
 products by prompt (phase 2).
+
+### Added later on 13 Sep 2026
+- **Thinking state.** While MIMO works, the head bobs and a line in the Mad Monkey voice rotates every
+  2.4s ("Checking the going rate at Siem Reap", "Getting the monkeys in a row"). The pool is picked from
+  what was asked (price, time, pause, question), then the general lines. Replies ease in. All of it
+  respects reduced-motion. Lines live in `LINES` in `Mimo.tsx`.
+- **Context awareness.** The function gets a NOW block (weekday, date and time in the hostel's timezone,
+  tomorrow's weekday) and where the GM is (page, or the product page they are on, so "this one" and a bare
+  "price 12" land on it). History is the last 12 turns. Persona has CONVERSATION and ANSWERS rules:
+  follow-ups ("push it back an hour" after a time answer), corrections, "what about Wednesday", only the
+  fields the question needs, "tonight" from 5pm, paused and expired are not on, times as 8pm not 20:00.
+  NOW is the last system block and uncached so the persona and product list still cache.
+- **Model override for evals.** Body `model` is honoured for admin and head office only, from an
+  allow-list (Sonnet 5, Opus 5, Haiku 4.5). GMs always get `sync_config.prompt_model` or the default.
+- **Eval script.** `node tools/mimo_eval.mjs "Siem Reap"` with `MIMO_EVAL_EMAIL` / `MIMO_EVAL_PASSWORD`
+  runs the scenarios on Sonnet 5 and Opus 5 and writes `tools/data/mimo_eval_<date>.json`. Read-only:
+  MIMO never writes to products. First run 12 Sep 2026 (UTC): both models correct on all five; Opus fuller
+  on "what's on tonight" (Sonnet missed Pool BBQ), Opus put a card with alternatives on the ambiguous
+  one where Sonnet only asked; latency similar (4 to 12s). Staying on Sonnet 5.

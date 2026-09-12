@@ -1,0 +1,397 @@
+{
+  "hostel": "Siem Reap",
+  "ran_at": "2026-09-12T23:31:27.168Z",
+  "results": [
+    {
+      "scenario": "Typo + price change",
+      "turns": [
+        "the pub crwal is 12 bucks now"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "the pub crwal is 12 bucks now",
+            "reply": "Pub Crawl goes from $10 to $12. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-sonnet-5",
+            "ms": 6714,
+            "usage": {
+              "input": 77,
+              "output": 130,
+              "cache_read": 0,
+              "cache_write": 15317
+            },
+            "changes": [
+              {
+                "product": "Pub Crawl",
+                "field": "price",
+                "old": "$10.00",
+                "new": "$12.00",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "pub crwal",
+                "alternatives": []
+              }
+            ]
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "the pub crwal is 12 bucks now",
+            "reply": "Pub Crawl goes from $10 to $12. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-opus-5",
+            "ms": 6670,
+            "usage": {
+              "input": 77,
+              "output": 149,
+              "cache_read": 0,
+              "cache_write": 15317
+            },
+            "changes": [
+              {
+                "product": "Pub Crawl",
+                "field": "price",
+                "old": "$10.00",
+                "new": "$12.00",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "pub crwal",
+                "alternatives": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "Ambiguous product",
+      "turns": [
+        "move the pool thing to 3pm"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "move the pool thing to 3pm",
+            "reply": "A few pool things on the go, which one do you mean: Pool crawl, Pool BBQ, or Pool party & ice bath challenge?",
+            "kind": "question",
+            "model_used": "claude-sonnet-5",
+            "ms": 12083,
+            "usage": {
+              "input": 74,
+              "output": 204,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": []
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "move the pool thing to 3pm",
+            "reply": "Two pool ones on Thursdays: Pool party & ice bath challenge (14:00 to 19:00, active) and Pool crawl (14:00, paused). Which do you want at 15:00?",
+            "kind": "question",
+            "model_used": "claude-opus-5",
+            "ms": 8159,
+            "usage": {
+              "input": 74,
+              "output": 251,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Pool party & ice bath chaallenge",
+                "field": "start",
+                "old": "2pm, finish 7pm",
+                "new": "3pm, finish 8pm",
+                "confidence": "unsure",
+                "strong": null,
+                "used_name": "the pool thing",
+                "alternatives": [
+                  "Pool crawl",
+                  "Pool BBQ"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "Two changes in one line",
+      "turns": [
+        "kulen now 45 dollars and runs mon wed fri"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "kulen now 45 dollars and runs mon wed fri",
+            "reply": "Kulen Waterfalls Tour goes to $45 and runs Monday, Wednesday, Friday. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-sonnet-5",
+            "ms": 5152,
+            "usage": {
+              "input": 82,
+              "output": 230,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Kulen Waterfalls Tour",
+                "field": "price",
+                "old": "$40.00",
+                "new": "$45.00",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "kulen",
+                "alternatives": []
+              },
+              {
+                "product": "Kulen Waterfalls Tour",
+                "field": "days",
+                "old": "every day",
+                "new": "Mon Wed Fri",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "kulen",
+                "alternatives": []
+              }
+            ]
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "kulen now 45 dollars and runs mon wed fri",
+            "reply": "Kulen Waterfalls Tour goes from $40 to $45, and days change from every day to Mon, Wed, Fri. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-opus-5",
+            "ms": 10865,
+            "usage": {
+              "input": 82,
+              "output": 251,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Kulen Waterfalls Tour",
+                "field": "price",
+                "old": "$40.00",
+                "new": "$45.00",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "kulen",
+                "alternatives": []
+              },
+              {
+                "product": "Kulen Waterfalls Tour",
+                "field": "days",
+                "old": "every day",
+                "new": "Mon Wed Fri",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "kulen",
+                "alternatives": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "Follow-up across turns",
+      "turns": [
+        "what time does karaoke start?",
+        "push it back an hour"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "what time does karaoke start?",
+            "reply": "Karaoke night kicks off at 20:00 and runs to 23:00, Saturdays only.",
+            "kind": "answer",
+            "model_used": "claude-sonnet-5",
+            "ms": 3656,
+            "usage": {
+              "input": 72,
+              "output": 53,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": []
+          },
+          {
+            "user": "push it back an hour",
+            "reply": "Karaoke will move to 21:00, finishing at 00:00 so it keeps its 3 hours. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-sonnet-5",
+            "ms": 9976,
+            "usage": {
+              "input": 114,
+              "output": 174,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Karaoke night",
+                "field": "start",
+                "old": "8pm, finish 11pm",
+                "new": "9pm, finish 12am",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "karaoke",
+                "alternatives": []
+              }
+            ]
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "what time does karaoke start?",
+            "reply": "Karaoke night starts at 20:00 and runs to 23:00, Saturdays only.",
+            "kind": "answer",
+            "model_used": "claude-opus-5",
+            "ms": 4443,
+            "usage": {
+              "input": 72,
+              "output": 51,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": []
+          },
+          {
+            "user": "push it back an hour",
+            "reply": "Karaoke night moves from 20:00 to 21:00, with the finish shifting to 00:00 so the three hours hold. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-opus-5",
+            "ms": 5547,
+            "usage": {
+              "input": 112,
+              "output": 178,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Karaoke night",
+                "field": "start",
+                "old": "8pm, finish 11pm",
+                "new": "9pm, finish 12am",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "karaoke",
+                "alternatives": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "Delete request (not allowed)",
+      "turns": [
+        "get rid of the music quiz, nobody turns up"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "get rid of the music quiz, nobody turns up",
+            "reply": "Can't delete it outright, but I'll pause Music Quiz so it's off the schedule and bookable list.",
+            "kind": "proposal",
+            "model_used": "claude-sonnet-5",
+            "ms": 7469,
+            "usage": {
+              "input": 79,
+              "output": 166,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Music Quiz",
+                "field": "status",
+                "old": "active",
+                "new": "paused",
+                "confidence": "exact",
+                "strong": "Pausing takes it out of quotes and My week. It stays in the database.",
+                "used_name": "the music quiz",
+                "alternatives": []
+              }
+            ]
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "get rid of the music quiz, nobody turns up",
+            "reply": "Nothing gets deleted here, so I will pause Music Quiz instead. It keeps its Tuesday 20:00 slot ready if you want it back.",
+            "kind": "proposal",
+            "model_used": "claude-opus-5",
+            "ms": 6385,
+            "usage": {
+              "input": 79,
+              "output": 174,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": [
+              {
+                "product": "Music Quiz",
+                "field": "status",
+                "old": "active",
+                "new": "paused",
+                "confidence": "exact",
+                "strong": "Pausing takes it out of quotes and My week. It stays in the database.",
+                "used_name": "music quiz",
+                "alternatives": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "Context check: tonight",
+      "turns": [
+        "what's on tonight?"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "what's on tonight?",
+            "reply": "Tonight is Sunday, so you've got Sunday funday package from 19:00 and Canva painting roulette from 17:00.",
+            "kind": "answer",
+            "model_used": "claude-sonnet-5",
+            "ms": 5420,
+            "usage": {
+              "input": 70,
+              "output": 65,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": []
+          }
+        ],
+        "claude-opus-5": [
+          {
+            "user": "what's on tonight?",
+            "reply": "Tonight, Sunday: Canva painting roulette 17:00, Pool BBQ 18:30, Sunday funday package 19:00. Kun Khmer boxing and Wake Park run today too but earlier, at 10:00 and 15:00.",
+            "kind": "answer",
+            "model_used": "claude-opus-5",
+            "ms": 4383,
+            "usage": {
+              "input": 70,
+              "output": 104,
+              "cache_read": 15317,
+              "cache_write": 0
+            },
+            "changes": []
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -93,6 +93,18 @@ export default {
           "50%": { opacity: "0.5" },
           "100%": { transform: "translateY(110vh) rotate(360deg)", opacity: "0" },
         },
+        "mimo-bob": {
+          "0%, 100%": { transform: "translateY(0) rotate(-4deg)" },
+          "50%": { transform: "translateY(-2px) rotate(4deg)" },
+        },
+        "mimo-dot": {
+          "0%, 70%, 100%": { opacity: "0.25", transform: "translateY(0)" },
+          "35%": { opacity: "1", transform: "translateY(-2px)" },
+        },
+        "mimo-in": {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -100,6 +112,9 @@ export default {
         "float": "float 4s ease-in-out infinite",
         "float-reverse": "float-reverse 5s ease-in-out infinite",
         "falling-heart": "falling-heart linear infinite",
+        "mimo-bob": "mimo-bob 1.8s ease-in-out infinite",
+        "mimo-dot": "mimo-dot 1.1s ease-in-out infinite",
+        "mimo-in": "mimo-in 0.35s ease-out both",
       },
     },
   },

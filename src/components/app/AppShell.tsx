@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -21,22 +21,25 @@ const NAV = [
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true, tip: "Rate sync, Reden emails, currencies, imports." },
 ];
 
-/** True when the sidebar is the icon rail (below Tailwind's lg breakpoint, e.g. half a desktop screen). */
-function useCollapsedSidebar() {
-  const [collapsed, setCollapsed] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
+/** The sidebar is the icon rail below Tailwind's lg breakpoint (half a desktop screen), or whenever the person
+ *  collapses it themselves. Their choice is remembered on this browser. */
+function useCollapsedSidebar(): { collapsed: boolean; narrow: boolean; toggle: () => void } {
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
+  const [pref, setPref] = useState(() => { try { return localStorage.getItem("mm.sidebar") === "collapsed"; } catch { return false; } });
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1023px)");
-    const h = (e: MediaQueryListEvent) => setCollapsed(e.matches);
+    const h = (e: MediaQueryListEvent) => setNarrow(e.matches);
     mq.addEventListener("change", h); return () => mq.removeEventListener("change", h);
   }, []);
-  return collapsed;
+  const toggle = () => setPref((p) => { try { localStorage.setItem("mm.sidebar", p ? "expanded" : "collapsed"); } catch { /* private mode */ } return !p; });
+  return { collapsed: narrow || pref, narrow, toggle };
 }
 
 export default function AppShell() {
   const auth = useAuth();
   const loc = useLocation();
   const isHeadOffice = auth.isAdmin || auth.roles.includes("head_office");
-  const collapsed = useCollapsedSidebar();
+  const { collapsed, narrow, toggle: toggleSidebar } = useCollapsedSidebar();
   const { data: pendingApprovals } = useQuery({
     queryKey: ["pending-approvals"],
     enabled: !!auth.session && isHeadOffice,
@@ -52,10 +55,9 @@ export default function AppShell() {
   return (
     <MimoProvider>
     <div className="flex h-screen overflow-hidden">
-      <aside className="w-[220px] shrink-0 border-r bg-secondary/60 flex flex-col max-lg:w-14">
-        <div className="h-14 flex items-center px-4 border-b max-lg:justify-center max-lg:px-0">
-          <img src="/mm-logo.png" alt="Mad Monkey" className="h-8 w-auto max-lg:hidden" />
-          <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7 lg:hidden" />
+      <aside className={cn("shrink-0 border-r bg-secondary/60 flex flex-col transition-[width] duration-200 motion-reduce:transition-none", collapsed ? "w-14" : "w-[220px]")}>
+        <div className={cn("h-14 flex items-center border-b", collapsed ? "justify-center px-0" : "px-4")}>
+          {collapsed ? <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7" /> : <img src="/mm-logo.png" alt="Mad Monkey" className="h-8 w-auto" />}
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
           {NAV.filter((n) => (!n.adminOnly || auth.isAdmin) && (!n.headOffice || auth.isAdmin || auth.roles.includes("head_office")) && (!n.quoting || auth.canQuote)).map((n) => {
@@ -65,7 +67,7 @@ export default function AppShell() {
               to={n.to}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors relative max-lg:justify-center",
+                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors relative", collapsed && "justify-center",
                   isActive
                     ? "bg-background text-foreground shadow-sm before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-accent"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/60",
@@ -73,8 +75,8 @@ export default function AppShell() {
               }
             >
               <n.icon className="h-4 w-4 shrink-0" />
-              <span className="max-lg:hidden">{n.label}</span>
-              {n.to === "/approvals" && (pendingApprovals ?? 0) > 0 && <span className="ml-auto rounded-full bg-[hsl(var(--st-pending))] text-white text-[10px] font-semibold px-1.5 py-0.5 tabular-nums max-lg:hidden" title={`${pendingApprovals} waiting`}>{pendingApprovals}</span>}
+              {!collapsed && <span>{n.label}</span>}
+              {!collapsed && n.to === "/approvals" && (pendingApprovals ?? 0) > 0 && <span className="ml-auto rounded-full bg-[hsl(var(--st-pending))] text-white text-[10px] font-semibold px-1.5 py-0.5 tabular-nums" title={`${pendingApprovals} waiting`}>{pendingApprovals}</span>}
             </NavLink>
             );
             // collapsed rail: the name (and what the page is for) on hover, to the right of the icon
@@ -82,8 +84,16 @@ export default function AppShell() {
           })}
         </nav>
         <div className="px-2 pb-2 border-t pt-2"><MimoNavButton collapsed={collapsed} /></div>
-        <div className="p-3 text-[11px] text-muted-foreground max-lg:hidden">
-          Experience Database & Costing Tool
+        <div className={cn("flex items-center text-[11px] text-muted-foreground", collapsed ? "justify-center py-2" : "px-3 py-2 gap-2")}>
+          {!collapsed && <span className="min-w-0 truncate">Experience Database & Costing Tool</span>}
+          {/* below lg the rail is forced, so no toggle there */}
+          {!narrow && (
+            <Tip side="right" label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"}>
+              <button onClick={toggleSidebar} className={cn("shrink-0 rounded-md p-1 hover:bg-background/60 hover:text-foreground", !collapsed && "ml-auto")} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!collapsed}>
+                {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
+            </Tip>
+          )}
         </div>
       </aside>
 

@@ -3,9 +3,11 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 
 // MIMO (13 Sep 2026): the Mad Monkey assistant. Reads the GM's products, turns a sentence into a structured
 // proposal, answers questions. NEVER writes: the app applies confirmed changes through the normal update.
-// Body: { location_id, messages: [{ role: "user" | "assistant", content }] }   (runs as the caller, RLS applies)
+// Body: { location_id, messages: [{ role, content }], context?: { page, product_id }, model? (admin/head office only) }
+// Runs as the caller, RLS applies.
 
 const DEFAULT_MODEL = "claude-sonnet-5";
+const ALLOWED_MODELS = ["claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
 const RATE_LIMIT_PER_HOUR = 30;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -53,6 +55,10 @@ WHAT YOU DO. The GM types a sentence. You either:
 MATCHING. GMs use nicknames, typos and half names ("Wens pub", "the quiz", "karaoke"). Match against the PRODUCTS titles and categories, and against KNOWN NICKNAMES first: those were confirmed by the team here, so a nickname match is "exact". Put the GM's own words for the product in used_name so the nickname can be remembered. If one product clearly fits, confidence "exact" or "likely". If two or more fit, "unsure" with alternatives and ask. Never pick a product at another hostel: you only have this hostel's list.
 
 VALUES. Use only the value formats in the schema. Days: Mon=1 … Sun=7; "every day" is 1,2,3,4,5,6,7; "add Saturday" or "not on Sundays" means the final list after applying that to the current days. Prices: the number and the currency the GM used ($ or "dollars" is USD; "baht", "pesos", "rupiah", "dong", "riel" or a local symbol is the hostel's local currency). Times are 24h HH:MM. Never invent a value the GM did not give.
+
+CONVERSATION. You remember this conversation. "It", "that", "this one", "the same one", "the other one" and "make it X instead" refer to the product in your last reply, or to the product the GM is looking at (NOW block). A follow-up after an answer ("what time does karaoke start?" then "push it back an hour") is a proposal on that product, worked out from the facts you just gave. "What about Wednesday?" keeps the shape of the previous question. A correction ("no, the Wednesday one") replaces your earlier match and keeps the rest of the change. If a proposal was cancelled and they ask again, propose it again. Never ask for something they already told you in this conversation. When the GM is on a product page, a bare change ("price 12", "not on Sundays") applies to that product.
+
+ANSWERS. Answer the question asked with the fields that matter to it and nothing else: a price question gets the price (and the local price when there is one); a time question gets start, finish and days; "what's on" gets every product that runs that day, all of them, in time order with their start times, active ones only unless they ask about paused ones; "tonight" means from 5pm. Say times the way the team does, 8pm and 8:30pm, never 20:00. "Today", "tonight", "tomorrow" and "this week" use the NOW block. Paused products, and one-time events past their expiry, are not on: say so when it changes the answer. More than six items: give the count and the first six, then offer the rest. Bookings, guests, revenue and quotes are not in your list: say so and where they live (bookings in Rezdy, quotes with head office). When the obvious next step is something you can do, offer it in a few words, once ("Want it changed?").
 
 FACTS. Everything you say about a product comes from the PRODUCTS list. If it is not there, say so.`;
 
@@ -155,9 +161,9 @@ Deno.serve(async (req: Request) => {
   const { data: me } = await user.auth.getUser();
   if (!me.user) return json({ error: "not signed in" }, 401);
 
-  let body: { location_id?: string; messages?: { role: "user" | "assistant"; content: string }[] } = {};
+  let body: { location_id?: string; messages?: { role: "user" | "assistant"; content: string }[]; context?: { page?: string; product_id?: string }; model?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
-  const msgs = (body.messages ?? []).filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-8);
+  const msgs = (body.messages ?? []).filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-12);
   if (!body.location_id || !msgs.length || msgs[msgs.length - 1].role !== "user") return json({ error: "location_id and a user message are required" }, 400);
   const prompt = msgs[msgs.length - 1].content.trim().slice(0, 600);
 
@@ -168,7 +174,7 @@ Deno.serve(async (req: Request) => {
   if (!allowed) return json({ error: "not your hostel" }, 403);
 
   const [{ data: loc }, { data: prof }, { data: products }, { data: cfgRows }, { data: aliases }] = await Promise.all([
-    user.from("locations").select("name, country, currency").eq("id", body.location_id).single(),
+    user.from("locations").select("name, country, currency, timezone").eq("id", body.location_id).single(),
     user.from("profiles").select("full_name").eq("id", me.user.id).maybeSingle(),
     user.from("products").select("id, title, category, rate_usd, local_amount, local_currency, days_of_week, starts_at, ends_at, duration_minutes, status, active_on_ground, bookable_on_website, min_guests, max_guests_per_day, expires_on, brief_description, meeting_point").eq("location_id", body.location_id).order("title"),
     admin.from("sync_config").select("key, value").in("key", ["prompt_model"]),
@@ -178,16 +184,29 @@ Deno.serve(async (req: Request) => {
   const ccy = loc.currency || "USD";
   const { data: fxRow } = ccy === "USD" ? { data: null } : await user.from("fx_rates").select("units_per_usd, manual_override").eq("code", ccy).maybeSingle();
   const fx = ccy === "USD" ? 1 : fxRow ? Number(fxRow.manual_override ?? fxRow.units_per_usd) : null;
-  const model = cfgRows?.find((r: { key: string }) => r.key === "prompt_model")?.value || DEFAULT_MODEL;
+  let model: string = cfgRows?.find((r: { key: string }) => r.key === "prompt_model")?.value || DEFAULT_MODEL;
+  if (body.model && ALLOWED_MODELS.includes(body.model) && body.model !== model) {   // admins and head office may pick the model, for evals
+    const [{ data: isAdmin }, { data: isHO }] = await Promise.all([user.rpc("has_role", { _user: me.user.id, _role: "admin" }), user.rpc("has_role", { _user: me.user.id, _role: "head_office" })]);
+    if (isAdmin || isHO) model = body.model;
+  }
   const rawFirst = (prof?.full_name ?? "").trim().split(/\s+/)[0] || "";
   const first = /^(gm|admin|test|user)$/i.test(rawFirst) || (me.user.email ?? "").endsWith("@madmonkey.test") ? "" : rawFirst;
   const list = (products ?? []) as Product[];
   const byId = new Map(list.map((p) => [p.id, p]));
 
   const compact = list.map((p) => ({ id: p.id, t: p.title.replace(/\s+/g, " "), c: p.category, usd: p.rate_usd, local: p.local_amount, days: p.days_of_week, start: p.starts_at?.slice(0, 5) ?? null, end: p.ends_at?.slice(0, 5) ?? null, mins: p.duration_minutes, status: p.status, active: p.active_on_ground, web: p.bookable_on_website, min: p.min_guests, max: p.max_guests_per_day, exp: p.expires_on }));
-  const context = `CONTEXT\nHostel: Mad Monkey ${loc.name}, ${loc.country}. Local currency: ${ccy}${fx && ccy !== "USD" ? ` (1 USD = ${fx} ${ccy})` : ""}. Today: ${new Date().toISOString().slice(0, 10)}. GM first name: ${first || "unknown"}.\nCategories: mm_tour = Mad Monkey tour, nightly_event, third_party_tour, one_time_event, transport.\n\nKNOWN NICKNAMES (confirmed by this hostel's team): ${(aliases ?? []).length ? (aliases ?? []).map((a: { alias: string; product_id: string }) => `"${a.alias}" = ${a.product_id}`).join("; ") : "none yet"}
+  const context = `CONTEXT\nHostel: Mad Monkey ${loc.name}, ${loc.country}. Local currency: ${ccy}${fx && ccy !== "USD" ? ` (1 USD = ${fx} ${ccy})` : ""}. GM first name: ${first || "unknown"}.\nCategories: mm_tour = Mad Monkey tour, nightly_event, third_party_tour, one_time_event, transport.\n\nKNOWN NICKNAMES (confirmed by this hostel's team): ${(aliases ?? []).length ? (aliases ?? []).map((a: { alias: string; product_id: string }) => `"${a.alias}" = ${a.product_id}`).join("; ") : "none yet"}
 
 PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, local price, days (Mon=1..Sun=7), start, end, mins, status, active, web (listed on website), min, max, exp (expiry):\n${JSON.stringify(compact)}`;
+
+  // Volatile facts go last so the persona and product list stay cacheable.
+  const tz = loc.timezone || "UTC";
+  const fmt = (o: Intl.DateTimeFormatOptions, d = new Date()) => { try { return new Intl.DateTimeFormat("en-GB", { timeZone: tz, ...o }).format(d); } catch { return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...o }).format(d); } };
+  const nowLine = `${fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${fmt({ hour: "2-digit", minute: "2-digit", hour12: false })} at the hostel (${fmt({ year: "numeric", month: "2-digit", day: "2-digit" }).split("/").reverse().join("-")}). Tomorrow is ${fmt({ weekday: "long" }, new Date(Date.now() + 86400e3))}.`;
+  const viewing = body.context?.product_id ? byId.get(String(body.context.product_id)) : undefined;
+  const page = typeof body.context?.page === "string" ? body.context.page.replace(/[^\w ]/g, "").slice(0, 40) : "";
+  const where = viewing ? `The GM is on the product page for "${viewing.title}" (id ${viewing.id}), so "this" means that product.` : page && page !== "product" ? `The GM is on the ${page} page.` : "";
+  const now = `NOW\n${nowLine}${where ? `\n${where}` : ""}`;
 
   const client = new Anthropic({ apiKey });
   const started = Date.now();
@@ -195,7 +214,7 @@ PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, l
   try {
     const r = await client.messages.create({
       model, max_tokens: 1500, thinking: { type: "disabled" },
-      system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral" } }, { type: "text", text: context, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral" } }, { type: "text", text: context, cache_control: { type: "ephemeral" } }, { type: "text", text: now }],
       messages: msgs.map((m) => ({ role: m.role, content: m.content })),
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
     } as Anthropic.MessageCreateParamsNonStreaming);
