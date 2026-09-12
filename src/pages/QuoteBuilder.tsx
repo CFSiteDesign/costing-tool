@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle, Sparkles } from "lucide-react";
@@ -146,6 +147,22 @@ export default function QuoteBuilder() {
       location_id: last?.location_id ?? auth.currentLocation?.id ?? null,  // A4: same place
     });
     if (error) toast.error(error.message); else invalidate();
+  };
+
+  /** Delete a day and everything on it. Later days move up one and their dates shift back a day, so the trip stays continuous. */
+  const deleteDay = async (d: Day) => {
+    const all = days ?? [];
+    const later = all.filter((x) => x.day_no > d.day_no).sort((a, b) => a.day_no - b.day_no);
+    const { error: e1 } = await supabase.from("quote_lines").delete().eq("day_id", d.id);
+    if (e1) { toast.error(e1.message); return; }
+    const { error: e2 } = await supabase.from("quote_days").delete().eq("id", d.id);
+    if (e2) { toast.error(e2.message); invalidate(); return; }
+    for (const x of later) {   // ascending, so (quote_id, day_no) never collides on the way up
+      const { error } = await supabase.from("quote_days").update({ day_no: x.day_no - 1, date: x.date ? addDays(x.date, -1) : null }).eq("id", x.id);
+      if (error) { toast.error(error.message); break; }
+    }
+    invalidate();
+    toast.success(later.length ? `Day ${d.day_no} deleted. Days ${d.day_no + 1} to ${all.length} moved up a day.` : `Day ${d.day_no} deleted.`);
   };
 
   /** A2: copy ONLY the stay + breakfast onto the next day (creating it if needed). */
@@ -490,6 +507,26 @@ export default function QuoteBuilder() {
                     {auth.allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <AlertDialog>
+                  <Tip label="Delete this day and everything on it. Later days move up a day.">
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label={`Delete day ${d.day_no}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </AlertDialogTrigger>
+                  </Tip>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete day {d.day_no}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {linesFor(d.id).length === 1 ? "The line on it goes too. " : linesFor(d.id).length ? `The ${linesFor(d.id).length} lines on it go too. ` : "Nothing is on it yet. "}
+                        {isLast ? "It's the last day, so nothing else moves." : `Days ${d.day_no + 1} to ${(days ?? []).length} move up one and their dates shift back a day, so the trip stays continuous. Check the experiences on those days still run on their new weekday.`}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep it</AlertDialogCancel>
+                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteDay(d)}>Delete day {d.day_no}</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
             {linesFor(d.id).map((l) => <LineRow key={l.id} l={l} />)}
