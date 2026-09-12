@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { Tip } from "@/components/app/Tip";
+import { MimoProvider, MimoNavButton, MimoPanel } from "@/components/app/Mimo";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,6 +50,7 @@ export default function AppShell() {
   if (!auth.session) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
 
   return (
+    <MimoProvider>
     <div className="flex h-screen overflow-hidden">
       <aside className="w-[220px] shrink-0 border-r bg-secondary/60 flex flex-col max-lg:w-14">
         <div className="h-14 flex items-center px-4 border-b max-lg:justify-center max-lg:px-0">
@@ -79,6 +81,7 @@ export default function AppShell() {
             return collapsed ? <Tip key={n.to} side="right" label={`${n.label}${n.to === "/approvals" && pendingApprovals ? ` (${pendingApprovals} waiting)` : ""}: ${n.tip}`}>{link}</Tip> : link;
           })}
         </nav>
+        <div className="px-2 pb-2 border-t pt-2"><MimoNavButton collapsed={collapsed} /></div>
         <div className="p-3 text-[11px] text-muted-foreground max-lg:hidden">
           Experience Database & Costing Tool
         </div>
@@ -116,7 +119,9 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+      <MimoPanel />
     </div>
+    </MimoProvider>
   );
 }
 

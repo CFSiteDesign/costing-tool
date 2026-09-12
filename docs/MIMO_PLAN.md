@@ -1,4 +1,4 @@
-# MIMO, the Mad Monkey assistant (planned 13 Sep 2026)
+# MIMO, the Mad Monkey assistant (planned and BUILT 13 Sep 2026)
 
 ## The ask (Charlie's Granola notes, plus 13 Sep direction)
 - Lives behind a button on the sidebar that opens an assistant, not a bar on the Experiences page.
@@ -141,3 +141,21 @@ guessing whether matching got worse.
 - D3 Creating products by prompt: phase 2 as a prefilled form (recommended), or never.
 - D4 Model: Sonnet 5 (recommended) or Haiku 4.5.
 - D5 Questions as well as edits in phase 1 (recommended, no extra cost) or edits only.
+
+## Built 13 Sep 2026
+- Edge Function `mimo` (Sonnet 5, structured output, product list + known nicknames as cached blocks,
+  30 prompts per user per hour, `prompt_edits` log). The model returns a proposal; the function validates
+  every field and value, works out FX, the finish shift and the strong-confirm reasons, and returns a
+  patch + undo per change. It never writes.
+- Panel `src/components/app/Mimo.tsx`: sidebar entry with the monkey head (⌘K), right slide-over, no
+  bubbles, cards with Confirm / Change / Cancel, strong confirm, applied line with Undo, greeting by first
+  name (placeholder accounts get no name), example chips.
+- Meet MIMO: three screens plus a "try one" example on first open, stored on the profile.
+- Learning: `product_aliases` per hostel, written only by `learn_alias()` from a confirmed action (the
+  words the GM used, tied to the product they confirmed, or the alternative they picked). Known
+  nicknames go into the next prompt as exact matches. MIMO does not change her own rules.
+- Verified as Kassy (Siem Reap): question answered from the list, price proposal → confirm → row updated
+  and Reden note queued → undo restored it; "delete" refused with pause offered; category change refused
+  with the product page offered; a two-change sentence gave two cards.
+Not built yet: head-office view of `prompt_edits` under Settings, the 30-sentence eval set, creating
+products by prompt (phase 2).
