@@ -43,3 +43,9 @@ at a low level, normalises loudness and writes `Meet MIMO (voiced).mp4` next to 
 
 Or in ElevenLabs Studio, start a Voiceover project, upload the video, and drop each generated clip on the
 timeline at the start time above.
+
+## One-take option
+Paste the whole script in one go with `<break time="1.5s" />` between lines (see the chat log or build it
+from the table), generate once, then `tools/mimo_vo_split.sh take.mp3 "Meet MIMO.mp4" [music.mp3]` splits
+the take at the pauses into ten clips, trims the silence off each, checks them against their windows and
+muxes. It stops with the pauses it found if it does not get exactly ten pieces.
