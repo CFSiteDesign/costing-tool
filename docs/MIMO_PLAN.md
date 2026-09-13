@@ -186,3 +186,5 @@ products by prompt (phase 2).
   function, so "what's on tonight" is complete and never invents a one-off. Function v5.
 - **Greeting.** Panel and walkthrough open with Good morning / afternoon / evening plus the first name,
   on the GM's own clock (morning to noon, afternoon to 5pm, evening after), recomputed on each open.
+- **Hourly cap.** 120 prompts per person per hour (was 30, which an eval run plus normal use hit on the
+  admin login). The cap message now says it is the cap, that questions count too, and when it clears.

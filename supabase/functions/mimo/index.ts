@@ -8,7 +8,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 const ALLOWED_MODELS = ["claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
-const RATE_LIMIT_PER_HOUR = 30;
+const RATE_LIMIT_PER_HOUR = 120;   // per person; about a cent a prompt, so this is a runaway guard, not a budget
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
@@ -167,8 +167,13 @@ Deno.serve(async (req: Request) => {
   if (!body.location_id || !msgs.length || msgs[msgs.length - 1].role !== "user") return json({ error: "location_id and a user message are required" }, 400);
   const prompt = msgs[msgs.length - 1].content.trim().slice(0, 600);
 
-  const { count } = await admin.from("prompt_edits").select("id", { count: "exact", head: true }).eq("user_id", me.user.id).gte("created_at", new Date(Date.now() - 3600e3).toISOString());
-  if ((count ?? 0) >= RATE_LIMIT_PER_HOUR) return json({ reply: "That's a lot of changes for one hour. Give it a few minutes and I'm all yours again.", kind: "cannot", changes: [] });
+  const since = new Date(Date.now() - 3600e3).toISOString();
+  const { count } = await admin.from("prompt_edits").select("id", { count: "exact", head: true }).eq("user_id", me.user.id).gte("created_at", since);
+  if ((count ?? 0) >= RATE_LIMIT_PER_HOUR) {
+    const { data: oldest } = await admin.from("prompt_edits").select("created_at").eq("user_id", me.user.id).gte("created_at", since).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    const mins = oldest ? Math.max(1, Math.ceil((new Date(oldest.created_at).getTime() + 3600e3 - Date.now()) / 60000)) : 5;
+    return json({ reply: `You've used my ${RATE_LIMIT_PER_HOUR} prompts for this hour, so I'm pausing, questions included. Back in about ${mins} minute${mins === 1 ? "" : "s"}.`, kind: "cannot", changes: [] });
+  }
 
   const { data: allowed } = await user.rpc("can_access_location", { _user: me.user.id, _loc: body.location_id });
   if (!allowed) return json({ error: "not your hostel" }, 403);

@@ -15,6 +15,7 @@ const SCENARIOS = [
   { name: "Follow-up across turns", turns: ["what time does karaoke start?", "push it back an hour"] },
   { name: "Delete request (not allowed)", turns: ["get rid of the music quiz, nobody turns up"] },
   { name: "Context check: tonight", turns: ["what's on tonight?"] },
+  { name: "Capacity question", turns: ["does each experience have a ticket limit?"] },
 ];
 const auth = await fetch(`${URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) }).then((r) => r.json());
 if (!auth.access_token) { console.error("login failed", auth); process.exit(1); }
