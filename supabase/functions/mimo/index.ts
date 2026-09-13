@@ -8,7 +8,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 const ALLOWED_MODELS = ["claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
-const RATE_LIMIT_PER_HOUR = 120;   // per person; about a cent a prompt, so this is a runaway guard, not a budget
+const RATE_LIMIT_PER_HOUR = 200;   // per person; about a cent a prompt, so this is a runaway guard, not a budget
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
@@ -44,7 +44,7 @@ const SCHEMA = {
 
 const PERSONA = `You are MIMO, the Mad Monkey Hostels assistant inside the Experience Database. You are the sharpest person on the hostel team: you know every tour, every price and every day of the week, you get things done fast, and you have a bit of Mad Monkey cheek without ever making the GM feel daft.
 
-HOW YOU TALK. One or two short sentences. One question at a time. Plain words, British spelling. No em dashes (use commas or full stops). No emojis. At most one exclamation mark, and usually none. Say what you will do, never how clever you are. Never say "great question". You know who you are talking to (GM first name in CONTEXT). Use their name when you open, when you ask them something back, and when you check a big change with them. Not on every line. If the name is unknown, just skip it. Cheek is light and aimed at the situation, never the person.
+HOW YOU TALK. One or two short sentences. One question at a time. Plain words, British spelling. No em dashes (use commas or full stops). No emojis. At most one exclamation mark, and usually none. Say what you will do, never how clever you are. Never say "great question". You know who you are talking to (GM first name in NOW). Use their name when you open, when you ask them something back, and when you check a big change with them. Not on every line. If the name is unknown, just skip it. Cheek is light and aimed at the situation, never the person.
 
 WHAT YOU DO. The GM types a sentence. You either:
 - propose changes to their products (kind "proposal"): fill "changes", one entry per change, and in "reply" say what will change in plain words, as an offer waiting for their OK ("Pub Crawl goes from $10 to $12. Confirm below."). Never say done, changed, sorted or "is now": nothing changes until they confirm on the card. Do not do currency maths in the reply, the card shows both currencies. If a start time moves and the product has a finish, say the finish moves with it so the duration holds (the app does this).
@@ -200,14 +200,15 @@ Deno.serve(async (req: Request) => {
   const byId = new Map(list.map((p) => [p.id, p]));
 
   const compact = list.map((p) => ({ id: p.id, t: p.title.replace(/\s+/g, " "), c: p.category, usd: p.rate_usd, local: p.local_amount, days: p.days_of_week, start: p.starts_at?.slice(0, 5) ?? null, end: p.ends_at?.slice(0, 5) ?? null, mins: p.duration_minutes, status: p.status, active: p.active_on_ground, web: p.bookable_on_website, min: p.min_guests, max: p.max_guests_per_day, exp: p.expires_on }));
-  const context = `CONTEXT\nHostel: Mad Monkey ${loc.name}, ${loc.country}. Local currency: ${ccy}${fx && ccy !== "USD" ? ` (1 USD = ${fx} ${ccy})` : ""}. GM first name: ${first || "unknown"}.\nCategories: mm_tour = Mad Monkey tour, nightly_event, third_party_tour, one_time_event, transport.\n\nKNOWN NICKNAMES (confirmed by this hostel's team): ${(aliases ?? []).length ? (aliases ?? []).map((a: { alias: string; product_id: string }) => `"${a.alias}" = ${a.product_id}`).join("; ") : "none yet"}
+  const context = `CONTEXT\nHostel: Mad Monkey ${loc.name}, ${loc.country}. Local currency: ${ccy}${fx && ccy !== "USD" ? ` (1 USD = ${fx} ${ccy})` : ""}.\nCategories: mm_tour = Mad Monkey tour, nightly_event, third_party_tour, one_time_event, transport.\n\nKNOWN NICKNAMES (confirmed by this hostel's team): ${(aliases ?? []).length ? (aliases ?? []).map((a: { alias: string; product_id: string }) => `"${a.alias}" = ${a.product_id}`).join("; ") : "none yet"}
 
 PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, local price, days (Mon=1..Sun=7), start, end, mins, status, active, web (listed on website), min, max, exp (expiry):\n${JSON.stringify(compact)}`;
 
   // Volatile facts go last so the persona and product list stay cacheable.
   const tz = loc.timezone || "UTC";
   const fmt = (o: Intl.DateTimeFormatOptions, d = new Date()) => { try { return new Intl.DateTimeFormat("en-GB", { timeZone: tz, ...o }).format(d); } catch { return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...o }).format(d); } };
-  const nowLine = `${fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${fmt({ hour: "2-digit", minute: "2-digit", hour12: false })} at the hostel (${fmt({ year: "numeric", month: "2-digit", day: "2-digit" }).split("/").reverse().join("-")}). Tomorrow is ${fmt({ weekday: "long" }, new Date(Date.now() + 86400e3))}.`;
+  // Time to the hour, not the minute, so this block (and the cached conversation after it) stays stable for an hour.
+  const nowLine = `${fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" })}, about ${t12(fmt({ hour: "2-digit", hour12: false }) + ":00")} at the hostel (${fmt({ year: "numeric", month: "2-digit", day: "2-digit" }).split("/").reverse().join("-")}). Tomorrow is ${fmt({ weekday: "long" }, new Date(Date.now() + 86400e3))}. GM first name: ${first || "unknown"}.`;
   const viewing = body.context?.product_id ? byId.get(String(body.context.product_id)) : undefined;
   const page = typeof body.context?.page === "string" ? body.context.page.replace(/[^\w ]/g, "").slice(0, 40) : "";
   const where = viewing ? `The GM is on the product page for "${viewing.title}" (id ${viewing.id}), so "this" means that product.` : page && page !== "product" ? `The GM is on the ${page} page.` : "";
@@ -228,8 +229,10 @@ PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, l
   try {
     const r = await client.messages.create({
       model, max_tokens: 1500, thinking: { type: "disabled" },
-      system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral" } }, { type: "text", text: context, cache_control: { type: "ephemeral" } }, { type: "text", text: now }],
-      messages: msgs.map((m) => ({ role: m.role, content: m.content })),
+      // Cache policy: persona and the hostel's product list for an hour (shared by everyone at that hostel), NOW uncached,
+      // then a breakpoint on the last message so a multi-turn chat only pays for the new turn.
+      system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral", ttl: "1h" } }, { type: "text", text: context, cache_control: { type: "ephemeral", ttl: "1h" } }, { type: "text", text: now }],
+      messages: msgs.map((m, i) => ({ role: m.role, content: i === msgs.length - 1 ? [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }] : m.content })),
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
     } as Anthropic.MessageCreateParamsNonStreaming);
     usage = { input: r.usage.input_tokens, output: r.usage.output_tokens, cache_read: r.usage.cache_read_input_tokens ?? 0, cache_write: r.usage.cache_creation_input_tokens ?? 0 };

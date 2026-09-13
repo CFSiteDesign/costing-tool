@@ -188,3 +188,8 @@ products by prompt (phase 2).
   on the GM's own clock (morning to noon, afternoon to 5pm, evening after), recomputed on each open.
 - **Hourly cap.** 120 prompts per person per hour (was 30, which an eval run plus normal use hit on the
   admin login). The cap message now says it is the cap, that questions count too, and when it clears.
+- **Caching policy (function v7).** Caching is time-based, never per N prompts. Persona and the hostel's
+  product list are cached for 1 hour and hold nothing user-specific, so every person at that hostel
+  shares one entry. NOW (time to the hour, GM name, page, run sheets) is uncached and last. A 5-minute
+  breakpoint sits on the last message so a multi-turn chat only pays for the new turn. A product edit
+  changes the product block and rewrites it; that is inherent. Cap: 200 prompts per person per hour.
