@@ -193,3 +193,6 @@ products by prompt (phase 2).
   shares one entry. NOW (time to the hour, GM name, page, run sheets) is uncached and last. A 5-minute
   breakpoint sits on the last message so a multi-turn chat only pays for the new turn. A product edit
   changes the product block and rewrites it; that is inherent. Cap: 200 prompts per person per hour.
+- **Renamed in the UI (23 Sep 2026).** Staff see "Assistant" everywhere (sidebar, panel header, placeholder,
+  walkthrough) and the persona never calls itself MIMO (function v8). MIMO stays as the codename in code,
+  the `mimo` function, tables and these docs. Reason from Charlie: the name was not helping people understand.

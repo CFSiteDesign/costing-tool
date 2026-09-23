@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2 } from "lucide-react";
 
-/** MIMO: the Mad Monkey assistant. A clean slide-over; the model proposes, the person confirms, the app applies. */
+/** The Assistant (codename MIMO in code, tables and docs): a clean slide-over; the model proposes, the person confirms, the app applies. */
 
 export interface MimoChange {
   id: string; product_id: string; product_title: string; field: string; label: string; confidence: "exact" | "likely" | "unsure";
@@ -40,11 +40,11 @@ export function MimoNavButton({ collapsed }: { collapsed: boolean }) {
   const btn = (
     <button onClick={toggle} className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors", collapsed && "justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
       <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0" />
-      {!collapsed && <span>MIMO</span>}
+      {!collapsed && <span>Assistant</span>}
       {!collapsed && <span className="ml-auto text-[10px] text-muted-foreground/70">⌘K</span>}
     </button>
   );
-  return collapsed ? <Tip side="right" label="MIMO: tell it what to change at your hostel, in plain words. It checks with you before anything changes.">{btn}</Tip> : btn;
+  return collapsed ? <Tip side="right" label="Assistant: tell it what to change at your hostel, in plain words. It checks with you before anything changes.">{btn}</Tip> : btn;
 }
 
 const PAGES: [RegExp, string][] = [[/^\/experiences/, "Experiences list"], [/^\/week/, "My week"], [/^\/transport/, "Transport"], [/^\/activity/, "Activity"], [/^\/quotes/, "Quotes"], [/^\/global-events/, "Global events"], [/^\/approvals/, "Approvals"], [/^\/settings/, "Settings"]];
@@ -145,7 +145,7 @@ export function MimoPanel() {
       <aside className={cn("fixed top-0 right-0 z-50 h-full w-full bg-background border-l flex flex-col transition-[transform,width] duration-200 motion-reduce:transition-none", wide ? "sm:w-full" : "sm:w-[420px]", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
         <div className={cn("h-14 shrink-0 border-b flex items-center gap-2.5 px-4", wide && "sm:px-6")}>
           <img src="/mm-head.png" alt="" className="h-6 w-6" />
-          <span className="font-semibold">MIMO</span>
+          <span className="font-semibold">Assistant</span>
           {loc && <span className="text-[11px] rounded-full border px-2 py-0.5 text-muted-foreground">{loc.name}</span>}
           <Tip side="bottom" label={wide ? "Back to the side panel" : "Fullscreen"}>
             <button className="ml-auto hidden sm:inline-flex text-muted-foreground hover:text-foreground" onClick={() => setWide(!wide)} aria-label={wide ? "Exit fullscreen" : "Fullscreen"}>
@@ -188,7 +188,7 @@ export function MimoPanel() {
 
         <form className={cn("shrink-0 border-t p-3", wide && "sm:py-4")} onSubmit={(e) => { e.preventDefault(); send(text); }}>
           <div className={cn("flex gap-2", wide && "mx-auto w-full max-w-2xl")}>
-            <Input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tell MIMO what to change" className="h-10" disabled={busy || !loc} maxLength={600} />
+            <Input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tell the Assistant what to change" className="h-10" disabled={busy || !loc} maxLength={600} />
             <Button type="submit" size="icon" className="h-10 w-10 shrink-0" disabled={busy || !text.trim()} aria-label="Send"><Send className="h-4 w-4" /></Button>
           </div>
         </form>
@@ -276,7 +276,7 @@ function ChangeCard({ c, onConfirm, onCancel, onUndo, onPick, onChange, busy }: 
 /** First time only: three short screens. Stored on the profile, so once per person on any device. */
 function MeetMimo({ step, setStep, hostel, first, onTry, onDone }: { step: number; setStep: (n: number) => void; hostel: string; first: string; onTry: (example: string) => void; onDone: () => void }) {
   const screens = [
-    { title: `${greeting(first)}. I'm MIMO.`, body: `I look after the experiences at ${hostel}. Tell me what to change in plain words and I'll sort it, no forms.` },
+    { title: `${greeting(first)}. I'm your Assistant.`, body: `I look after the experiences at ${hostel}. Tell me what to change in plain words and I'll sort it, no forms.` },
     { title: "What I can do", body: "Prices, times, days, status, descriptions, meeting points, guest limits and expiry dates. I'll show you exactly what I'm about to change and wait for your OK, and you can undo. I can also answer questions like \"what runs on a Thursday?\"" },
     { title: "What I won't do", body: "Delete anything (nothing here ever gets deleted, I pause instead), change categories, or touch quotes or other hostels. For those, the product page is the place." },
   ];
