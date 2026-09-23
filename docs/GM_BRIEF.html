@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Your Experience Database and the Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 16mm 16mm 18mm; }
+body { font-family: Inter, -apple-system, system-ui, sans-serif; color: #1A1A18; font-size: 11.2pt; line-height: 1.5; margin: 0; }
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14pt; }
+header img { height: 34px; }
+header .tag { font-size: 9pt; color: #6c6c6c; text-transform: uppercase; letter-spacing: .08em; }
+h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 6pt; letter-spacing: -.01em; }
+.lead { font-size: 12.5pt; color: #3a3a38; margin: 0 0 16pt; }
+h2 { font-size: 13.5pt; margin: 18pt 0 6pt; padding-top: 10pt; border-top: 1px solid #e6e5e0; }
+h2 .n { display: inline-block; min-width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 6px; background: #FFC72E; color: #1A1A18; font-size: 10.5pt; margin-right: 8px; }
+p { margin: 0 0 8pt; }
+ul { margin: 0 0 8pt; padding-left: 18px; } li { margin: 0 0 3pt; }
+.say { font-family: ui-monospace, Menlo, monospace; font-size: 10pt; background: #F4F3EF; border: 1px solid #e6e5e0; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.card { border: 1px solid #e6e5e0; border-radius: 10px; padding: 10pt 12pt; margin: 8pt 0 10pt; background: #fff; }
+.card .who { font-size: 9.5pt; color: #6c6c6c; margin-bottom: 4pt; }
+.card .line { display: flex; gap: 10px; align-items: baseline; }
+.card .old { color: #6c6c6c; text-decoration: line-through; } .card .arrow { color: #6c6c6c; }
+.btns { margin-top: 6pt; display: flex; gap: 6px; }
+.btn { font-size: 9.5pt; padding: 3px 10px; border-radius: 6px; border: 1px solid #1A1A18; } .btn.primary { background: #1A1A18; color: #fff; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; }
+.box { background: #F4F3EF; border-radius: 10px; padding: 10pt 12pt; }
+.box h3 { margin: 0 0 4pt; font-size: 11pt; }
+.box ul { margin: 0; }
+.small { font-size: 9.5pt; color: #6c6c6c; }
+.keep { break-inside: avoid; }
+strong { font-weight: 600; }
+</style></head><body>
+<header><img src="file:///Users/charfgn/costing-tool/public/mm-logo.png" alt="Mad Monkey"><div class="tag">Experience Database · GM brief · September 2026</div></header>
+
+<h1>Your Experience Database, and the Assistant that keeps it right with you</h1>
+<p class="lead">One place for everything your hostel sells: tours, nightly events, third-party trips and transfers, with the price, the days and the times. Head office quotes from it and the website is checked against it, so when it is right, everything downstream is right.</p>
+
+<h2><span class="n">1</span>Where it is</h2>
+<p><strong>mm-costing-tool.vercel.app</strong>, with the login you were sent. You see your own hostel only. It works on a phone, but a laptop is easier for the list.</p>
+
+<h2><span class="n">2</span>The pages, in one line each</h2>
+<ul>
+<li><strong>Experiences.</strong> The full list. Search it, filter by day or status, open anything to edit it. The Week view shows the same list as a calendar.</li>
+<li><strong>My week.</strong> What is running at your hostel this week, day by day, with signature experiences highlighted.</li>
+<li><strong>Transport.</strong> Buses, boats, vans and transfers, with a search.</li>
+<li><strong>Activity.</strong> Who changed what, and when. Every edit lands here, including the ones you make through the Assistant.</li>
+<li><strong>Global events.</strong> Events head office wants to run everywhere. Each one waits for your yes or no, and you can adjust the details for your hostel before you accept.</li>
+</ul>
+
+<h2><span class="n">3</span>The Assistant</h2>
+<p>This is the fastest way to keep your list right. It sits at the <strong>bottom left of the sidebar</strong>, or press <strong>Cmd K</strong> (Ctrl K on Windows) on any page. There is a fullscreen button in its header if you want more room. The first time you open it, it shows you round in three short screens.</p>
+
+<p><strong>Type what has changed, the way you would tell a colleague.</strong> Typos and nicknames are fine.</p>
+<ul>
+<li><span class="say">pub crawl is 12 bucks now</span></li>
+<li><span class="say">move karaoke to 9pm</span></li>
+<li><span class="say">kulen runs mon wed fri</span></li>
+<li><span class="say">pause games night</span></li>
+<li><span class="say">sunrise tour is $18 and not on sundays</span> (two changes in one go is fine)</li>
+</ul>
+
+<p><strong>It shows you exactly what it is about to change, and waits.</strong></p>
+<div class="card keep">
+<div class="who">Assistant: Pub Crawl goes from $10 to $12. Confirm below.</div>
+<div class="line"><strong>Pub Crawl</strong> <span class="small">Price</span> <span class="old">$10.00</span> <span class="arrow">to</span> <strong>$12.00</strong></div>
+<div class="btns"><span class="btn primary">Confirm</span><span class="btn">Change</span><span class="btn">Cancel</span></div>
+</div>
+<p>Nothing changes until you press <strong>Confirm</strong>. <strong>Change</strong> lets you correct the value. <strong>Undo</strong> puts it back afterwards. For a big change, a large price jump, pausing something, or renaming it, it asks "Sure?" first.</p>
+
+<p><strong>Ask it things too.</strong> It reads your list back, so you do not have to.</p>
+<ul>
+<li><span class="say">what's on tonight?</span></li>
+<li><span class="say">how much is the sunrise tour?</span></li>
+<li><span class="say">what time does karaoke start?</span> then <span class="say">push it back an hour</span></li>
+<li><span class="say">does each experience have a ticket limit?</span></li>
+</ul>
+
+<div class="two keep">
+<div class="box"><h3>What it can change</h3><ul>
+<li>Price, in dollars or local currency</li>
+<li>Start, finish, how long it runs</li>
+<li>Which days it runs</li>
+<li>Active, paused or signature</li>
+<li>Name, short description, meeting point</li>
+<li>Guest limits, and the last date for one-off events</li>
+</ul></div>
+<div class="box"><h3>What it will not do</h3><ul>
+<li>Delete anything. Nothing is ever deleted; it pauses instead</li>
+<li>Change the category. Use the product page</li>
+<li>Touch another hostel's list, or quotes</li>
+<li>Change anything without your Confirm</li>
+</ul></div>
+</div>
+
+<p><strong>It learns your team's names for things.</strong> Confirm a change to "wens pub" once and next time it knows exactly what you mean. It also greets you by name and knows what day it is at your hostel, so "tonight" means tonight.</p>
+
+<h2><span class="n">4</span>Three things that keep the whole system right</h2>
+<ul>
+<li><strong>Every experience needs a start and a finish.</strong> Quotes and My week both depend on it. If you set one, the other is worked out for you.</li>
+<li><strong>Pause, never delete.</strong> A paused experience drops out of quotes and My week but stays in the database, so it can come back.</li>
+<li><strong>If it is on the website, head office hears about it.</strong> Change the price or days of anything listed on the website and a note goes to head office automatically. You do not need to email anyone.</li>
+</ul>
+
+<p class="small">Anything that looks wrong, or anything you want the Assistant to do that it cannot yet, tell head office. Every request is kept, and that list is how it gets better.</p>
+</body></html>
