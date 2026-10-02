@@ -91,7 +91,7 @@ function materialise(c: { product_id: string; confidence: string; alternatives: 
       const oldTxt = p.rate_usd == null ? "no rate" : `${money(p.rate_usd, "USD")}${ccy !== "USD" && p.local_amount != null ? ` (${money(p.local_amount, ccy)})` : ""}`;
       const newTxt = `${money(rate_usd, "USD")}${ccy !== "USD" && local != null ? ` (${money(local, ccy)})` : ""}`;
       const oldRate = p.rate_usd;
-      strongIf(oldRate != null && oldRate > 0 && (rate_usd === 0 || Math.abs(rate_usd - oldRate) / oldRate > 0.4), rate_usd === 0 ? "That makes it free." : `That's a ${Math.round(Math.abs(rate_usd - oldRate) / oldRate * 100)}% ${rate_usd > oldRate ? "jump" : "cut"}.`);
+      strongIf(oldRate != null && oldRate > 0 && (rate_usd === 0 || Math.abs(rate_usd - oldRate) / oldRate > 0.4), rate_usd === 0 ? "That makes it free." : `That's a ${Math.round(Math.abs(rate_usd - oldRate!) / oldRate! * 100)}% ${rate_usd > oldRate! ? "jump" : "cut"}.`);
       return { ...base, old: oldTxt, new: newTxt, patch, undo: { rate_usd: p.rate_usd, local_amount: p.local_amount } };
     }
     case "starts_at": {
