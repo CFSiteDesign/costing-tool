@@ -224,14 +224,61 @@ def g_(ws, r, c):
     v = ws.cell(r, c).value
     return sq(str(v)) if v is not None else ""
 
+# Column positions are read from each section's own header row (TITLE / TYPE + the sub-header under it),
+# because tabs differ: Phnom Penh's transport block starts one column earlier than the other 21 tabs.
+# The defaults are the positions the 23 Aug import assumed.
+TOUR_COLS = dict(operator=3, kind=4, active=5, online=6, rate=7, minmax=8, daytime=9, desc=10, need_to_know=14,
+                 insurance=22, photos=23, itinerary=24, status_col=31, gsv=32, remarks=33)
+TOUR_LABELS = [("active", "ACTIVE ON THE"), ("online", "TOUR/ ACTIVITY BOOK"), ("rate", "RATE"), ("minmax", "MIN QTY"),
+               ("daytime", "DAY, TIME"), ("desc", "BRIEF DESCRIPTION"), ("need_to_know", "NEED TO KNOW"),
+               ("insurance", "TRAVEL INSURANCE"), ("photos", "LINK TO PHOTOS"), ("itinerary", "ITINERARY"), ("gsv", "GROSS SERVICE")]
+TRANSPORT_COLS = dict(route=3, active=5, provider=6, rate=7, minmax=8, daytime=9, duration=10, pickup=11, dropoff=12, brief=13, long=15, remarks=17)
+TRANSPORT_LABELS = [("route", "ROUTE"), ("active", "ACTIVE ON THE"), ("provider", "SERVICE PROVID"), ("rate", "RATE"),
+                    ("minmax", "MIN QTY"), ("daytime", "DAY, TIME"), ("remarks", "REMARKS")]
+TRANSPORT_SUB = [("pickup", "PICK-UP"), ("dropoff", "DROP-OFF"), ("brief", "SHORT DESCRIPT"), ("long", "LONG DESCRIPT")]
+HEADER_WARNINGS = []
+
+def _labels(ws, r):
+    return {c: sq(str(ws.cell(r, c).value)).upper() for c in range(1, min(ws.max_column, 60) + 1) if ws.cell(r, c).value is not None}
+
+def _find(labels, prefix, after=1):
+    return next((c for c in sorted(labels) if c >= after and labels[c].startswith(prefix)), None)
+
+def header_cols(ws, r, schema):
+    """Column map for the section whose header is on row r; falls back to the defaults, noting what was missing."""
+    h1 = _labels(ws, r)
+    if schema == "transport":
+        cols = dict(TRANSPORT_COLS)
+        for k, lab in TRANSPORT_LABELS:
+            c = _find(h1, lab)
+            if c: cols[k] = c
+            elif k != "remarks": HEADER_WARNINGS.append(f"{sq(ws.title)} r{r}: transport header has no '{lab}', using column {cols[k]}")
+        cols["duration"] = cols["daytime"] + 1          # the unlabelled half of DAY, TIME & DURATION
+        h2 = _labels(ws, r + 1)
+        for k, lab in TRANSPORT_SUB:
+            c = _find(h2, lab)
+            if c: cols[k] = c
+            else: HEADER_WARNINGS.append(f"{sq(ws.title)} r{r+1}: transport sub-header has no '{lab}', using column {cols[k]}")
+        return cols
+    cols = dict(TOUR_COLS)
+    for k, lab in TOUR_LABELS:
+        c = _find(h1, lab)
+        if c: cols[k] = c
+        else: HEADER_WARNINGS.append(f"{sq(ws.title)} r{r}: header has no '{lab}', using column {cols[k]}")
+    st = next((c for c in sorted(h1) if h1[c] == "STATUS"), None)
+    if st: cols["status_col"] = st
+    return cols
+
 def extract(path):
     wb = openpyxl.load_workbook(path, data_only=True)
     rows = []
+    HEADER_WARNINGS.clear()
     for ws in wb.worksheets:
         name = ws.title
         if ws.sheet_state != "visible": continue
         if "OLD" in name.upper() or sq(name).upper() in SUMMARY_TABS: continue
         cat = None; schema = "tour"; rows_in_section = 0
+        tcols, xcols = dict(TOUR_COLS), dict(TRANSPORT_COLS)
         for r in range(1, ws.max_row + 1):
             a = ws.cell(r, 1).value
             A = sq(str(a)) if a is not None else ""
@@ -242,25 +289,30 @@ def extract(path):
             if U == "TITLE":
                 if schema == "tour" and rows_in_section > 0 and cat in SECTION_ORDER and cat != SECTION_ORDER[-1]:
                     cat = SECTION_ORDER[SECTION_ORDER.index(cat) + 1]   # header without a banner: the next section
-                schema = "tour"; rows_in_section = 0; continue
-            if U == "TYPE": schema = "transport"; cat = "transport"; rows_in_section = 0; continue
+                schema = "tour"; rows_in_section = 0; tcols = header_cols(ws, r, "tour"); continue
+            if U == "TYPE": schema = "transport"; cat = "transport"; rows_in_section = 0; xcols = header_cols(ws, r, "transport"); continue
             if cat is None: continue
             if U.startswith("MAD MONKEY EXPERIENCE") or len(A) < 3: continue
             rows_in_section += 1
             g = lambda c: sq(str(ws.cell(r, c).value)) if ws.cell(r, c).value is not None else ""
             raw = lambda c: str(ws.cell(r, c).value).strip() if ws.cell(r, c).value is not None else ""
             if schema == "transport":
-                route = g(3)
+                x = xcols
+                route = g(x["route"])
                 rows.append(dict(sheet=sq(name), row=r, category="transport", title=f"{A}: {route}" if route else A,
-                                 vehicle=A, route=route, active=g(5), provider=g(6), rate=raw(7), minmax=raw(8), daytime=raw(9),
-                                 duration=raw(10), pickup=raw(11), dropoff=raw(12), brief=raw(13), long=raw(15), remarks=raw(17),
+                                 vehicle=A, route=route, active=g(x["active"]), provider=g(x["provider"]), rate=raw(x["rate"]), minmax=raw(x["minmax"]),
+                                 daytime=raw(x["daytime"]), duration=raw(x["duration"]), pickup=raw(x["pickup"]), dropoff=raw(x["dropoff"]),
+                                 brief=raw(x["brief"]), long=raw(x["long"]), remarks=raw(x["remarks"]),
+                                 shifted=any(x[k] != TRANSPORT_COLS[k] for k in ("minmax", "daytime", "duration", "pickup", "dropoff", "brief", "long")),
                                  fill=fillrgb(ws.cell(r, 1)) or ""))
             else:
+                t = tcols
                 rcat = cat
-                if cat != "one_time_event" and FULL_DATE.search(raw(9) or "") and not re.search(r"\bevery\b", raw(9) or "", re.I): rcat = "one_time_event"
-                rows.append(dict(sheet=sq(name), row=r, category=rcat, title=A, operator=g(3), kind=g(4), active=g(5), online=g(6),
-                                 rate=raw(7), minmax=raw(8), daytime=raw(9), desc=raw(10), need_to_know=raw(14), insurance=g(22),
-                                 photos=raw(23), itinerary=raw(24), status_col=g(31), gsv=raw(32), remarks=raw(33),
+                if cat != "one_time_event" and FULL_DATE.search(raw(t["daytime"]) or "") and not re.search(r"\bevery\b", raw(t["daytime"]) or "", re.I): rcat = "one_time_event"
+                rows.append(dict(sheet=sq(name), row=r, category=rcat, title=A, operator=g(t["operator"]), kind=g(t["kind"]), active=g(t["active"]), online=g(t["online"]),
+                                 rate=raw(t["rate"]), minmax=raw(t["minmax"]), daytime=raw(t["daytime"]), desc=raw(t["desc"]), need_to_know=raw(t["need_to_know"]), insurance=g(t["insurance"]),
+                                 photos=raw(t["photos"]), itinerary=raw(t["itinerary"]), status_col=g(t["status_col"]), gsv=raw(t["gsv"]), remarks=raw(t["remarks"]),
+                                 shifted=any(t[k] != TOUR_COLS[k] for k in TOUR_COLS),
                                  fill=fillrgb(ws.cell(r, 1)) or ""))
     return rows
 
@@ -289,23 +341,52 @@ class Api:
         r = requests.delete(f"{URL}/rest/v1/{path}", headers=self.h, params=params)
         if r.status_code >= 300: raise RuntimeError(f"{path}: {r.status_code} {r.text[:300]}")
 
-# ── main ─────────────────────────────────────────────────────────────
-def main():
-    path = sys.argv[1]; apply = "--apply" in sys.argv
-    api = Api()
-    locs = api.get("locations", {"select": "id,name,currency,is_active"})
-    loc_by_name = {norm(l["name"]): l for l in locs}
-    def loc_for(sheet):
-        k = norm(sheet)
-        return loc_by_name.get(k) or next((l for n, l in loc_by_name.items() if n.replace(" ", "") == k.replace(" ", "")), None)
+def new_product_payload(r):
+    """Insert payload for a sheet row not yet in the database. -> (product, extra, exceptions)"""
+    exc = []
+    loc = r["location"]; ccy = loc["currency"]
+    active_txt = r["active"].lower(); colour = LEGEND.get(r["fill"], "")
+    status = "active"; active = True; remarks = r.get("remarks") or None
+    if "paused" in active_txt or colour == "paused": status, active = "paused", False
+    if "remove" in active_txt or colour == "remove": status, active = "paused", False; remarks = ("Sheet says Remove. " + (remarks or "")).strip()
+    if colour == "signature" and active: status = "signature"
+    if colour == "pending_update" and active: status = "pending_update"
+    rate_usd, local, why = parse_rate(r["rate"], ccy)
+    base = dict(location_id=loc["id"], category=r["category"], title=r["title"][:200], source_sheet=r["sheet"], source_row=r["row"],
+                status=status, active_on_ground=active, rate_usd=rate_usd, rate_raw=r["rate"] or None,
+                local_amount=local, local_currency=ccy, remarks=remarks, availability_raw=r["daytime"] or None)
+    extra = dict(transport=None, date=None)
+    if "vehicle" in r:
+        base.update(dict(days_of_week=days_of_week(r["daytime"], "transport"), brief_description=(r["brief"][:95] or None),
+                         long_description=r["long"] or None, duration_minutes=duration_of(r["duration"]), capacity_raw=r["minmax"] or None,
+                         bookable_on_website=False))
+        times = times_in(r["daytime"]); base["starts_at"] = times[0] if times else None
+        extra["transport"] = dict(vehicle_type=r["vehicle"] or None, route_raw=r["route"] or None, pickup_point=r["pickup"] or None,
+                                  dropoff_point=r["dropoff"] or None, departure_times=times)
+    else:
+        brief, long_ = split_desc(r["desc"]); ntk = split_ntk(r["need_to_know"]); mn, mx = parse_minmax(r["minmax"])
+        pr = propose_times(r["itinerary"], r["daytime"], None)
+        start, end, dur = (pr[0], pr[1], pr[2]) if pr else (None, None, duration_of(r["daytime"]))
+        base.update(dict(days_of_week=days_of_week(r["daytime"], r["category"]), starts_at=start, ends_at=end, duration_minutes=dur,
+                         brief_description=brief, long_description=long_, min_guests=mn, max_guests_per_day=mx, capacity_raw=r["minmax"] or None,
+                         bookable_on_website=r["online"].lower() in ("true", "yes"), travel_insurance_required=r["insurance"].lower() == "yes",
+                         photo_album_url=r["photos"] if r["photos"].lower().startswith("http") else None,
+                         itinerary=r["itinerary"] or None, gross_service_value=r["gsv"] or None, **ntk))
+        if r["category"] == "one_time_event":
+            d, last = event_dates(r["daytime"])
+            if d: base["expires_on"] = (last or d).isoformat(); extra["date"] = d.isoformat()
+            else: exc.append((r, "one_time_event_date", "couldn't read the event date", r["daytime"]))
+        if not base["days_of_week"] and r["category"] != "one_time_event":
+            exc.append((r, "days_of_week", "couldn't read which days it runs", r["daytime"]))
+    if why: exc.append((r, "rate", why, r["rate"]))
+    return base, extra, exc
 
-    db = api.get("products", {"select": "id,location_id,category,title,source_sheet,source_row,starts_at,ends_at,duration_minutes,itinerary,availability_raw,status,rate_raw", "source_sheet": "not.is.null"})
+# ── matching ─────────────────────────────────────────────────────────
+def match_rows(rows, db, loc_for):
+    """Match sheet rows to products: by (tab,row)+title, then title, then fuzzy. Shared with tools/sheet_sync.py."""
     by_key = {(sq(p["source_sheet"]).upper(), p["source_row"]): p for p in db}
     by_title = defaultdict(list)
     for p in db: by_title[(sq(p["source_sheet"]).upper(), norm(p["title"]))].append(p)
-
-    rows = extract(path)
-    print(f"extracted {len(rows)} rows from visible tabs: {Counter(r['category'] for r in rows)}")
     matched, shifted, renamed, new, unknown_loc = [], [], [], [], []
     seen = set()
     for r in rows:
@@ -345,6 +426,24 @@ def main():
     new = still_new
     gone = [p for p in db if p["id"] not in seen]
     mismatched = [(r, p) for r, p in matched + shifted + renamed if r["category"] != p["category"] and not any(f[0]["id"] == p["id"] for f in fixups)]
+    return dict(matched=matched, shifted=shifted, renamed=renamed, new=new, gone=gone, fixups=fixups, mismatched=mismatched, unknown_loc=unknown_loc)
+
+# ── main ─────────────────────────────────────────────────────────────
+def main():
+    path = sys.argv[1]; apply = "--apply" in sys.argv
+    api = Api()
+    locs = api.get("locations", {"select": "id,name,currency,is_active"})
+    loc_by_name = {norm(l["name"]): l for l in locs}
+    def loc_for(sheet):
+        k = norm(sheet)
+        return loc_by_name.get(k) or next((l for n, l in loc_by_name.items() if n.replace(" ", "") == k.replace(" ", "")), None)
+
+    db = api.get("products", {"select": "id,location_id,category,title,source_sheet,source_row,starts_at,ends_at,duration_minutes,itinerary,availability_raw,status,rate_raw", "source_sheet": "not.is.null"})
+    rows = extract(path)
+    print(f"extracted {len(rows)} rows from visible tabs: {Counter(r['category'] for r in rows)}")
+    m = match_rows(rows, db, loc_for)
+    matched, shifted, renamed, new, fixups, unknown_loc = m["matched"], m["shifted"], m["renamed"], m["new"], m["fixups"], m["unknown_loc"]
+    gone, mismatched = m["gone"], m["mismatched"]
     print(f"  category differs from the sheet section: {len(mismatched)} (logged as exceptions) · transport rows to re-file: {len(fixups)}")
     print(f"matched in place {len(matched)} · row moved {len(shifted)} · renamed {len(renamed)} · NEW {len(new)} · in DB but not on the sheet {len(gone)} · unknown tab {len(unknown_loc)}")
     print("  new by category:", Counter(r["category"] for r in new))
@@ -367,41 +466,8 @@ def main():
     # ── new products ──
     new_rows, exceptions, extras = [], [], []
     for r in new:
-        loc = r["location"]; ccy = loc["currency"]
-        active_txt = r["active"].lower(); colour = LEGEND.get(r["fill"], "")
-        status = "active"; active = True; remarks = r.get("remarks") or None
-        if "paused" in active_txt or colour == "paused": status, active = "paused", False
-        if "remove" in active_txt or colour == "remove": status, active = "paused", False; remarks = ("Sheet says Remove. " + (remarks or "")).strip()
-        if colour == "signature" and active: status = "signature"
-        if colour == "pending_update" and active: status = "pending_update"
-        rate_usd, local, why = parse_rate(r["rate"], ccy)
-        base = dict(location_id=loc["id"], category=r["category"], title=r["title"][:200], source_sheet=r["sheet"], source_row=r["row"],
-                    status=status, active_on_ground=active, rate_usd=rate_usd, rate_raw=r["rate"] or None,
-                    local_amount=local, local_currency=ccy, remarks=remarks, availability_raw=r["daytime"] or None)
-        extra = dict(transport=None, date=None)
-        if "vehicle" in r:
-            base.update(dict(days_of_week=days_of_week(r["daytime"], "transport"), brief_description=(r["brief"][:95] or None),
-                             long_description=r["long"] or None, duration_minutes=duration_of(r["duration"]), capacity_raw=r["minmax"] or None,
-                             bookable_on_website=False))
-            times = times_in(r["daytime"]); base["starts_at"] = times[0] if times else None
-            extra["transport"] = dict(vehicle_type=r["vehicle"] or None, route_raw=r["route"] or None, pickup_point=r["pickup"] or None,
-                                      dropoff_point=r["dropoff"] or None, departure_times=times)
-        else:
-            brief, long_ = split_desc(r["desc"]); ntk = split_ntk(r["need_to_know"]); mn, mx = parse_minmax(r["minmax"])
-            pr = propose_times(r["itinerary"], r["daytime"], None)
-            start, end, dur = (pr[0], pr[1], pr[2]) if pr else (None, None, duration_of(r["daytime"]))
-            base.update(dict(days_of_week=days_of_week(r["daytime"], r["category"]), starts_at=start, ends_at=end, duration_minutes=dur,
-                             brief_description=brief, long_description=long_, min_guests=mn, max_guests_per_day=mx, capacity_raw=r["minmax"] or None,
-                             bookable_on_website=r["online"].lower() in ("true", "yes"), travel_insurance_required=r["insurance"].lower() == "yes",
-                             photo_album_url=r["photos"] if r["photos"].lower().startswith("http") else None,
-                             itinerary=r["itinerary"] or None, gross_service_value=r["gsv"] or None, **ntk))
-            if r["category"] == "one_time_event":
-                d, last = event_dates(r["daytime"])
-                if d: base["expires_on"] = (last or d).isoformat(); extra["date"] = d.isoformat()
-                else: exceptions.append((r, "one_time_event_date", "couldn't read the event date", r["daytime"]))
-            if not base["days_of_week"] and r["category"] != "one_time_event":
-                exceptions.append((r, "days_of_week", "couldn't read which days it runs", r["daytime"]))
-        if why: exceptions.append((r, "rate", why, r["rate"]))
+        base, extra, exc = new_product_payload(r)
+        exceptions += exc
         new_rows.append(base); extras.append(extra)
     gone_ex = [(p, "missing_from_sheet", "Not on the flow chart any more. Pause it here, or add it back to the sheet.", f"was row {p['source_row']} of {sq(p['source_sheet'])}") for p in gone]
     ren_ex = [(p, "title", f"The flow chart now calls this \"{r['title'][:120]}\". Rename it on the product page if that is right.", r["title"][:200]) for r, p in renamed if norm(r["title"]) != norm(p["title"]) and "vehicle" not in r]

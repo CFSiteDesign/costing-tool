@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Check, X, FileText, ClipboardCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SheetQueue } from "@/components/app/SheetQueue";
 
 interface Proposal {
   id: number; product_id: string; location_id: string;
@@ -33,8 +35,39 @@ const span = (s: string | null, e: string | null, d: number | null) => {
   return <>{t5(s)}{e ? `–${t5(e)}` : <span className="text-[hsl(var(--st-pending))]"> no finish</span>}{d ? <span className="text-muted-foreground"> · {d % 60 === 0 ? `${d / 60}h` : `${d}m`}</span> : null}</>;
 };
 
-/** Times queue (9 Sep 2026): start / finish read from the flow chart, waiting for head office to approve. */
+/** Approvals: the final flow-chart sync (sheet changes) and the times queue, both waiting for head office. */
 export default function Approvals() {
+  const { data: counts } = useQuery({
+    queryKey: ["pending-approvals", "split"],
+    queryFn: async () => {
+      const [a, b] = await Promise.all([
+        supabase.from("sheet_sync_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      return { sheet: a.count ?? 0, times: b.count ?? 0 };
+    },
+  });
+  const [tab, setTab] = useState("sheet");
+  return (
+    <div className="p-4 space-y-3 max-w-6xl">
+      <div>
+        <h1 className="text-xl font-semibold flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Approvals</h1>
+        <p className="text-sm text-muted-foreground">Changes from the experience flow chart, waiting for head office. Nothing changes on an experience until it is approved here.</p>
+      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="sheet">Sheet changes{counts ? ` (${counts.sheet})` : ""}</TabsTrigger>
+          <TabsTrigger value="times">Times{counts ? ` (${counts.times})` : ""}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="sheet" className="mt-3"><SheetQueue /></TabsContent>
+        <TabsContent value="times" className="mt-3"><TimesQueue /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/** Times queue: start / finish read from the flow chart's ITINERARY column, editable before approving. */
+function TimesQueue() {
   const auth = useAuth();
   const qc = useQueryClient();
   const canApprove = auth.isAdmin || auth.roles.includes("head_office");
@@ -87,12 +120,9 @@ export default function Approvals() {
   const setEd = (p: Proposal, patch: Partial<{ s: string; e: string; d: string }>) => setEdits((m) => ({ ...m, [p.id]: { ...ed(p), ...patch } }));
 
   return (
-    <div className="p-4 space-y-3 max-w-6xl">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Time approvals</h1>
-          <p className="text-sm text-muted-foreground">Start and finish times read from the experience flow chart. Nothing changes on a product until it is approved here. Adjust the proposed times first if they are wrong.</p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <p className="text-sm text-muted-foreground max-w-3xl">Start and finish times read from the flow chart's itinerary column. Adjust the proposed times first if they are wrong.</p>
         {canApprove && !showDecided && rows.length > 0 && (
           <div className="flex gap-1.5">
             <Tip label="Approves every proposal shown (with the filter applied) exactly as proposed. Anything you have edited but not approved keeps your edit only if you approve it individually.">
