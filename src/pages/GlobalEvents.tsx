@@ -130,7 +130,7 @@ export default function GlobalEvents() {
           <p className="text-sm text-muted-foreground">Add once, and every hostel gets it to accept or decline. Accepting creates the product at that hostel. Click an event for the full picture.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm" className="gap-1.5" title="Add once - every hostel gets it to accept or decline, and every GM gets an email. Accepting creates the product at that hostel."><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm" className="gap-1.5" data-tour="ge-new" title="Add once - every hostel gets it to accept or decline, and every GM gets an email. Accepting creates the product at that hostel."><Plus className="h-4 w-4" /> New global event</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>New global event</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -183,12 +183,12 @@ export default function GlobalEvents() {
         </Dialog>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 mm-stagger">
         {(data?.events ?? []).length === 0 && <div className="border rounded-lg px-4 py-10 text-center text-sm text-muted-foreground">No global events yet.</div>}
         {(data?.events ?? []).map((ev) => {
           const s = summary(ev.id); const em = emailStatus(ev);
           return (
-            <button key={ev.id} className="w-full text-left border rounded-lg px-4 py-3 hover:bg-secondary/40 flex items-center justify-between gap-3 flex-wrap" onClick={() => setView(ev)} title="Open - full details, assets, who has answered">
+            <button key={ev.id} className="mm-lift w-full text-left border rounded-lg px-4 py-3 hover:bg-secondary/40 flex items-center justify-between gap-3 flex-wrap" onClick={() => setView(ev)} title="Open - full details, assets, who has answered">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
                   <Globe className="h-4 w-4 text-muted-foreground shrink-0" />

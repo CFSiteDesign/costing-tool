@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { emptyDoc, newBlock, type ItineraryBlock, type ItineraryDay, type ItineraryDoc } from "@/lib/itinerary";
 import { Tip } from "@/components/app/Tip";
+import { holdUnsaved } from "@/lib/unsaved";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +38,9 @@ export default function ItineraryEditor() {
   useEffect(() => {
     if (!dirty) return;
     const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h);
+    window.addEventListener("beforeunload", h);
+    const release = holdUnsaved();   // so replaying the tour asks first
+    return () => { window.removeEventListener("beforeunload", h); release(); };
   }, [dirty]);
 
   const startTimer = () => { setElapsed(0); timer.current = window.setInterval(() => setElapsed((s) => s + 1), 1000); };

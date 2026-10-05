@@ -93,7 +93,7 @@ export default function Transport() {
         <div className="ml-auto text-sm text-muted-foreground tabular-nums">{rows.length} of {(data ?? []).length}</div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden" data-tour="transport-table">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -106,7 +106,7 @@ export default function Transport() {
                 <th className="font-medium px-3 py-2.5 w-28">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="mm-stagger">
               {isLoading && <tr><td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>}
               {!isLoading && rows.length === 0 && <tr><td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">{(data ?? []).length === 0 ? "No transport at this hostel yet." : "Nothing matches."}</td></tr>}
               {rows.map((r) => {

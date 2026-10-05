@@ -59,3 +59,41 @@
   .no-print { display: none !important; }
   body { background: white; }
 }
+
+/* Motion: subtle and fast (150 to 250ms, ease-out), never blocking, and off entirely for anyone whose device asks
+   for less motion. Keyframes only set the start, so nothing lingers once an animation ends ("backwards" fill means
+   no leftover transform to trap fixed-position children). */
+@keyframes mm-rise {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* each page eases in when you navigate (AppShell keys the wrapper by path) */
+  .mm-page { animation: mm-rise 200ms ease-out backwards; }
+
+  /* the first handful of rows or cards arrive in a short cascade; anything after the eighth is instant, and the
+     big product table never uses this */
+  .mm-stagger > :nth-child(-n + 8) { animation: mm-rise 220ms ease-out backwards; }
+  .mm-stagger > :nth-child(2) { animation-delay: 25ms; }
+  .mm-stagger > :nth-child(3) { animation-delay: 50ms; }
+  .mm-stagger > :nth-child(4) { animation-delay: 75ms; }
+  .mm-stagger > :nth-child(5) { animation-delay: 100ms; }
+  .mm-stagger > :nth-child(6) { animation-delay: 125ms; }
+  .mm-stagger > :nth-child(7) { animation-delay: 150ms; }
+  .mm-stagger > :nth-child(8) { animation-delay: 175ms; }
+
+  /* cards that open something lift a touch on hover */
+  .mm-lift { transition: transform 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out; }
+  .mm-lift:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -10px rgb(26 26 24 / 0.25); }
+  .mm-lift:active { transform: translateY(0); box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

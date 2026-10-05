@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tip } from "@/components/app/Tip";
+import { isTourActive } from "@/components/tour/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function MimoProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      if (isTourActive()) return;   // the walkthrough runs first; the Assistant (and its intro) wait until it's done
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setOpen((o) => !o); }
       if (e.key === "Escape") setOpen(false);
     };
@@ -38,7 +40,7 @@ export function MimoProvider({ children }: { children: React.ReactNode }) {
 export function MimoNavButton({ collapsed }: { collapsed: boolean }) {
   const { open, toggle } = useMimo();
   const btn = (
-    <button onClick={toggle} className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors", collapsed && "justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
+    <button onClick={toggle} data-tour="assistant" className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors", collapsed && "justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
       <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0" />
       {!collapsed && <span>Assistant</span>}
       {!collapsed && <span className="ml-auto text-[10px] text-muted-foreground/70">⌘K</span>}
@@ -141,8 +143,8 @@ export function MimoPanel() {
 
   return (
     <>
-      {open && <div className="fixed inset-0 z-40 bg-black/10 sm:hidden" onClick={() => setOpen(false)} />}
-      <aside className={cn("fixed top-0 right-0 z-50 h-full w-full bg-background border-l flex flex-col transition-[transform,width] duration-200 motion-reduce:transition-none", wide ? "sm:w-full" : "sm:w-[420px]", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
+      {open && <div className="fixed inset-0 z-40 bg-black/10 sm:hidden animate-in fade-in-0 motion-reduce:animate-none" onClick={() => setOpen(false)} />}
+      <aside className={cn("fixed top-0 right-0 z-50 h-full w-full bg-background border-l flex flex-col transition-[transform,width] duration-200 ease-out motion-reduce:transition-none", wide ? "sm:w-full" : "sm:w-[420px]", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
         <div className={cn("h-14 shrink-0 border-b flex items-center gap-2.5 px-4", wide && "sm:px-6")}>
           <img src="/mm-head.png" alt="" className="h-6 w-6" />
           <span className="font-semibold">Assistant</span>

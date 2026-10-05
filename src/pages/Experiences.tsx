@@ -130,7 +130,7 @@ export default function Experiences() {
           )}
           {canEdit && (
             <Link to="/experiences/new">
-              <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Add product</Button>
+              <Button size="sm" className="gap-1.5" data-tour="exp-add"><Plus className="h-4 w-4" /> Add product</Button>
             </Link>
           )}
         </div>
@@ -157,7 +157,7 @@ export default function Experiences() {
             {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <DayFilter value={day} onChange={(d) => { setDay(d); setPage(0); }} />
+        <div className="inline-flex" data-tour="exp-day-filter"><DayFilter value={day} onChange={(d) => { setDay(d); setPage(0); }} /></div>
         <Tip label="One-time events past their expiry date are hidden. Switch on to see them.">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-help">
             <Switch checked={showExpired} onCheckedChange={(v) => { setShowExpired(v); setPage(0); }} /> Show expired
@@ -168,7 +168,7 @@ export default function Experiences() {
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden" data-tour="exp-table">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -181,7 +181,7 @@ export default function Experiences() {
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
-                <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Verified" tip="When someone last confirmed these details are current. Any edit clears it, so a product needs verifying again after changes. Click the shield to mark it verified today." /></th>
+                <th className="font-medium px-3 py-2.5 w-28" data-tour="exp-verified"><TipHead label="Verified" tip="When someone last confirmed these details are current. Any edit clears it, so a product needs verifying again after changes. Click the shield to mark it verified today." /></th>
                 <th className="font-medium px-3 py-2.5 w-36"><TipHead label="Asset" tip="The social graphic for this experience. Create opens STUDIO prefilled; View shows the latest one; it flags itself out of date when the name, day, time or price change." /></th>
               </tr>
             </thead>

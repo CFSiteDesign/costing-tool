@@ -61,7 +61,7 @@ export function PendingGlobalEvents() {
   const openEvent = data.find((r) => r.global_events.id === openId)?.global_events ?? null;
 
   return (
-    <div className="rounded-lg border border-[hsl(var(--st-signature))]/40 bg-[hsl(var(--st-signature))]/5 p-3 space-y-2">
+    <div className="rounded-lg border border-[hsl(var(--st-signature))]/40 bg-[hsl(var(--st-signature))]/5 p-3 space-y-2 mm-stagger" data-tour="global-pending">
       <div className="flex items-center gap-2 text-sm font-medium"><Globe className="h-4 w-4" /> {data.length} global event{data.length === 1 ? "" : "s"} waiting for your answer <span className="text-xs text-muted-foreground font-normal">· click one to see everything and change details before accepting</span></div>
       {data.map((r) => {
         const e = r.global_events;

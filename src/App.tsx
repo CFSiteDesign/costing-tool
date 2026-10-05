@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +26,15 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import ImportsPage from "./pages/settings/ImportsPage";
 import NotFound from "./pages/NotFound";
 
+/* Dev-only walkthrough harness (/__dev/tour): mock role, mock data, real shell. import.meta.env.DEV is replaced with
+   `false` in production builds, so these become null and Rollup drops the dynamic imports: the harness never ships. */
+const HarnessRoot = import.meta.env.DEV ? lazy(() => import("./dev/harness").then((m) => ({ default: m.HarnessRoot }))) : null;
+const HarnessEntry = import.meta.env.DEV ? lazy(() => import("./dev/harness").then((m) => ({ default: m.HarnessEntry }))) : null;
+const harnessOn = () => {
+  if (!import.meta.env.DEV) return false;
+  try { return window.location.pathname.startsWith("/__dev/tour") || sessionStorage.getItem("mm.dev.harness") !== null; } catch { return false; }
+};
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, retry: 1 } },
 });
@@ -35,7 +45,7 @@ const App = () => (
       <Toaster />
       <Sonner position="bottom-right" />
       <BrowserRouter>
-        <AuthProvider>
+        <AuthGate>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/a/:slug" element={<Agreement />} />
@@ -60,12 +70,19 @@ const App = () => (
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/imports" element={<ImportsPage />} />
             </Route>
+            {import.meta.env.DEV && HarnessEntry && <Route path="/__dev/tour" element={<Suspense fallback={null}><HarnessEntry /></Suspense>} />}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+        </AuthGate>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+/** The real AuthProvider, or (local dev only, while the harness is on) the harness's mock signed-in user. */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  if (HarnessRoot && harnessOn()) return <Suspense fallback={null}><HarnessRoot>{children}</HarnessRoot></Suspense>;
+  return <AuthProvider>{children}</AuthProvider>;
+}
 
 export default App;

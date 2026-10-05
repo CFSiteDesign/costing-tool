@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Tip } from "@/components/app/Tip";
 import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
+import { holdUnsaved } from "@/lib/unsaved";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
 
@@ -77,7 +78,8 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     if (!dirty) return;
     const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
+    const release = holdUnsaved();   // so replaying the tour asks first
+    return () => { window.removeEventListener("beforeunload", h); release(); };
   }, [dirty]);
   const back = () => {
     if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return;

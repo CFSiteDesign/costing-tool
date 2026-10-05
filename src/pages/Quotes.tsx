@@ -87,7 +87,7 @@ export default function Quotes() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-semibold">Quotes</h1>
         <div className="flex items-center gap-2">
-        <Tip label="Stops and dates in, a whole day-by-day trip out — stays, breakfast and that day's experiences to tick. Fastest way to build a 10-day itinerary."><Button size="sm" variant="outline" className="gap-1.5" onClick={() => nav("/quotes/auto")}><Wand2 className="h-4 w-4" /> Auto-create trip</Button></Tip>
+        <Tip label="Stops and dates in, a whole day-by-day trip out: stays, breakfast and that day's experiences to tick. Fastest way to build a 10-day itinerary."><Button size="sm" variant="outline" className="gap-1.5" data-tour="quotes-auto" onClick={() => nav("/quotes/auto")}><Wand2 className="h-4 w-4" /> Auto-create trip</Button></Tip>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5" title="Start an empty quote and build it day by day"><Plus className="h-4 w-4" /> New quote</Button>
@@ -148,7 +148,7 @@ export default function Quotes() {
         </Select>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden" data-tour="quotes-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-secondary text-muted-foreground text-left">
@@ -162,7 +162,7 @@ export default function Quotes() {
               <th className="w-10"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="mm-stagger">
             {filtered.length === 0 && (
               <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No quotes yet — create the first one.</td></tr>
             )}

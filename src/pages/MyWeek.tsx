@@ -73,7 +73,7 @@ export default function MyWeek() {
           <Tip label="Jump back to the current week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button></Tip>
           <Tip label="Next week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button></Tip>
           <Tip label="Build this week's Instagram story (1080 x 1920) from the key events.">
-            <Button size="sm" className="h-8 gap-1.5 ml-2" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
+            <Button size="sm" className="h-8 gap-1.5 ml-2" data-tour="week-story" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
           </Tip>
           <span className="ml-2 text-sm text-muted-foreground tabular-nums">
             {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
@@ -81,7 +81,7 @@ export default function MyWeek() {
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden" data-tour="week-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-secondary text-muted-foreground text-left">
@@ -94,7 +94,7 @@ export default function MyWeek() {
               <th className="font-medium px-3 py-2.5 w-24 text-center"><TipHead label="Key" tip={`Up to ${MAX_KEY_PER_DAY} key events a day. They go on the weekly story, and stay key on that day every week until you turn them off.`} /></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="mm-stagger">
             {days.map((d, i) => {
               const rows = rowsFor(d);
               const isToday = iso(d) === today;

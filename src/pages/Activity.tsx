@@ -52,7 +52,7 @@ export default function Activity() {
       <p className="text-sm text-muted-foreground -mt-2">
         Every change, who made it, and the before/after. This is the safety net — there is no approval gate.
       </p>
-      <div className="border rounded-lg divide-y">
+      <div className="border rounded-lg divide-y mm-stagger">
         {rows.length === 0 && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             No changes recorded yet for {auth.currentLocation?.name}.

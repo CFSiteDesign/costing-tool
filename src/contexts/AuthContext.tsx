@@ -3,7 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { Location, Role } from "@/lib/types";
 
-interface AuthState {
+export interface AuthState {
   session: Session | null;
   loading: boolean;
   roles: Role[];
@@ -22,6 +22,8 @@ interface AuthState {
 
 const Ctx = createContext<AuthState>(null as unknown as AuthState);
 export const useAuth = () => useContext(Ctx);
+/** The raw context, for the dev-only tour harness (src/dev) to supply a mock signed-in user. Not used in production. */
+export const AuthStateContext = Ctx;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);

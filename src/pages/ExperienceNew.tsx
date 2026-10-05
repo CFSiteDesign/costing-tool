@@ -15,6 +15,7 @@ import { Tip } from "@/components/app/Tip";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { useFx, money } from "@/lib/fx";
+import { holdUnsaved } from "@/lib/unsaved";
 
 export default function ExperienceNew() {
   const auth = useAuth();
@@ -34,7 +35,8 @@ export default function ExperienceNew() {
     if (!filled) return;
     const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
+    const release = holdUnsaved();   // so replaying the tour asks first
+    return () => { window.removeEventListener("beforeunload", h); release(); };
   }, [filled]);
   const back = () => {
     if (filled && !window.confirm("You've started filling this in. Leave without saving?")) return;
