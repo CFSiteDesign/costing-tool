@@ -5,6 +5,17 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 // and gets the story text back with only that change made. Edits the story only, never the database.
 // Body: { location_id, doc, instruction }   Runs as the caller.
 
+// Model rules (Charlie, 5 Oct 2026): Sonnet 5.5 for chat, Opus 5.5 for agentic, creation and generation work.
+// Sonnet 5.5 rejects thinking "disabled" (send "between_tools" to keep it off); Opus 5.5 can't switch thinking
+// off at all, so effort is the only lever. Older models keep thinking disabled as before.
+function claudeParams(model: string, effort: "low" | "medium" | "high"): { thinking?: Record<string, string>; effort?: string } {
+  if (model === "claude-sonnet-5-5") return { thinking: { type: "between_tools" }, effort };
+  if (model === "claude-opus-5-5") return { effort };
+  return { thinking: { type: "disabled" } };
+}
+
+const STORY_MODEL = "claude-opus-5-5";
+
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
@@ -48,13 +59,14 @@ Deno.serve(async (req: Request) => {
   if (!allowed) return json({ error: "not your hostel" }, 403);
 
   const client = new Anthropic({ apiKey });
+  const cp = claudeParams(STORY_MODEL, "low");
   try {
     const r = await client.messages.create({
-      model: "claude-sonnet-5", max_tokens: 2000, thinking: { type: "disabled" },
+      model: STORY_MODEL, max_tokens: 2000 + (cp.thinking?.type === "disabled" ? 0 : 6000), ...(cp.thinking ? { thinking: cp.thinking } : {}),
       system: [{ type: "text", text: RULES, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: `STORY:\n${JSON.stringify(body.doc)}\n\nCHANGE: ${instruction}` }],
-      output_config: { format: { type: "json_schema", schema: SCHEMA } },
-    } as Anthropic.MessageCreateParamsNonStreaming);
+      output_config: { format: { type: "json_schema", schema: SCHEMA }, ...(cp.effort ? { effort: cp.effort } : {}) },
+    } as unknown as Anthropic.MessageCreateParamsNonStreaming);
     const out = JSON.parse(r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join(""));
     // belt and braces: cap 3 per day, drop empty days, strip em dashes
     const clean = (s: string) => String(s ?? "").replace(/—/g, ",").slice(0, 120);

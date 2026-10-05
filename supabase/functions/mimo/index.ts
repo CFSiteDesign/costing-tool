@@ -6,8 +6,17 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 // Body: { location_id, messages: [{ role, content }], context?: { page, product_id }, model? (admin/head office only) }
 // Runs as the caller, RLS applies.
 
-const DEFAULT_MODEL = "claude-sonnet-5";
-const ALLOWED_MODELS = ["claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
+const DEFAULT_MODEL = "claude-sonnet-5-5";
+const ALLOWED_MODELS = ["claude-sonnet-5-5", "claude-opus-5-5", "claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
+// Model rules (Charlie, 5 Oct 2026): Sonnet 5.5 for chat, Opus 5.5 for agentic, creation and generation work.
+// Sonnet 5.5 rejects thinking "disabled" (send "between_tools" to keep it off); Opus 5.5 can't switch thinking
+// off at all, so effort is the only lever. Older models keep thinking disabled as before.
+function claudeParams(model: string, effort: "low" | "medium" | "high"): { thinking?: Record<string, string>; effort?: string } {
+  if (model === "claude-sonnet-5-5") return { thinking: { type: "between_tools" }, effort };
+  if (model === "claude-opus-5-5") return { effort };
+  return { thinking: { type: "disabled" } };
+}
+
 const RATE_LIMIT_PER_HOUR = 200;   // per person; about a cent a prompt, so this is a runaway guard, not a budget
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -225,17 +234,18 @@ PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, l
   const now = `NOW\n${nowLine}${where ? `\n${where}` : ""}\nToday's run sheet, active products in time order: ${runSheet(new Date())}\nTomorrow's run sheet: ${runSheet(new Date(Date.now() + 86400e3))}`;
 
   const client = new Anthropic({ apiKey });
+  const cp = claudeParams(model, "medium");
   const started = Date.now();
   let out: { reply: string; kind: string; changes: any[] }; let usage: Record<string, number> = {};
   try {
     const r = await client.messages.create({
-      model, max_tokens: 1500, thinking: { type: "disabled" },
+      model, max_tokens: 1500, ...(cp.thinking ? { thinking: cp.thinking } : {}),
       // Cache policy: persona and the hostel's product list for an hour (shared by everyone at that hostel), NOW uncached,
       // then a breakpoint on the last message so a multi-turn chat only pays for the new turn.
       system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral", ttl: "1h" } }, { type: "text", text: context, cache_control: { type: "ephemeral", ttl: "1h" } }, { type: "text", text: now }],
       messages: msgs.map((m, i) => ({ role: m.role, content: i === msgs.length - 1 ? [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }] : m.content })),
-      output_config: { format: { type: "json_schema", schema: SCHEMA } },
-    } as Anthropic.MessageCreateParamsNonStreaming);
+      output_config: { format: { type: "json_schema", schema: SCHEMA }, ...(cp.effort ? { effort: cp.effort } : {}) },
+    } as unknown as Anthropic.MessageCreateParamsNonStreaming);
     usage = { input: r.usage.input_tokens, output: r.usage.output_tokens, cache_read: r.usage.cache_read_input_tokens ?? 0, cache_write: r.usage.cache_creation_input_tokens ?? 0 };
     if (r.stop_reason === "refusal") return json({ reply: "I'll sit that one out. Anything about the products here, I'm on it.", kind: "cannot", changes: [] });
     out = JSON.parse(r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join(""));

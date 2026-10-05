@@ -7,7 +7,16 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 // The voice examples + reference document live in sync_config ('itinerary_voice', seeded from voice.ts in the
 // repo) so the prompt can be tuned without a redeploy. The model is sync_config 'itinerary_model'.
 
-const DEFAULT_MODEL = "claude-sonnet-5";
+const DEFAULT_MODEL = "claude-opus-5-5";
+// Model rules (Charlie, 5 Oct 2026): Sonnet 5.5 for chat, Opus 5.5 for agentic, creation and generation work.
+// Sonnet 5.5 rejects thinking "disabled" (send "between_tools" to keep it off); Opus 5.5 can't switch thinking
+// off at all, so effort is the only lever. Older models keep thinking disabled as before.
+function claudeParams(model: string, effort: "low" | "medium" | "high"): { thinking?: Record<string, string>; effort?: string } {
+  if (model === "claude-sonnet-5-5") return { thinking: { type: "between_tools" }, effort };
+  if (model === "claude-opus-5-5") return { effort };
+  return { thinking: { type: "disabled" } };
+}
+
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
@@ -159,13 +168,17 @@ Deno.serve(async (req: Request) => {
   const base: Anthropic.TextBlockParam = { type: "text", text: RULES + "\n\n" + voice, cache_control: { type: "ephemeral" } };
   const systemFor = (extra?: string): Anthropic.TextBlockParam[] => extra ? [base, { type: "text", text: extra }] : [base];
   const usage = { input: 0, output: 0, cache_read: 0, cache_write: 0 };
+  // Low effort: Opus still writes every word, but thinks less first, so a long trip (header, then every day in
+  // parallel) stays inside the function time limit. Raise to "medium" once the project is off the free plan.
+  const cp = claudeParams(model, "low");
+  const room = cp.thinking?.type === "disabled" ? 0 : 10000;   // thinking tokens count toward max_tokens
   const call = async (prompt: string, schema: Record<string, unknown>, max_tokens: number, system?: string) => {
     const r = await client.messages.create({
-      model, max_tokens, system: systemFor(system),
-      thinking: { type: "disabled" },   // a writing task with a fixed schema; keeps max_tokens for the words
+      model, max_tokens: max_tokens + room, system: systemFor(system),
+      ...(cp.thinking ? { thinking: cp.thinking } : {}),   // Opus 5.5 always thinks; `room` above makes space for it
       messages: [{ role: "user", content: prompt }],
-      output_config: { format: { type: "json_schema", schema } },
-    } as Anthropic.MessageCreateParamsNonStreaming);
+      output_config: { format: { type: "json_schema", schema }, ...(cp.effort ? { effort: cp.effort } : {}) },
+    } as unknown as Anthropic.MessageCreateParamsNonStreaming);
     usage.input += r.usage.input_tokens; usage.output += r.usage.output_tokens;
     usage.cache_read += r.usage.cache_read_input_tokens ?? 0; usage.cache_write += r.usage.cache_creation_input_tokens ?? 0;
     console.log(JSON.stringify({ call: prompt.slice(0, 24), stop: r.stop_reason, out: r.usage.output_tokens, cache_read: r.usage.cache_read_input_tokens, cache_write: r.usage.cache_creation_input_tokens }));
