@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,16 +8,12 @@ import { CATEGORY_LABELS } from "@/lib/types";
 import { usd } from "@/lib/format";
 import { timeSpan } from "@/lib/clash";
 import { money } from "@/lib/fx";
+import { iso, mondayOf, plus, DAY_NAMES, weekdayOf, MAX_KEY_PER_DAY, useWeek } from "@/lib/week";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tip, TipHead } from "@/components/app/Tip";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
-
-const pad = (n: number) => String(n).padStart(2, "0");
-const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const mondayOf = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
-const plus = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, Star, Zap, Smartphone } from "lucide-react";
 
 /** Who runs it - the phase-2 "MM or third party" column. */
 const RUN_BY: Record<Product["category"], string> = {
@@ -31,35 +27,24 @@ const HI = "hsl(var(--st-signature))";
 export default function MyWeek() {
   const auth = useAuth();
   const nav = useNavigate();
+  const qc = useQueryClient();
   const locId = auth.currentLocation?.id;
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => plus(weekStart, i)), [weekStart]);
-  const today = iso(new Date());
+  const { days, today, rowsFor, keysFor, isKey } = useWeek(locId, weekStart);
+  const canKey = auth.isEditor;
 
-  const { data } = useQuery({
-    queryKey: ["my-week", locId, iso(weekStart)],
-    enabled: !!locId,
-    queryFn: async () => {
-      const from = iso(days[0]), to = iso(days[6]);
-      const [{ data: products }, { data: rules }] = await Promise.all([
-        supabase.from("products").select("*").eq("location_id", locId!).eq("active_on_ground", true)
-          .neq("status", "paused").neq("category", "transport")   // phase 2: transport has its own tab
-          .or(`expires_on.is.null,expires_on.gte.${today}`),
-        supabase.from("product_date_rules").select("product_id, starts_on, ends_on")
-          .gte("starts_on", from).lte("starts_on", to),
-      ]);
-      return { products: (products ?? []) as Product[], rules: rules ?? [] };
+  /** Key events: up to 3 per day, and they repeat every week on that weekday until removed. */
+  const toggleKey = useMutation({
+    mutationFn: async ({ p, d, on }: { p: Product; d: Date; on: boolean }) => {
+      const weekday = weekdayOf(d);
+      const { error } = on
+        ? await supabase.from("product_key_days").insert({ product_id: p.id, weekday, location_id: p.location_id })
+        : await supabase.from("product_key_days").delete().eq("product_id", p.id).eq("weekday", weekday);
+      if (error) throw error;
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-week"] }),
+    onError: (e: Error) => toast.error(e.message.includes("Three key events") ? `Three key events already on that day. Remove one first.` : e.message),
   });
-
-  const rowsFor = (d: Date) => {
-    const weekday = ((d.getDay() + 6) % 7) + 1;
-    const dateStr = iso(d);
-    const dated = new Set((data?.rules ?? []).filter((r) => r.starts_on === dateStr).map((r) => r.product_id));
-    return (data?.products ?? [])
-      .filter((p) => (p.category !== "one_time_event" && p.days_of_week.includes(weekday)) || dated.has(p.id))
-      .sort((a, b) => (a.starts_at ?? "99").localeCompare(b.starts_at ?? "99") || a.title.localeCompare(b.title));
-  };
 
   const ccy = auth.currentLocation?.currency ?? "USD";
   const price = (p: Product) =>
@@ -69,7 +54,8 @@ export default function MyWeek() {
       : usd(p.rate_usd);
 
   const DayCell = ({ i, d, isToday }: { i: number; d: Date; isToday: boolean }) => (
-    <>{DAY_NAMES[i]}<div className="text-xs text-muted-foreground font-normal">{d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>{isToday && <div className="text-[10px] uppercase tracking-wide" style={{ color: HI }}>today</div>}</>
+    <>{DAY_NAMES[i]}<div className="text-xs text-muted-foreground font-normal">{d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>{isToday && <div className="text-[10px] uppercase tracking-wide" style={{ color: HI }}>today</div>}
+      {keysFor(d).length > 0 && <div className="text-[10px] font-normal text-muted-foreground mt-0.5">{keysFor(d).length} of {MAX_KEY_PER_DAY} key</div>}</>
   );
 
   return (
@@ -86,6 +72,9 @@ export default function MyWeek() {
           <Tip label="Previous week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, -7))}><ChevronLeft className="h-4 w-4" /></Button></Tip>
           <Tip label="Jump back to the current week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button></Tip>
           <Tip label="Next week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button></Tip>
+          <Tip label="Build this week's Instagram story (1080 x 1920) from the key events.">
+            <Button size="sm" className="h-8 gap-1.5 ml-2" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
+          </Tip>
           <span className="ml-2 text-sm text-muted-foreground tabular-nums">
             {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
           </span>
@@ -102,6 +91,7 @@ export default function MyWeek() {
               <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Time" tip="Start–finish. Finish is worked out from the duration when no finish time is set." /></th>
               <th className="font-medium px-3 py-2.5 w-40 text-right"><TipHead label="Price" tip="Local price with USD alongside. Quotes always use USD." /></th>
               <th className="font-medium px-3 py-2.5 w-32">Status</th>
+              <th className="font-medium px-3 py-2.5 w-24 text-center"><TipHead label="Key" tip={`Up to ${MAX_KEY_PER_DAY} key events a day. They go on the weekly story, and stay key on that day every week until you turn them off.`} /></th>
             </tr>
           </thead>
           <tbody>
@@ -111,10 +101,12 @@ export default function MyWeek() {
               return rows.length === 0 ? (
                 <tr key={i} className="border-t">
                   <td className="px-3 py-2.5 align-top font-medium"><DayCell i={i} d={d} isToday={isToday} /></td>
-                  <td colSpan={5} className="px-3 py-2.5 text-muted-foreground italic">Nothing scheduled</td>
+                  <td colSpan={6} className="px-3 py-2.5 text-muted-foreground italic">Nothing scheduled</td>
                 </tr>
               ) : rows.map((p, j) => {
                 const hi = isHighlight(p);
+                const key = isKey(p, d);
+                const full = !key && keysFor(d).length >= MAX_KEY_PER_DAY;
                 return (
                   <tr key={p.id + i} className={`${j === 0 ? "border-t" : ""} hover:bg-secondary/40 cursor-pointer`} style={hi ? { background: "hsl(var(--st-signature) / 0.07)" } : undefined} onClick={() => nav(`/experiences/${p.id}`)}>
                     <td className="px-3 py-2 align-top font-medium bg-background">{j === 0 && <DayCell i={i} d={d} isToday={isToday} />}</td>
@@ -132,6 +124,17 @@ export default function MyWeek() {
                     <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">{timeSpan(p) || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{price(p)}</td>
                     <td className="px-3 py-2"><StatusBadge status={p.status} /></td>
+                    <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                      {canKey ? (
+                        <Tip label={key ? `Key event every ${DAY_NAMES[i]}. Click to remove.` : full ? `Already ${MAX_KEY_PER_DAY} key events on ${DAY_NAMES[i]}. Remove one first.` : `Make this a key event every ${DAY_NAMES[i]}`}>
+                          <button type="button" aria-pressed={key} aria-label={key ? "Remove key event" : "Make key event"} disabled={toggleKey.isPending || full}
+                            onClick={() => toggleKey.mutate({ p, d, on: !key })}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors ${key ? "bg-accent text-accent-foreground" : full ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                            <Zap className={`h-3.5 w-3.5 ${key ? "fill-current" : ""}`} /> Key
+                          </button>
+                        </Tip>
+                      ) : key ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase"><Zap className="h-3.5 w-3.5 fill-current" /> Key</span> : null}
+                    </td>
                   </tr>
                 );
               });
@@ -139,7 +142,7 @@ export default function MyWeek() {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">Daily tours appear under every day they run. One-off and global events appear on their date. Expired events are hidden. Highlighted rows are Mad Monkey tours and Signature tours. Transport is not shown here - it has its own <Link to="/transport" className="underline underline-offset-2">Transport</Link> tab.</p>
+      <p className="text-xs text-muted-foreground">Mark up to {MAX_KEY_PER_DAY} key events a day; they feed the weekly story. Daily tours appear under every day they run. One-off and global events appear on their date. Expired events are hidden. Highlighted rows are Mad Monkey tours and Signature tours. Transport is not shown here - it has its own <Link to="/transport" className="underline underline-offset-2">Transport</Link> tab.</p>
     </div>
   );
 }
