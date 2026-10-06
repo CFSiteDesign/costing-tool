@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppShell, { RequireQuoting } from "@/components/app/AppShell";
 import Login from "./pages/Login";
+import SetPassword from "./pages/SetPassword";
 import Experiences from "./pages/Experiences";
 import ExperienceNew from "./pages/ExperienceNew";
 import ExperienceDetail from "./pages/ExperienceDetail";
@@ -48,6 +49,7 @@ const App = () => (
         <AuthGate>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/set-password" element={<SetPassword />} />
             <Route path="/a/:slug" element={<Agreement />} />
             <Route path="/it/:slug" element={<ItineraryPublic />} />
             <Route element={<AppShell />}>
