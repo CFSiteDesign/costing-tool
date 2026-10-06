@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2 } from "lucide-react";
+import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 
 /** The Assistant (codename MIMO in code, tables and docs): a clean slide-over; the model proposes, the person confirms, the app applies. */
 
@@ -114,11 +115,12 @@ export function MimoPanel() {
       const { data, error } = await supabase.functions.invoke("mimo", {
         body: { location_id: loc.id, context: pageCtx, messages: history.slice(-12).map((t) => ({ role: t.role, content: t.role === "assistant" ? assistantMemory(t) : t.content })) },
       });
-      if (error) throw new Error(error.message);
-      if (data?.error && !data?.reply) throw new Error(data.error);
+      if (error) throw new Error(await invokeErrorMessage(error));
+      if (data?.error) { const f = friendlyAiError(data.error); if (f || !data?.reply) throw new Error(data.error); }
       setTurns((ts) => [...ts, { role: "assistant", content: data.reply, kind: data.kind, log_id: data.log_id, changes: (data.changes ?? []).map((c: MimoChange) => ({ ...c, state: "pending" })) }]);
     } catch (e) {
-      setTurns((ts) => [...ts, { role: "assistant", content: `That didn't work my end, nothing changed. ${(e as Error).message}`, kind: "cannot", changes: [] }]);
+      const msg = (e as Error).message;
+      setTurns((ts) => [...ts, { role: "assistant", content: friendlyAiError(msg) ?? `That didn't work my end, nothing changed. ${msg}`, kind: "cannot", changes: [] }]);
     } finally { setBusy(false); }
   };
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tip } from "@/components/app/Tip";
 import { toast } from "sonner";
+import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, RotateCcw, Undo2, Send, Loader2 } from "lucide-react";
 
 /**
@@ -70,11 +71,11 @@ export default function WeeklyStory() {
     setBusy(true); setReply(null);
     try {
       const { data, error } = await supabase.functions.invoke("story-edit", { body: { location_id: loc.id, doc, instruction } });
-      if (error) throw new Error(error.message);
-      if (data?.error && !data?.doc) throw new Error(data.reply || data.error);
+      if (error) throw new Error(await invokeErrorMessage(error));
+      if (data?.error && !data?.doc) throw new Error(data.error || data.reply);
       setReply(data.reply);
       if (data.changed) { setHistory((h) => [...h, doc]); setDoc(data.doc); setText(""); await persist(data.doc); }
-    } catch (e) { setReply(`That didn't work, nothing changed. ${(e as Error).message}`); }
+    } catch (e) { setReply(friendlyAiError((e as Error).message) ?? `That didn't work, nothing changed. ${(e as Error).message}`); }
     finally { setBusy(false); }
   };
   const undo = async () => { const prev = history[history.length - 1]; if (!prev) return; setHistory((h) => h.slice(0, -1)); setDoc(prev); await persist(prev); setReply("Undone."); };

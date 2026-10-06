@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 import { ArrowLeft, Sparkles, Save, Link2, ExternalLink, Plus, Trash2, ArrowUp, ArrowDown, ImagePlus, X, AlertTriangle, RefreshCw, Check } from "lucide-react";
 
 interface Row { quote_id: string; doc: ItineraryDoc; share_slug: string; model: string | null; generated_at: string | null; updated_at: string; generation_meta: { usage?: Record<string, number>; ms?: number } | null }
@@ -51,25 +52,24 @@ export default function ItineraryEditor() {
       startTimer();
       const { data, error } = await supabase.functions.invoke("itinerary-generate", { body: { quote_id: id, mode: "full" } });
       if (error) {
-        let msg = error.message;
-        try { const ctx = (error as { context?: Response }).context; if (ctx) { const j = await ctx.json(); if (j?.error) msg = j.error; } } catch { /* keep */ }
+        const msg = await invokeErrorMessage(error);
         throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
       return data as { doc: ItineraryDoc; usage: Record<string, number>; ms: number; model: string };
     },
     onSuccess: (d) => { stopTimer(); setDoc(d.doc); setSaved(JSON.stringify(d.doc)); qc.invalidateQueries({ queryKey: ["itinerary-row", id] }); toast.success(`Written in ${Math.round(d.ms / 1000)}s. Read it through and fix anything that's off.`); },
-    onError: (e: Error) => { stopTimer(); toast.error(e.message); },
+    onError: (e: Error) => { stopTimer(); toast.error(friendlyAiError(e.message) ?? e.message); },
   });
   const rewriteDay = useMutation({
     mutationFn: async ({ day_no, instruction }: { day_no: number; instruction: string }) => {
       const { data, error } = await supabase.functions.invoke("itinerary-generate", { body: { quote_id: id, mode: "day", day_no, instruction } });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await invokeErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       return data as { doc: ItineraryDoc };
     },
     onSuccess: (d) => { setDoc(d.doc); setSaved(JSON.stringify(d.doc)); toast.success("Day rewritten"); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyAiError(e.message) ?? e.message),
   });
   const save = useMutation({
     mutationFn: async () => {
