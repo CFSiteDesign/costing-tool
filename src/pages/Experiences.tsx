@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, ChevronLeft, ChevronRight, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, AlertTriangle, ShieldCheck, Download, Loader2 } from "lucide-react";
+import { exportExperiences } from "@/lib/exportExperiences";
 
 const PAGE = 50;
 
@@ -29,6 +30,7 @@ export default function Experiences() {
   const [status, setStatus] = useState<ProductStatus | "all">("all");
   const [day, setDay] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(0);
   const [showExpired, setShowExpired] = useState(false);
   const nav = useNavigate();
@@ -128,6 +130,14 @@ export default function Experiences() {
               </Link>
             </Tip>
           )}
+          <Tip label={auth.seesAllLocations ? "Download every experience as a spreadsheet: an all-hostels tab plus one tab per hostel." : "Download this hostel's experiences as a spreadsheet."}>
+            <Button variant="outline" size="sm" className="gap-1.5" disabled={exporting} onClick={async () => {
+              setExporting(true);
+              try { const r = await exportExperiences(); toast.success(`Exported ${r.rows} experiences${r.hostels > 1 ? ` across ${r.hostels} hostels` : ""}`); }
+              catch (e) { toast.error(`Export failed: ${(e as Error).message}`); }
+              finally { setExporting(false); }
+            }}>{exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Export</Button>
+          </Tip>
           {canEdit && (
             <Link to="/experiences/new">
               <Button size="sm" className="gap-1.5" data-tour="exp-add"><Plus className="h-4 w-4" /> Add product</Button>
