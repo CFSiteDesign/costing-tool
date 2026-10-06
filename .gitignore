@@ -25,3 +25,4 @@ dist-ssr
 
 .env
 GM_LOGINS.pdf
+.secrets/
