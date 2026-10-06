@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,8 @@ export default function SetPassword() {
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // the session the link gave us, kept here too: some browsers lose the stored copy before Save is pressed
+  const linkSession = useRef<Session | null>(null);
 
   useEffect(() => {
     const token_hash = params.get("token_hash");
@@ -26,6 +29,7 @@ export default function SetPassword() {
       if (!token_hash) { setState("bad"); return; }
       const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
       if (error || !data.session) { setState("bad"); return; }
+      linkSession.current = data.session;
       setEmail(data.user?.email ?? "");
       window.history.replaceState(null, "", "/set-password");   // the link only works once; keep it out of the address bar
       setState("ready");
@@ -37,10 +41,25 @@ export default function SetPassword() {
     if (pw.length < 8) { setError("Use at least 8 characters."); return; }
     if (pw !== pw2) { setError("The two passwords don't match."); return; }
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    setBusy(false);
-    if (error) { setError(error.message); return; }
-    nav("/experiences", { replace: true });
+    try {
+      const saved = linkSession.current;
+      // make sure the browser still holds the link's session; put it back if it has been lost
+      const { data: cur } = await supabase.auth.getSession();
+      if (!cur.session && saved) await supabase.auth.setSession({ access_token: saved.access_token, refresh_token: saved.refresh_token });
+      let { error } = await supabase.auth.updateUser({ password: pw });
+      if (error && /session missing/i.test(error.message) && saved) {
+        // last resort: set the password straight against Auth with the link's token, then sign in with it
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${saved.access_token}`, apikey: SUPABASE_ANON_KEY },
+          body: JSON.stringify({ password: pw }),
+        });
+        error = res.ok ? null : { message: (await res.json().catch(() => ({})))?.msg ?? `Couldn't save (${res.status})` } as typeof error;
+        if (!error && email) await supabase.auth.signInWithPassword({ email, password: pw });
+      }
+      if (error) { setError(error.message); return; }
+      nav("/experiences", { replace: true });
+    } finally { setBusy(false); }
   };
 
   return (
