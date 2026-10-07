@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /**
- * Where an invite link lands: /set-password?token_hash=...&type=invite (or recovery for a reset).
+ * Where an invite link lands: /set-password?token_hash=...&type=invite (or recovery for a reset),
+ * or an emailed welcome link: /set-password?code=... (lasts 7 days; swapped for a fresh one-time token on each open).
  * The link signs the person in once; they choose their own password here, then go straight in.
  */
 export default function SetPassword() {
@@ -21,20 +22,30 @@ export default function SetPassword() {
   const [busy, setBusy] = useState(false);
   // the session the link gave us, kept here too: some browsers lose the stored copy before Save is pressed
   const linkSession = useRef<Session | null>(null);
+  const code = params.get("code");
+  const started = useRef(false);   // each claim mints a new token and voids the last, so only ever claim once per visit
 
   useEffect(() => {
-    const token_hash = params.get("token_hash");
-    const type = params.get("type") === "recovery" ? "recovery" : "invite";
+    if (started.current) return;
+    started.current = true;
+    let token_hash = params.get("token_hash");
+    let type: "invite" | "recovery" = params.get("type") === "recovery" ? "recovery" : "invite";
     (async () => {
+      if (code) {
+        // a welcome link: trade the code for a fresh one-time token (the code keeps working until a password is saved)
+        const { data } = await supabase.functions.invoke("user-invite", { body: { mode: "claim", code } });
+        token_hash = data?.token_hash ?? null; type = "recovery";
+      }
       if (!token_hash) { setState("bad"); return; }
       const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
       if (error || !data.session) { setState("bad"); return; }
       linkSession.current = data.session;
       setEmail(data.user?.email ?? "");
-      window.history.replaceState(null, "", "/set-password");   // the link only works once; keep it out of the address bar
+      // a one-time token is spent now, so keep it out of the address bar; a welcome code stays so a refresh still works
+      if (!code) window.history.replaceState(null, "", "/set-password");
       setState("ready");
     })();
-  }, [params]);
+  }, [params, code]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null);
@@ -58,6 +69,7 @@ export default function SetPassword() {
         if (!error && email) await supabase.auth.signInWithPassword({ email, password: pw });
       }
       if (error) { setError(error.message); return; }
+      if (code) await supabase.functions.invoke("user-invite", { body: { mode: "done", code } }).catch(() => undefined);
       nav("/experiences", { replace: true });
     } finally { setBusy(false); }
   };
