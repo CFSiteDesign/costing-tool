@@ -5,6 +5,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //                                                            their profile name comes from the invite, role added if missing.
 // POST { mode: "link", emails: [..] }                     -> a fresh set-password link for people who already exist (expired invite, forgotten password).
 // POST { mode: "welcome", emails: [..] }                  -> a 7-day welcome code per person (replaces any older one), safe to email.
+// POST { mode: "people" }                                 -> everyone with an account, their access and login-email status (Settings > People).
+// POST { mode: "send_welcome", emails: [..] }             -> makes each person a welcome link and emails it to them via Resend.
+//                                                            The link only ever goes to that person's inbox; it is never returned.
 // Returns one-time token hashes; the app's /set-password page turns one into a session and asks for a password.
 // Public (no admin needed, the code is the key):
 // POST { mode: "claim", code }                            -> swaps a live welcome code for a fresh one-hour Auth token hash.
@@ -41,6 +44,65 @@ Deno.serve(async (req: Request) => {
   if (!me.user) return json({ error: "not signed in" }, 401);
   const { data: isAdmin } = await caller.rpc("has_role", { _user: me.user.id, _role: "admin" });
   if (!isAdmin) return json({ error: "admins only" }, 403);
+
+  if (body.mode === "people") {
+    const [{ data: list }, { data: profs }, { data: roles }, { data: locs }, { data: links }] = await Promise.all([
+      admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      admin.from("profiles").select("id, email, full_name"),
+      admin.from("user_roles").select("user_id, role"),
+      admin.from("user_locations").select("user_id, locations(name)"),
+      admin.from("welcome_links").select("user_id, created_at, emailed_at, used_at, expires_at"),
+    ]);
+    const prof = new Map((profs ?? []).map((p) => [p.id, p]));
+    const people = (list?.users ?? []).map((u) => ({
+      id: u.id, email: u.email, full_name: prof.get(u.id)?.full_name ?? null, last_sign_in_at: u.last_sign_in_at ?? null,
+      roles: (roles ?? []).filter((r) => r.user_id === u.id).map((r) => r.role),
+      hostels: (locs ?? []).filter((l) => l.user_id === u.id).map((l) => (l.locations as unknown as { name: string })?.name).filter(Boolean).sort(),
+      welcome: (links ?? []).find((w) => w.user_id === u.id) ?? null,
+    })).sort((a, b) => String(a.full_name ?? a.email).localeCompare(String(b.full_name ?? b.email)));
+    return json({ email_ready: !!Deno.env.get("RESEND_API_KEY"), sender: SENDER(), people });
+  }
+
+  if (body.mode === "send_welcome") {
+    const key = Deno.env.get("RESEND_API_KEY");
+    if (!key) return json({ error: "email_not_set_up" });
+    const site = (Deno.env.get("SITE_URL") ?? "https://mm-costing-tool.vercel.app").replace(/\/$/, "");
+    const out = [];
+    for (const raw of body.emails ?? []) {
+      const email = raw.trim().toLowerCase();
+      const { data: prof } = await admin.from("profiles").select("id, full_name").eq("email", email).maybeSingle();
+      if (!prof) { out.push({ email, error: "no account with that email" }); continue; }
+      const [{ data: u }, { data: roles }, { data: locs }] = await Promise.all([
+        admin.auth.admin.getUserById(prof.id),
+        admin.from("user_roles").select("role").eq("user_id", prof.id),
+        admin.from("user_locations").select("locations(name)").eq("user_id", prof.id),
+      ]);
+      const seesAll = (roles ?? []).some((r) => ["admin", "head_office", "sales"].includes(r.role));
+      const hostels = (locs ?? []).map((l) => (l.locations as unknown as { name: string })?.name).filter(Boolean).sort();
+      const code = randomCode();
+      await admin.from("welcome_links").delete().eq("user_id", prof.id);   // one live link per person
+      const { error: insErr } = await admin.from("welcome_links").insert({ code_hash: await sha256(code), user_id: prof.id, email, created_by: me.user.id });
+      if (insErr) { out.push({ email, error: insErr.message }); continue; }
+      const mail = welcomeEmail({
+        name: greetingName(prof.full_name, email), access: seesAll ? "every hostel" : hostels.length ? listJoin(hostels) : "",
+        existing: !!u?.user?.last_sign_in_at, link: `${site}/set-password?code=${code}`, site,
+      });
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: SENDER(), to: [email], subject: mail.subject, text: mail.text, html: mail.html }),
+      });
+      if (!res.ok) {
+        await admin.from("welcome_links").delete().eq("user_id", prof.id);   // never leave a live link nobody received
+        const detail = await res.json().catch(() => ({}));
+        out.push({ email, error: detail?.message ?? `email service said ${res.status}` });
+        continue;
+      }
+      await admin.from("welcome_links").update({ emailed_at: new Date().toISOString() }).eq("user_id", prof.id);
+      out.push({ email, sent: true });
+    }
+    return json({ results: out });
+  }
 
   if (body.mode === "welcome") {
     const out = [];
@@ -116,4 +178,41 @@ function randomCode() {
 async function sha256(s: string) {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(h), (x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+const SENDER = () => Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <experiences@creatorhub.madmonkeyhostels.com>";
+const listJoin = (a: string[]) => a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+
+// "Chris Gibson" -> Chris, "Froggy (Thailand Senior GM)" -> Froggy; a double first name that IS the email's local part
+// (harryjohn@ "Harry John", thuyanh@ "Thuy Anh") stays whole
+function greetingName(full: string | null, email: string) {
+  const local = email.split("@")[0].toLowerCase();
+  const name = (full ?? "").replace(/\(.*?\)/g, "").trim();
+  if (!name) return "there";
+  if (!local.includes(".") && name.replace(/\s+/g, "").toLowerCase() === local) return name;
+  return name.split(/\s+/)[0];
+}
+
+function welcomeEmail(o: { name: string; access: string; existing: boolean; link: string; site: string }) {
+  const subject = "Your login for the Mad Monkey Experience Database";
+  const host = o.site.replace(/^https?:\/\//, "");
+  const where = o.access ? ` You're set up for ${o.access}.` : "";
+  const assistant = "There's an Assistant built in. Ask it things like what's on tonight, or tell it what to change, and it sets the change up for you to check. Nothing changes until you confirm.";
+  const intro = o.existing
+    ? `You already have a login for the Mad Monkey Experience Database.${where} If you know your password, just sign in at ${host} as usual. If you've forgotten it, choose a new one here:`
+    : `You now have access to the Mad Monkey Experience Database. It holds every tour, event and transport option across the hostels, with prices, times and descriptions.${where}`;
+  const cta = o.existing ? "Choose a new password" : "Choose your password";
+  const small = "This link works for 7 days and is just for you, so please don't forward it.";
+  const after = o.existing ? "" : `After that, sign in any time at ${host} with this email address.`;
+  const text = [`Hi ${o.name},`, intro, `${cta}: ${o.link}`, small, after, assistant, "Any problems, message Charlie."].filter(Boolean).join("\n\n");
+  const p = (t: string, extra = "") => `<p style="margin:0 0 16px;${extra}">${t}</p>`;
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f2;padding:24px 12px;font-family:Montserrat,Arial,Helvetica,sans-serif;color:#0a0a0a;font-size:15px;line-height:1.55">
+<div style="max-width:520px;margin:0 auto;background:#ffffff;border:2px solid #0a0a0a;border-radius:0;padding:28px 24px">
+<div style="font-weight:900;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px">Mad Monkey <span style="background:#ccff01;padding:2px 6px">Experience Database</span></div>
+${p(`Hi ${esc(o.name)},`)}${p(esc(intro))}
+<p style="margin:22px 0"><a href="${esc(o.link)}" style="display:inline-block;background:#0a0a0a;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:9999px">${cta}</a></p>
+${p(esc(small), "font-size:13px;color:#555")}${after ? p(esc(after)) : ""}${p(esc(assistant))}${p("Any problems, message Charlie.", "margin:0")}
+</div></body></html>`;
+  return { subject, text, html };
 }

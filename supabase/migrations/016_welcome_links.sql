@@ -16,3 +16,6 @@ create table if not exists public.welcome_links (
 create index if not exists welcome_links_user_idx on public.welcome_links (user_id);
 alter table public.welcome_links enable row level security;
 -- no policies on purpose: only the user-invite function (service role) reads or writes these
+
+-- 016b: the Experience Database emails the link itself (Settings > People); this records when it went out
+alter table public.welcome_links add column if not exists emailed_at timestamptz;
