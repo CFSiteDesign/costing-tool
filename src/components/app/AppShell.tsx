@@ -42,6 +42,7 @@ export default function AppShell() {
   const loc = useLocation();
   const access = accessFor(auth.roles);   // same rule the walkthrough uses, so its steps always match this sidebar
   const isHeadOffice = access.isHeadOffice;
+  const switchable = auth.seesAllLocations ? auth.allLocations : auth.myLocations;
   const { collapsed, narrow, toggle: toggleSidebar } = useCollapsedSidebar();
   const { data: pendingApprovals } = useQuery({
     queryKey: ["pending-approvals"],
@@ -111,7 +112,8 @@ export default function AppShell() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 shrink-0 border-b flex items-center justify-between px-4 gap-3">
-          {auth.seesAllLocations ? (
+          {/* head office switches between every hostel; a GM with more than one hostel (e.g. Hanoi + Hoi An) switches between theirs */}
+          {switchable.length > 1 ? (
             <Select
               value={auth.currentLocation?.id ?? ""}
               onValueChange={(v) => auth.setCurrentLocationId(v)}
@@ -120,7 +122,7 @@ export default function AppShell() {
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
-                {auth.allLocations.map((l) => (
+                {switchable.map((l) => (
                   <SelectItem key={l.id} value={l.id}>{l.name} · {l.country}</SelectItem>
                 ))}
               </SelectContent>
