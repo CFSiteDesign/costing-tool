@@ -145,8 +145,10 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
   });
   const latestAsset = assets?.[0] ?? null;
 
-  const Field = ({ label, k, rows = 2, maxLength }: { label: string; k: keyof typeof init; rows?: number; maxLength?: number }) => (
-    <div className="space-y-1">
+  // called as a plain function, never as <Field />: a component defined inside this one is a new type on every render,
+  // so React would rebuild the textarea on each keystroke and drop the cursor after one character
+  const field = ({ label, k, rows = 2, maxLength }: { label: string; k: keyof typeof init; rows?: number; maxLength?: number }) => (
+    <div className="space-y-1" key={k}>
       <div className="flex items-baseline justify-between">
         <Label className="text-xs text-muted-foreground uppercase tracking-wide">{label}</Label>
         {maxLength && <span className={`text-[11px] tabular-nums ${String(f[k]).length > maxLength ? "text-destructive" : "text-muted-foreground"}`}>{String(f[k]).length}/{maxLength}</span>}
@@ -262,18 +264,18 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
         <AssetCell product={product} asset={latestAsset} currency={ccy} canEdit={canEdit} />
       </div>
 
-      <Field label="Brief description" k="brief" maxLength={95} />
-      <Field label="Long description" k="long" rows={5} />
+      {field({ label: "Brief description", k: "brief", maxLength: 95 })}
+      {field({ label: "Long description", k: "long", rows: 5 })}
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="Meeting point & time" k="meeting_point" />
-        <Field label="Inclusions" k="inclusions" rows={3} />
-        <Field label="Exclusions" k="exclusions" />
-        <Field label="Things to bring" k="things_to_bring" />
-        <Field label="Cancellation policy" k="cancellation_policy" />
-        <Field label="Photo album URL (min 6 images)" k="photo_album_url" rows={1} />
+        {field({ label: "Meeting point & time", k: "meeting_point" })}
+        {field({ label: "Inclusions", k: "inclusions", rows: 3 })}
+        {field({ label: "Exclusions", k: "exclusions" })}
+        {field({ label: "Things to bring", k: "things_to_bring" })}
+        {field({ label: "Cancellation policy", k: "cancellation_policy" })}
+        {field({ label: "Photo album URL (min 6 images)", k: "photo_album_url", rows: 1 })}
       </div>
-      <Field label="Itinerary" k="itinerary" rows={6} />
-      <Field label="Remarks / update notes" k="remarks" />
+      {field({ label: "Itinerary", k: "itinerary", rows: 6 })}
+      {field({ label: "Remarks / update notes", k: "remarks" })}
       {product.availability_raw && <p className="text-xs text-muted-foreground border-t pt-3"><span className="font-medium">From the sheet:</span> {product.availability_raw}</p>}
 
       {canEdit && (
