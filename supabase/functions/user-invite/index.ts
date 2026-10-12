@@ -72,20 +72,21 @@ Deno.serve(async (req: Request) => {
       const email = raw.trim().toLowerCase();
       const { data: prof } = await admin.from("profiles").select("id, full_name").eq("email", email).maybeSingle();
       if (!prof) { out.push({ email, error: "no account with that email" }); continue; }
-      const [{ data: u }, { data: roles }, { data: locs }] = await Promise.all([
-        admin.auth.admin.getUserById(prof.id),
+      const [{ data: hasPassword }, { data: roles }, { data: locs }] = await Promise.all([
+        admin.rpc("user_has_password", { _user: prof.id }),   // signed in once is not enough: a link signs you in before you pick a password
         admin.from("user_roles").select("role").eq("user_id", prof.id),
         admin.from("user_locations").select("locations(name)").eq("user_id", prof.id),
       ]);
       const seesAll = (roles ?? []).some((r) => ["admin", "head_office", "sales"].includes(r.role));
       const hostels = (locs ?? []).map((l) => (l.locations as unknown as { name: string })?.name).filter(Boolean).sort();
       const code = randomCode();
-      await admin.from("welcome_links").delete().eq("user_id", prof.id);   // one live link per person
-      const { error: insErr } = await admin.from("welcome_links").insert({ code_hash: await sha256(code), user_id: prof.id, email, created_by: me.user.id });
+      const hash = await sha256(code);
+      // the person's current link stays valid until this email has actually gone; a failed send must not kill it
+      const { error: insErr } = await admin.from("welcome_links").insert({ code_hash: hash, user_id: prof.id, email, created_by: me.user.id });
       if (insErr) { out.push({ email, error: insErr.message }); continue; }
       const mail = welcomeEmail({
         name: greetingName(prof.full_name, email), access: seesAll ? "every hostel" : hostels.length ? listJoin(hostels) : "",
-        existing: !!u?.user?.last_sign_in_at, link: `${site}/set-password?code=${code}`, site,
+        existing: hasPassword === true, link: `${site}/set-password?code=${code}`, site,
       });
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -93,12 +94,14 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ from: SENDER(), to: [email], subject: mail.subject, text: mail.text, html: mail.html }),
       });
       if (!res.ok) {
-        await admin.from("welcome_links").delete().eq("user_id", prof.id);   // never leave a live link nobody received
+        await admin.from("welcome_links").delete().eq("code_hash", hash);   // never leave a live link nobody received
         const detail = await res.json().catch(() => ({}));
         out.push({ email, error: detail?.message ?? `email service said ${res.status}` });
+        if (res.status === 401 || res.status === 403) break;   // bad key or unverified sender: every other send would fail the same way
         continue;
       }
-      await admin.from("welcome_links").update({ emailed_at: new Date().toISOString() }).eq("user_id", prof.id);
+      await admin.from("welcome_links").update({ emailed_at: new Date().toISOString() }).eq("code_hash", hash);
+      await admin.from("welcome_links").delete().eq("user_id", prof.id).neq("code_hash", hash);   // now one live link per person
       out.push({ email, sent: true });
     }
     return json({ results: out });
