@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -74,6 +75,8 @@ export default function SettingsPage() {
   return (
     <div className="p-4 max-w-3xl space-y-6">
       <h1 className="text-xl font-semibold">Settings</h1>
+
+      {auth.isAdmin && <EmailKeyCard />}
 
       <section className="border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -196,5 +199,45 @@ export default function SettingsPage() {
         </Link>
       </section>
     </div>
+  );
+}
+
+/**
+ * Settings > Email (admins). The Resend key that lets the database send email: GM login emails, global-event emails,
+ * Reden's website changes. Saved encrypted in the database (Supabase Vault) through set_email_key; this page can
+ * only ever learn whether a key is set, never read it back.
+ */
+function EmailKeyCard() {
+  const qc = useQueryClient();
+  const [key, setKey] = useState("");
+  const { data: status } = useQuery({
+    queryKey: ["email-key-status"],
+    queryFn: async () => (await supabase.rpc("email_key_status")).data as { key_set: boolean; updated_at: string | null } | null,
+  });
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("set_email_key", { p_key: key });
+      if (error) throw error;
+    },
+    onSuccess: () => { setKey(""); qc.invalidateQueries({ queryKey: ["email-key-status"] }); toast.success("Saved. Email is on."); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <section className="border rounded-lg p-4 space-y-3">
+      <div>
+        <h2 className="font-medium">Email</h2>
+        <p className="text-sm text-muted-foreground">
+          {status?.key_set
+            ? <>On. Emails send from updates@experience.madmonkeyhostels.com. Key saved {timeAgo(status.updated_at)}.</>
+            : <>Off. Paste the Resend API key to let the database send login emails and global-event emails.</>}
+        </p>
+      </div>
+      <form className="flex gap-2 max-sm:flex-col" onSubmit={(e) => { e.preventDefault(); if (key.trim()) save.mutate(); }}>
+        <Input type="password" autoComplete="off" spellCheck={false} placeholder={status?.key_set ? "Paste a new key to replace it" : "re_..."}
+          value={key} onChange={(e) => setKey(e.target.value)} className="font-mono text-sm" />
+        <Button type="submit" disabled={!key.trim() || save.isPending}>{save.isPending ? "Saving…" : status?.key_set ? "Replace key" : "Save key"}</Button>
+      </form>
+      <p className="text-[11px] text-muted-foreground">Stored encrypted. Nobody can read it back here, including admins.</p>
+    </section>
   );
 }

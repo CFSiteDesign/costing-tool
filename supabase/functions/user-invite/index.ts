@@ -60,11 +60,11 @@ Deno.serve(async (req: Request) => {
       hostels: (locs ?? []).filter((l) => l.user_id === u.id).map((l) => (l.locations as unknown as { name: string })?.name).filter(Boolean).sort(),
       welcome: (links ?? []).find((w) => w.user_id === u.id) ?? null,
     })).sort((a, b) => String(a.full_name ?? a.email).localeCompare(String(b.full_name ?? b.email)));
-    return json({ email_ready: !!Deno.env.get("RESEND_API_KEY"), sender: SENDER(), people });
+    return json({ email_ready: !!(await resendKey(admin)), sender: SENDER(), people });
   }
 
   if (body.mode === "send_welcome") {
-    const key = Deno.env.get("RESEND_API_KEY");
+    const key = await resendKey(admin);
     if (!key) return json({ error: "email_not_set_up" });
     const site = (Deno.env.get("SITE_URL") ?? "https://mm-costing-tool.vercel.app").replace(/\/$/, "");
     const out = [];
@@ -183,6 +183,9 @@ async function sha256(s: string) {
   return Array.from(new Uint8Array(h), (x) => x.toString(16).padStart(2, "0")).join("");
 }
 
+// the Resend key: an Edge Function secret if one is ever set, otherwise the one an admin saved in Settings > Email (Vault)
+// deno-lint-ignore no-explicit-any
+const resendKey = async (admin: any): Promise<string | null> => Deno.env.get("RESEND_API_KEY") ?? ((await admin.rpc("email_key")).data as string | null) ?? null;
 const SENDER = () => Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <updates@experience.madmonkeyhostels.com>";
 const listJoin = (a: string[]) => a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
