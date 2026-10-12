@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
   );
   const resendKey = Deno.env.get("RESEND_API_KEY");
   const sender = Deno.env.get("RESEND_FROM") ??
-    "Mad Monkey Experiences <experiences@madmonkeyhostels.com>";
+    "Mad Monkey Experiences <updates@experience.madmonkeyhostels.com>";
 
   let reqBody: { preview?: boolean; location_id?: string } = {};
   try { reqBody = await req.json(); } catch { /* cron sends an empty body */ }

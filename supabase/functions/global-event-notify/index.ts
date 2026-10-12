@@ -10,7 +10,7 @@ const APP_URL = "https://mm-costing-tool.vercel.app";
 Deno.serve(async (req: Request) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  const sender = Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <experiences@madmonkeyhostels.com>";
+  const sender = Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <updates@experience.madmonkeyhostels.com>";
 
   let eventId: string | undefined;
   try { eventId = (await req.json())?.event_id; } catch { /* no body */ }

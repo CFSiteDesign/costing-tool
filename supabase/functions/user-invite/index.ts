@@ -183,7 +183,7 @@ async function sha256(s: string) {
   return Array.from(new Uint8Array(h), (x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-const SENDER = () => Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <experiences@creatorhub.madmonkeyhostels.com>";
+const SENDER = () => Deno.env.get("RESEND_FROM") ?? "Mad Monkey Experiences <updates@experience.madmonkeyhostels.com>";
 const listJoin = (a: string[]) => a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
