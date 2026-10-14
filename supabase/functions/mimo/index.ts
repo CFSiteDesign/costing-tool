@@ -5,6 +5,8 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 // proposal, answers questions. NEVER writes: the app applies confirmed changes through the normal update.
 // Body: { location_id, messages: [{ role, content }], context?: { page, product_id }, model? (admin/head office only) }
 // Runs as the caller, RLS applies.
+// Brand and marketing questions (logos, promos, social, who to ask in marketing) go to the MM AI Assistant's
+// knowledge (kb-assistant on this project, 14 Oct 2026), which answers with sources and hands off to Lexie's team.
 
 const DEFAULT_MODEL = "claude-sonnet-5-5";
 const ALLOWED_MODELS = ["claude-sonnet-5-5", "claude-opus-5-5", "claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5-20251001"];
@@ -29,8 +31,8 @@ const SCHEMA = {
   type: "object", additionalProperties: false,
   required: ["reply", "kind", "changes"],
   properties: {
-    reply: { type: "string", description: "What the Assistant says to the GM. One or two short sentences." },
-    kind: { type: "string", enum: ["answer", "proposal", "question", "cannot"] },
+    reply: { type: "string", description: "What the Assistant says to the GM. One or two short sentences. Empty for kind brand." },
+    kind: { type: "string", enum: ["answer", "proposal", "question", "cannot", "brand"] },
     changes: {
       type: "array",
       items: {
@@ -69,7 +71,22 @@ CONVERSATION. You remember this conversation. "It", "that", "this one", "the sam
 
 ANSWERS. Answer the question asked with the fields that matter to it and nothing else: a price question gets the price (and the local price when there is one); a time question gets start, finish and days; "what's on" for today or tomorrow comes straight from the run sheets in NOW, which are complete and already in time order: list every entry (for "tonight", every entry from 5pm) and nothing that is not on the sheet. For other days work it out from PRODUCTS: active ones only, unless they ask about paused ones. One-time events do not run weekly, they are on only on their expiry date. Say times the way the team does, 8pm and 8:30pm, never 20:00. "Today", "tonight", "tomorrow" and "this week" use the NOW block. Paused products, and one-time events past their expiry, are not on: say so when it changes the answer. More than six items: give the count and the first six, then offer the rest. Bookings, guests, revenue and quotes are not in your list: say so and where they live (bookings in Rezdy, quotes with head office). When the obvious next step is something you can do, offer it in a few words, once ("Want it changed?").
 
+BRAND AND MARKETING. Questions about the Mad Monkey brand and marketing are not answered from PRODUCTS: logos and brand files, fonts, brand voice and captions, hashtags, promo codes and guest discounts, ALL IN trips, social media and Instagram, event posters and campaign artwork, giveaways, design requests, website photos and pages, Meta ads and budgets, partnerships, sponsorships and creators, and who to ask in the marketing team. For those set kind "brand", changes [] and reply "": the marketing knowledge answers them. A change to one of this hostel's products (its price, times, days and so on) is still a proposal, even when it mentions a promo.
+
 FACTS. Everything you say about a product comes from the PRODUCTS list. If it is not there, say so.`;
+
+type BrandAnswer = { reply: string; sources?: { kind: string; title: string; url: string | null }[]; handoff?: { needed: boolean; route_to?: string }; usage?: Record<string, number> };
+/** Asks the MM AI Assistant's knowledge (kb-assistant). Server to server: it trusts this project's service key. */
+async function askBrand(question: string, history: { role: string; content: string }[], asker: { name: string; email: string | null; hostel: string }): Promise<BrandAnswer> {
+  const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/kb-assistant`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-kb-service": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")! },
+    body: JSON.stringify({ action: "ask", question, history, channel: "dashboard", asker }),
+  });
+  const b = await r.json().catch(() => ({}));
+  if (!r.ok || typeof b?.reply !== "string") throw new Error(b?.error ?? `kb-assistant ${r.status}`);
+  return b;
+}
 
 type Product = { id: string; title: string; category: string; rate_usd: number | null; local_amount: number | null; local_currency: string | null; days_of_week: number[]; starts_at: string | null; ends_at: string | null; duration_minutes: number | null; status: string; active_on_ground: boolean; bookable_on_website: boolean; min_guests: number | null; max_guests_per_day: number | null; expires_on: string | null; brief_description: string | null; meeting_point: string | null };
 
@@ -251,6 +268,17 @@ PRODUCTS (${list.length}) as JSON, fields: id, t title, c category, usd price, l
     out = JSON.parse(r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join(""));
   } catch (e) {
     return json({ reply: "Something went wrong my end, nothing changed. Try again in a second.", kind: "cannot", changes: [], error: (e as Error).message }, 500);
+  }
+
+  if (out.kind === "brand") {
+    try {
+      const b = await askBrand(prompt, msgs.slice(0, -1).slice(-6), { name: (prof?.full_name ?? "").trim() || me.user.email || "A GM", email: me.user.email ?? null, hostel: loc.name });
+      const { data: log } = await user.from("prompt_edits").insert({ user_id: me.user.id, location_id: body.location_id, prompt, reply: b.reply, kind: "brand", proposal: [], model, usage: { ...usage, brand: b.usage ?? null }, ms: Date.now() - started, outcome: "answered" }).select("id").single();
+      return json({ reply: b.reply, kind: "brand", changes: [], sources: (b.sources ?? []).map((s) => ({ kind: s.kind, title: s.title, url: s.url })), handoff: b.handoff?.needed ? { route_to: b.handoff.route_to ?? "the marketing team" } : null, log_id: log?.id ?? null, usage, model });
+    } catch (e) {
+      console.error("mimo brand", e);
+      return json({ reply: "I couldn't reach the marketing answers just now. Try again in a minute, or ask Lexie's team in Google Chat.", kind: "cannot", changes: [] });
+    }
   }
 
   // validate: only real products at this hostel, only allowed fields, only values that parse

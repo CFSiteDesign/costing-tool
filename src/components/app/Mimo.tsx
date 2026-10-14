@@ -8,7 +8,7 @@ import { isTourActive } from "@/components/tour/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2 } from "lucide-react";
+import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2, UserRound } from "lucide-react";
 import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 
 /** The Assistant (codename MIMO in code, tables and docs): a clean slide-over; the model proposes, the person confirms, the app applies. */
@@ -19,7 +19,8 @@ export interface MimoChange {
   old: string; new: string; patch: Record<string, unknown>; undo: Record<string, unknown>; used_name?: string;
   state?: "pending" | "sure" | "applied" | "undone" | "cancelled" | "failed"; learned?: string | null;
 }
-interface Turn { role: "user" | "assistant"; content: string; kind?: string; changes?: MimoChange[]; log_id?: number | null; editing?: string | null }
+interface BrandSource { kind: string; title: string; url: string | null }
+interface Turn { role: "user" | "assistant"; content: string; kind?: string; changes?: MimoChange[]; log_id?: number | null; editing?: string | null; sources?: BrandSource[]; handoff?: { route_to: string } | null }
 
 const Ctx = createContext<{ open: boolean; setOpen: (v: boolean) => void; toggle: () => void }>({ open: false, setOpen: () => {}, toggle: () => {} });
 export const useMimo = () => useContext(Ctx);
@@ -117,7 +118,7 @@ export function MimoPanel() {
       });
       if (error) throw new Error(await invokeErrorMessage(error));
       if (data?.error) { const f = friendlyAiError(data.error); if (f || !data?.reply) throw new Error(data.error); }
-      setTurns((ts) => [...ts, { role: "assistant", content: data.reply, kind: data.kind, log_id: data.log_id, changes: (data.changes ?? []).map((c: MimoChange) => ({ ...c, state: "pending" })) }]);
+      setTurns((ts) => [...ts, { role: "assistant", content: data.reply, kind: data.kind, log_id: data.log_id, changes: (data.changes ?? []).map((c: MimoChange) => ({ ...c, state: "pending" })), sources: data.sources ?? [], handoff: data.handoff ?? null }]);
     } catch (e) {
       const msg = (e as Error).message;
       setTurns((ts) => [...ts, { role: "assistant", content: friendlyAiError(msg) ?? `That didn't work my end, nothing changed. ${msg}`, kind: "cannot", changes: [] }]);
@@ -179,7 +180,13 @@ export function MimoPanel() {
             <div key={i} className="flex gap-2.5 animate-mimo-in motion-reduce:animate-none">
               <img src="/mm-head.png" alt="" className="h-5 w-5 mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1 space-y-2">
-                <p className="leading-relaxed">{t.content}</p>
+                <p className="leading-relaxed"><Linked text={t.content} /></p>
+                {t.kind === "brand" && (t.handoff || t.sources?.length) ? (
+                  <div className="space-y-1 text-[12px] text-muted-foreground">
+                    {t.handoff && <div className="flex items-center gap-1.5"><UserRound className="h-3.5 w-3.5 shrink-0" /> Passed to {t.handoff.route_to}. They'll get back to you.</div>}
+                    {t.sources?.length ? <div>From the marketing team: {t.sources.map((s) => s.title).join("; ")}</div> : null}
+                  </div>
+                ) : null}
                 {t.changes?.map((c) => <ChangeCard key={c.id} c={c} onConfirm={() => apply(i, c)} onCancel={() => cancel(i, c)} onUndo={() => undo(i, c)}
                   onPick={async (alt) => { if (loc && c.used_name && c.used_name.length >= 3) await supabase.rpc("learn_alias", { p_location: loc.id, p_product: alt.product_id, p_alias: c.used_name }); send(`I mean "${alt.title}"`); }} onChange={(v) => send(`Make that ${v} instead`)} busy={busy} />)}
               </div>
@@ -239,6 +246,17 @@ function Thinking({ prompt, hostel, ccy }: { prompt: string; hostel: string; ccy
   );
 }
 
+/** Links in a reply become tappable, shortened to the site name; everything else stays plain text. */
+function Linked({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s<>"')\]]+)/g);
+  const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+  return <>{parts.map((p, i) => {
+    if (i % 2 === 0) return <span key={i}>{p}</span>;
+    const url = p.replace(/[.,;:!?]+$/, "");   // a full stop after a link ends the sentence, not the link
+    return <span key={i}><a href={url} target="_blank" rel="noopener noreferrer" title={url} className="font-medium underline underline-offset-2 break-all">{host(url)}</a>{p.slice(url.length)}</span>;
+  })}</>;
+}
+
 /** What MIMO said last time, plus what it proposed, so "make that 12 instead" makes sense next turn. */
 function assistantMemory(t: Turn) {
   const props = (t.changes ?? []).map((c) => `${c.product_title}: ${c.label} ${c.old} -> ${c.new}${c.state === "applied" ? " (applied)" : c.state === "cancelled" ? " (cancelled)" : ""}`);
@@ -281,7 +299,7 @@ function ChangeCard({ c, onConfirm, onCancel, onUndo, onPick, onChange, busy }: 
 function MeetMimo({ step, setStep, hostel, first, onTry, onDone }: { step: number; setStep: (n: number) => void; hostel: string; first: string; onTry: (example: string) => void; onDone: () => void }) {
   const screens = [
     { title: `${greeting(first)}. I'm your Assistant.`, body: `I look after the experiences at ${hostel}. Tell me what to change in plain words and I'll sort it, no forms.` },
-    { title: "What I can do", body: "Prices, times, days, status, descriptions, meeting points, guest limits and expiry dates. I'll show you exactly what I'm about to change and wait for your OK, and you can undo. I can also answer questions like \"what runs on a Thursday?\"" },
+    { title: "What I can do", body: "Prices, times, days, status, descriptions, meeting points, guest limits and expiry dates. I'll show you exactly what I'm about to change and wait for your OK, and you can undo. I can also answer questions like \"what runs on a Thursday?\", and brand ones like where the logos are or who to ask in marketing." },
     { title: "What I won't do", body: "Delete anything (nothing here ever gets deleted, I pause instead), change categories, or touch quotes or other hostels. For those, the product page is the place." },
   ];
   const last = step >= screens.length;
