@@ -1,0 +1,151 @@
+<title>Experience Database GM Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap">
+<style>
+/* Layout: one column guide. The main task (adding an event) is a numbered sequence; the rest are short reference blocks
+   in a two-up grid that stacks on phones. Button names appear as chips so GMs can match them to the screen. */
+:root {
+  --bg: #ffffff;
+  --fg: #0a0a0a;
+  --muted: #55554f;
+  --line: #e4e4dc;
+  --panel: #f6f6f1;
+  --lime: #ccff01;
+  --pink: #ff01aa;
+  --chip-bg: #0a0a0a;
+  --chip-fg: #ffffff;
+  --font: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0d0c; --fg: #f3f3ee; --muted: #a9a9a0; --line: #2a2a26; --panel: #171715;
+    --chip-bg: #f3f3ee; --chip-fg: #0a0a0a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0d0c; --fg: #f3f3ee; --muted: #a9a9a0; --line: #2a2a26; --panel: #171715;
+  --chip-bg: #f3f3ee; --chip-fg: #0a0a0a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 500 15px/1.55 var(--font); }
+.page { max-width: 860px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 48px; display: grid; gap: 28px; }
+
+header { display: grid; gap: 10px; border-bottom: 3px solid var(--fg); padding-bottom: 18px; }
+.kicker { font-weight: 800; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.kicker b { background: var(--lime); color: #0a0a0a; padding: 2px 6px; }
+h1 { font-weight: 900; font-size: clamp(30px, 6vw, 44px); line-height: 1.05; letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.lede strong { color: var(--fg); }
+.url { white-space: nowrap; }
+
+h2 { font-weight: 900; font-size: 19px; margin: 0; text-wrap: balance; display: flex; align-items: center; gap: 10px; }
+h2 .tag { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; background: var(--pink); color: #fff; padding: 2px 7px; border-radius: 9999px; }
+p { margin: 0; }
+
+.chip { display: inline-block; background: var(--chip-bg); color: var(--chip-fg); font-weight: 700; font-size: .86em; line-height: 1.3; padding: 1px 9px; border-radius: 9999px; white-space: nowrap; }
+.say { font-style: italic; }
+
+/* the main task */
+.main { display: grid; gap: 14px; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: s; border-top: 1px solid var(--line); }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+ol.steps li::before { content: counter(s); font-weight: 900; font-size: 14px; width: 28px; height: 28px; display: grid; place-items: center; background: var(--lime); color: #0a0a0a; border-radius: 9999px; }
+ol.steps b { font-weight: 800; }
+.hint { color: var(--muted); font-size: 13.5px; }
+
+/* reference blocks */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 8px; align-content: start; break-inside: avoid; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.wide { grid-column: 1 / -1; }
+
+.help { border: 2px solid var(--fg); padding: 14px 18px; display: grid; gap: 6px; break-inside: avoid; }
+.help b { font-weight: 800; }
+
+@media (max-width: 640px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  :root { --bg: #fff; --fg: #0a0a0a; --muted: #55554f; --line: #e4e4dc; --panel: #f6f6f1; --chip-bg: #0a0a0a; --chip-fg: #fff; }
+  body { font-size: 12.5px; }
+  .page { padding-block: 0; gap: 18px; max-width: none; padding-inline: 0; }
+  ol.steps li { padding: 6px 0; }
+  .card { padding: 11px 13px; }
+}
+</style>
+
+<div class="page">
+  <header>
+    <div class="kicker">Mad Monkey <b>Experience Database</b></div>
+    <h1>GM quick guide</h1>
+    <p class="lede">Every tour, event and transfer your hostel runs, in one place. Sign in at <strong class="url">mm-costing-tool.vercel.app</strong> with your work email and your password.</p>
+  </header>
+
+  <section class="main" aria-labelledby="add">
+    <h2 id="add">Add a new event <span class="tag">Most used</span></h2>
+    <ol class="steps">
+      <li><p>Open <b>Experiences</b> in the left menu and press <span class="chip">Add product</span> at the top right.</p></li>
+      <li><p><b>Title:</b> the name guests see, like <span class="say">Beer Pong</span> or <span class="say">Sunset Hour</span>.</p></li>
+      <li><p><b>Category:</b> <b>Nightly Events</b> for anything the hostel runs itself. Use <b>MM Tours</b>, <b>3rd Party Tours</b> or <b>Transport</b> for the rest.</p></li>
+      <li><p><b>Rate:</b> the price per person. Type <b>0</b> if it's free. You can enter it in your local currency or in USD.</p></li>
+      <li><p><b>Brief description:</b> one short line, 95 characters at most. <span class="hint">It goes on the website word for word.</span></p></li>
+      <li><p><b>Days it runs:</b> tap each day it happens, then set the <b>Start</b> and <b>Finish</b> time.</p></li>
+      <li><p><b>Extras if you have them:</b> long description, meeting point and time, inclusions, things to bring, guest numbers, and a photo album link with at least 6 photos.</p></li>
+      <li><p><b>Starts as:</b> <b>Active</b> if it's running now, <b>Paused</b> if it's ready but not running yet.</p></li>
+      <li><p><b>One-off event</b> (Halloween, Tequila Day)? Turn on <b>One-time event</b> and pick the date. It disappears on its own after that day.</p></li>
+      <li><p>Only turn on <b>Bookable on the Mad Monkey website</b> if guests can book it online.</p></li>
+      <li><p>Press <span class="chip">Add product</span>. If something important is missing, it tells you what before saving.</p></li>
+    </ol>
+  </section>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="change">
+      <h2 id="change">Change an event</h2>
+      <ul>
+        <li>Open it from <b>Experiences</b>, change what you need, then press <span class="chip">Save</span>.</li>
+        <li>Then press <span class="chip">Mark verified</span> to show it's been checked. Every save clears the old check.</li>
+        <li><b>Stopping an event:</b> set its Status to <b>Paused</b>, or switch off <b>Active</b> in the list. Nothing is ever deleted.</li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="ask">
+      <h2 id="ask">Or just ask the Assistant</h2>
+      <ul>
+        <li>Click <b>Assistant</b> at the bottom of the left menu and type in plain words: <span class="say">"Move pub quiz to Tuesday at 8pm"</span>.</li>
+        <li>It shows you the change first. <b>Nothing changes until you press</b> <span class="chip">Confirm</span>.</li>
+        <li>Ask it questions too: <span class="say">"What's on tonight?"</span> or <span class="say">"What runs on Saturday?"</span></li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="global">
+      <h2 id="global">Events from head office</h2>
+      <ul>
+        <li>When head office launches an event for every hostel, it shows at the top of <b>Experiences</b>.</li>
+        <li><span class="chip">Accept</span> adds it as it is. <span class="chip">Edit</span> lets you change the price or time for your hostel first. <span class="chip">Decline</span> if you're not running it.</li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="week">
+      <h2 id="week">My week and the weekly story</h2>
+      <ul>
+        <li><b>My week</b> shows what's on each day, in time order.</li>
+        <li>Tick <b>Key</b> on up to 3 events a day. They stay key every week until you untick them.</li>
+        <li>Press <span class="chip">Weekly story</span> for an Instagram story of your key events. Type changes like <span class="say">"Remove Tuesday's quiz"</span>, then <span class="chip">Download story (PNG)</span>.</li>
+      </ul>
+    </section>
+
+    <section class="card wide" aria-labelledby="more">
+      <h2 id="more">Also handy</h2>
+      <ul>
+        <li><b>More than one hostel?</b> Switch between them with the hostel dropdown at the top left.</li>
+        <li><b>Transport:</b> your transfers and buses, with routes, times and prices.</li>
+        <li><b>Activity:</b> who changed what, and when.</li>
+        <li><span class="chip">Export</span> on the Experiences page downloads your hostel's list as a spreadsheet.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="help" aria-labelledby="help">
+    <h2 id="help">Need help?</h2>
+    <p><b>Changed something that's sold on the website?</b> Let Reden know, as the website is updated separately.</p>
+    <p><b>Can't sign in, or your link expired?</b> Message Charlie for a new one.</p>
+  </section>
+</div>
