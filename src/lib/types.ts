@@ -67,6 +67,7 @@ export interface QuoteLine {
   source_product_id: string | null;
   title: string;
   description: string | null;
+  notes: string | null;          // client-facing note under the item (typed, never AI-filled)
   starts_at: string | null;
   ends_at: string | null;
   room_type_id: string | null;

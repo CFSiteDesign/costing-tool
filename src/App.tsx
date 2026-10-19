@@ -22,6 +22,7 @@ import GlobalEvents from "./pages/GlobalEvents";
 import Approvals from "./pages/Approvals";
 import Agreement from "./pages/Agreement";
 import ItineraryEditor from "./pages/ItineraryEditor";
+import BookingRequest from "./pages/BookingRequest";
 import ItineraryPublic from "./pages/ItineraryPublic";
 import SettingsPage from "./pages/settings/SettingsPage";
 import ImportsPage from "./pages/settings/ImportsPage";
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/quotes/auto" element={<AutoTrip />} />
                 <Route path="/quotes/:id" element={<QuoteBuilder />} />
                 <Route path="/quotes/:id/itinerary" element={<ItineraryEditor />} />
+                <Route path="/quotes/:id/booking" element={<BookingRequest />} />
               </Route>
               <Route path="/global-events" element={<GlobalEvents />} />
               <Route path="/approvals" element={<Approvals />} />

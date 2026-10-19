@@ -9,6 +9,7 @@ import type { Location, Product, QuoteLine, RoomType, SeasonTier } from "@/lib/t
 import { CATEGORY_LABELS } from "@/lib/types";
 import { clashes, timeSpan } from "@/lib/clash";
 import { InlineText } from "@/components/app/InlineCell";
+import { NoteArea } from "@/components/app/NoteArea";
 import { Tip } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle, Sparkles } from "lucide-react";
+import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle, Sparkles, ClipboardList, Check } from "lucide-react";
 
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
@@ -136,6 +137,24 @@ export default function QuoteBuilder() {
   const patchQuote = async (patch: Record<string, unknown>) => {
     const { error } = await supabase.from("quotes").update(patch).eq("id", id!);
     if (error) toast.error(error.message); else invalidate();
+  };
+
+  const patchDay = async (dayId: string, patch: Record<string, unknown>) => {
+    const { error } = await supabase.from("quote_days").update(patch).eq("id", dayId);
+    if (error) toast.error(error.message); else invalidate();
+  };
+
+  /** Draft / Sent / Accepted / Cancelled. Accepted needs a frozen version: the booking request is built from it. */
+  const setStatus = async (status: string, versionId?: string) => {
+    if (status === "accepted") {
+      const v = versionId ?? quote?.accepted_version_id ?? versions?.[0]?.id;
+      if (!v) { toast.error("Generate an agreement version first, then mark it accepted"); return; }
+      await patchQuote({ status, accepted_version_id: v });
+      const n = versions?.find((x) => x.id === v)?.version_no;
+      toast.success(`Accepted${n ? `: v${n}` : ""}. The booking request is ready to make.`);
+      return;
+    }
+    await patchQuote({ status });
   };
 
   const addDay = async () => {
@@ -312,6 +331,9 @@ export default function QuoteBuilder() {
         <InlineText value={l.description ?? ""} placeholder="add client-facing description…"
           className="text-xs text-muted-foreground px-0.5"
           onCommit={(v) => patchLine(l.id, { description: v.trim() || null })} />
+        <NoteArea value={l.notes} placeholder="add a note for the client…" label={`Note for ${l.title}`}
+          className="text-xs italic text-foreground/80"
+          onCommit={(v) => patchLine(l.id, { notes: v || null })} />
         <div className="text-[11px] text-muted-foreground px-0.5 flex items-center gap-1.5">
           <Popover>
             <PopoverTrigger asChild>
@@ -420,7 +442,28 @@ export default function QuoteBuilder() {
               {quote.customers ? `${quote.customers.contact_name}${quote.customers.company_name ? ` · ${quote.customers.company_name}` : ""}` : "No customer"}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <Tip label="Accepted needs a frozen version: the booking request for Reservations is built from it.">
+              <div>
+                <Select value={quote.status} onValueChange={(v) => setStatus(v)}>
+                  <SelectTrigger className="h-8 w-32 text-xs" aria-label="Quote status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Tip>
+            <Tip label={quote.status === "accepted" ? "The internal document for Reservations, built from the accepted version." : "Mark the quote Accepted first."}>
+              <span>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={quote.status !== "accepted"}
+                  onClick={() => nav(`/quotes/${id}/booking`)}>
+                  <ClipboardList className="h-3.5 w-3.5" /> Booking request
+                </Button>
+              </span>
+            </Tip>
             <div className="flex items-center gap-1.5 text-sm">
               <Tip label="Travellers on this quote — every per-person price multiplies by this number.">
                 <Label className="text-muted-foreground cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Pax</Label>
@@ -468,6 +511,16 @@ export default function QuoteBuilder() {
             </div>
           ) : null;
         })()}
+
+        <div className="border rounded-lg p-3 space-y-1">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <div className="font-medium text-[15px]">Booking notes</div>
+            <span className="text-[11px] text-muted-foreground">Top of the client quote. Only shown when filled in.</span>
+          </div>
+          <NoteArea value={quote.booking_notes} label="Booking notes"
+            placeholder="e.g. 1 x vegan guest. Please flag activities that include lunch."
+            onCommit={(v) => patchQuote({ booking_notes: v || null })} />
+        </div>
 
         {(days ?? []).map((d, i) => {
           const hasStay = linesFor(d.id).some((l) => l.kind === "accommodation");
@@ -529,6 +582,10 @@ export default function QuoteBuilder() {
                 </AlertDialog>
               </div>
             </div>
+            <NoteArea value={d.notes} label={`Note for day ${d.day_no}`}
+              placeholder="add a note for this day (shown on the client quote)…"
+              className="text-xs text-muted-foreground"
+              onCommit={(v) => patchDay(d.id, { notes: v || null })} />
             {linesFor(d.id).map((l) => <LineRow key={l.id} l={l} />)}
             <AddButtons dayId={d.id} />
           </div>
@@ -655,6 +712,10 @@ export default function QuoteBuilder() {
                     <div className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString()}</div>
                   </div>
                   <div className="flex gap-1">
+                    {quote.status === "accepted" && quote.accepted_version_id === v.id
+                      ? <span className="h-8 px-2 inline-flex items-center gap-1 text-xs font-medium text-[hsl(var(--st-active))]"><Check className="h-3.5 w-3.5" /> Accepted</span>
+                      : <Button variant="outline" size="sm" className="h-8 text-xs" title="The client accepted this version: marks the quote Accepted and builds the booking request from it"
+                          onClick={() => setStatus("accepted", v.id)}>Mark accepted</Button>}
                     <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => {
                       navigator.clipboard.writeText(url); toast.success("Share link copied");
                     }}><Copy className="h-3.5 w-3.5" /> Link</Button>

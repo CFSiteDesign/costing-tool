@@ -7,9 +7,9 @@ import { Printer } from "lucide-react";
 
 interface FrozenLine {
   id: string; day_id: string | null; kind: string; title: string; description: string | null;
-  room_type_name?: string | null;
+  room_type_name?: string | null; notes?: string | null;
 }
-interface FrozenDay { id: string; day_no: number; date: string | null; location_name: string | null; }
+interface FrozenDay { id: string; day_no: number; date: string | null; location_name: string | null; notes?: string | null; }
 
 export default function Agreement() {
   const { slug } = useParams<{ slug: string }>();
@@ -21,7 +21,7 @@ export default function Agreement() {
       return data as {
         quote_title: string; quote_reference: string; version_no: number; created_at: string;
         pax_count: number; total_usd: number; per_person_usd: number; terms_block: string | null;
-        subtotal_usd: number; discount_total_usd: number;
+        subtotal_usd: number; discount_total_usd: number; booking_notes?: string | null;
         customer: { contact_name?: string; company_name?: string } | null;
         days: FrozenDay[]; lines: FrozenLine[];
       } | null;
@@ -58,12 +58,17 @@ export default function Agreement() {
             </p>
           </div>
 
+          {data.booking_notes && (
+            <section className="rounded-md border-l-4 border-[#1A1A18] bg-secondary/50 px-4 py-3 text-sm whitespace-pre-line">{data.booking_notes}</section>
+          )}
+
           {data.days.map((d) => (
             <section key={d.id}>
               <h2 className="font-semibold text-[15px] border-b pb-1.5 mb-2">
                 Day {d.day_no}{d.location_name ? ` — ${d.location_name}` : ""}
                 {d.date && <span className="text-muted-foreground font-normal text-sm"> · {new Date(d.date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>}
               </h2>
+              {d.notes && <p className="text-sm text-muted-foreground italic whitespace-pre-line mb-2">{d.notes}</p>}
               <div className="space-y-2.5">
                 {linesFor(d.id).map((l) => (
                   <div key={l.id} className="flex gap-2.5">
@@ -73,6 +78,7 @@ export default function Agreement() {
                         {l.title}{l.room_type_name && !l.title.includes(l.room_type_name) ? ` · ${l.room_type_name}` : ""}
                       </div>
                       {l.description && <div className="text-sm text-muted-foreground">{l.description}</div>}
+                      {l.notes && <div className="text-sm italic whitespace-pre-line">Note: {l.notes}</div>}
                     </div>
                   </div>
                 ))}
@@ -88,6 +94,7 @@ export default function Agreement() {
                 {generalLines.map((l) => (
                   <div key={l.id} className="text-sm"><span className="font-medium">{l.title}</span>
                     {l.description && <span className="text-muted-foreground"> — {l.description}</span>}
+                    {l.notes && <div className="italic whitespace-pre-line">Note: {l.notes}</div>}
                   </div>
                 ))}
               </div>
