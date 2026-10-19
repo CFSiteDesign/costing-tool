@@ -9,7 +9,9 @@ alter table public.quote_versions add column if not exists quote_discount_pct nu
 alter table public.quote_versions add column if not exists quote_discount_amount_usd numeric;
 
 -- accepted quote -> which frozen version was accepted (the booking request is built from that version)
-alter table public.quotes add column if not exists accepted_version_id uuid references public.quote_versions(id) on delete set null;
+-- no foreign key on purpose: a second quotes<->quote_versions link makes PostgREST embeds like quotes?select=quote_versions(...)
+-- ambiguous (PGRST201), which emptied the Quotes list on 19 Oct until it was dropped (019b)
+alter table public.quotes add column if not exists accepted_version_id uuid;
 
 create or replace function public.generate_quote_version(p_quote_id uuid, p_terms text default null)
 returns uuid language plpgsql security definer set search_path to 'public' as $function$
