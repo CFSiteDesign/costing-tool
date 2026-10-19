@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Tip } from "@/components/app/Tip";
 import { RefreshCw, ArrowRight } from "lucide-react";
 import { useFx, money } from "@/lib/fx";
+import { AllInApiCard } from "./AllInApiCard";
 
 export default function SettingsPage() {
   const auth = useAuth();
@@ -77,6 +78,7 @@ export default function SettingsPage() {
       <h1 className="text-xl font-semibold">Settings</h1>
 
       {auth.isAdmin && <EmailKeyCard />}
+      {auth.isAdmin && <AllInApiCard />}
 
       <section className="border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
