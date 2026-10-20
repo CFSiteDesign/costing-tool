@@ -157,6 +157,8 @@ export default function AppShell() {
 /** Route guard: quotes are a head-office / sales tool. GMs are sent back to Experiences. */
 export function RequireQuoting() {
   const auth = useAuth();
+  // wait for the roles: deciding before they load bounced anyone who opened /quotes directly (refresh, bookmark) to Experiences
+  if (!auth.rolesLoaded) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!auth.canQuote) return <Navigate to="/experiences" replace />;
   return <Outlet />;
 }
