@@ -12,7 +12,7 @@ Make a 2 minute 45 second to 3 minute walkthrough video, 16:9, for Mad Monkey Ho
 (GMs) who run the hostels across Southeast Asia. It teaches them how to use the Experience Database, the web app at
 mm-costing-tool.vercel.app where every hostel keeps its tours, nightly events, one-off parties and transport, with
 prices, days and times. The viewers are busy hostel managers, not tech people, and many speak English as a second
-language. Keep it clear, warm, quick and a bit cheeky, like a good team brief. Never corporate, never "AI magic".
+language. Keep it clear, warm, quick and a bit cheeky, like a good team brief. It only explains how the software works: no questions, requests or calls to action. Never corporate, never "AI magic".
 
 Before designing any Mad Monkey branded frame, fetch https://design.madmonkeyhostels.com/llms.txt and follow it. Its
 rules override this brief for brand frames (open, chapter cards, close).
@@ -92,9 +92,8 @@ rules override this brief for brand frames (open, chapter cards, close).
 **Also**
 - Transport: every transfer, bus and boat, with routes, departure times and prices.
 - Activity: every change, who made it and when, with the before and after. It is the safety net.
-- Website: the Mad Monkey website is updated by head office (Reden). Anything sold on the website that changes,
-  they let Reden know.
-- Help: a lost or expired login link? Message Charlie for a new one.
+- Website: the Mad Monkey website is updated by head office (Reden), so anything sold on the website that changes
+  is passed to him.
 
 ## Real content to use on screen (Koh Rong's actual weekly timetable)
 - Sunday: 2:30pm Volleyball Tournament, 6:30pm Meet-Up & Raffle, 7:30pm Fire Show, 8pm Pub Quiz, 10pm Dance Party.
@@ -130,10 +129,10 @@ rules override this brief for brand frames (open, chapter cards, close).
    quiz", Download. Voice: "My week shows what's on, day by day. Mark your key events and the weekly Instagram
    story builds itself."
 8. The safety net (148 to 165s). Activity log, then four quick cards: "Nothing changes until you Save or Confirm",
-   "Nothing is ever deleted, pause it instead", "Every change is logged", "Website changes: tell Reden". Voice:
+   "Nothing is ever deleted, pause it instead", "Every change is logged", "Sold on the website? Reden updates it". Voice:
    "You can't break it. Nothing's deleted, every change is logged, and nothing happens until you say so."
-9. Close (165 to 175s). Brand frame with the logo file and "mm-costing-tool.vercel.app". Voice: "Questions? Message
-   Charlie. Now go add something worth turning up for."
+9. Close (165 to 175s). Brand frame with the logo file and "mm-costing-tool.vercel.app". Voice: "That's the
+   Experience Database. One list for your hostel, always current."
 
 ## Look and feel
 - App screens must look like the uploaded screenshots: white background, near-black text #1A1A18, light grey
