@@ -6,7 +6,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // POST { mode: "link", emails: [..] }                     -> a fresh set-password link for people who already exist (expired invite, forgotten password).
 // POST { mode: "welcome", emails: [..] }                  -> a 7-day welcome code per person (replaces any older one), safe to email.
 // POST { mode: "people" }                                 -> everyone with an account, their access and login-email status (Settings > People).
-// POST { mode: "send_welcome", emails: [..] }             -> makes each person a welcome link and emails it to them via Resend.
+// POST { mode: "send_welcome", emails: [..], cc?: [..], no_expiry?: true }
+//                                                         -> makes each person a welcome link and emails it to them via Resend.
+//                                                            no_expiry: the link works until a password is saved; cc: copied in.
 //                                                            The link only ever goes to that person's inbox; it is never returned.
 // Returns one-time token hashes; the app's /set-password page turns one into a session and asks for a password.
 // Public (no admin needed, the code is the key):
@@ -20,7 +22,7 @@ const ROLES = ["admin", "head_office", "sales", "gm"];
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { autoRefreshToken: false, persistSession: false } });
-  let body: { mode?: string; code?: string; users?: { email: string; full_name?: string; role?: string }[]; emails?: string[] } = {};
+  let body: { mode?: string; code?: string; users?: { email: string; full_name?: string; role?: string }[]; emails?: string[]; cc?: string[]; no_expiry?: boolean } = {};
   try { body = await req.json(); } catch { /* empty */ }
 
   // welcome links: the person opening the email has no account session yet, so these run before the admin check
@@ -67,6 +69,8 @@ Deno.serve(async (req: Request) => {
     const key = await resendKey(admin);
     if (!key) return json({ error: "email_not_set_up" });
     const site = (Deno.env.get("SITE_URL") ?? "https://mm-costing-tool.vercel.app").replace(/\/$/, "");
+    const cc = (body.cc ?? []).map((x) => String(x).trim().toLowerCase()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)).slice(0, 5);
+    const noExpiry = body.no_expiry === true;   // the link then lasts until a password is saved
     const out = [];
     for (const raw of body.emails ?? []) {
       const email = raw.trim().toLowerCase();
@@ -82,16 +86,17 @@ Deno.serve(async (req: Request) => {
       const code = randomCode();
       const hash = await sha256(code);
       // the person's current link stays valid until this email has actually gone; a failed send must not kill it
-      const { error: insErr } = await admin.from("welcome_links").insert({ code_hash: hash, user_id: prof.id, email, created_by: me.user.id });
+      const { error: insErr } = await admin.from("welcome_links").insert({ code_hash: hash, user_id: prof.id, email, created_by: me.user.id,
+        ...(noExpiry ? { expires_at: "2100-01-01T00:00:00Z" } : {}) });
       if (insErr) { out.push({ email, error: insErr.message }); continue; }
       const mail = welcomeEmail({
         name: greetingName(prof.full_name, email), access: seesAll ? "every hostel" : hostels.length ? listJoin(hostels) : "",
-        existing: hasPassword === true, link: `${site}/set-password?code=${code}`, site,
+        existing: hasPassword === true, link: `${site}/set-password?code=${code}`, site, noExpiry,
       });
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: SENDER(), to: [email], subject: mail.subject, text: mail.text, html: mail.html }),
+        body: JSON.stringify({ from: SENDER(), to: [email], ...(cc.length ? { cc } : {}), subject: mail.subject, text: mail.text, html: mail.html }),
       });
       if (!res.ok) {
         await admin.from("welcome_links").delete().eq("code_hash", hash);   // never leave a live link nobody received
@@ -102,7 +107,7 @@ Deno.serve(async (req: Request) => {
       }
       await admin.from("welcome_links").update({ emailed_at: new Date().toISOString() }).eq("code_hash", hash);
       await admin.from("welcome_links").delete().eq("user_id", prof.id).neq("code_hash", hash);   // now one live link per person
-      out.push({ email, sent: true });
+      out.push({ email, sent: true, ...(cc.length ? { cc } : {}), ...(noExpiry ? { expires: "never, until a password is saved" } : {}) });
     }
     return json({ results: out });
   }
@@ -200,7 +205,7 @@ function greetingName(full: string | null, email: string) {
   return name.split(/\s+/)[0];
 }
 
-function welcomeEmail(o: { name: string; access: string; existing: boolean; link: string; site: string }) {
+function welcomeEmail(o: { name: string; access: string; existing: boolean; link: string; site: string; noExpiry?: boolean }) {
   const subject = "Your login for the Mad Monkey Experience Database";
   const host = o.site.replace(/^https?:\/\//, "");
   const where = o.access ? ` You're set up for ${o.access}.` : "";
@@ -209,7 +214,9 @@ function welcomeEmail(o: { name: string; access: string; existing: boolean; link
     ? `You already have a login for the Mad Monkey Experience Database.${where} If you know your password, just sign in at ${host} as usual. If you've forgotten it, choose a new one here:`
     : `You now have access to the Mad Monkey Experience Database. It holds every tour, event and transport option across the hostels, with prices, times and descriptions.${where}`;
   const cta = o.existing ? "Choose a new password" : "Choose your password";
-  const small = "This link works for 7 days and is just for you, so please don't forward it.";
+  const small = o.noExpiry
+    ? "This link works until you've set your password. Please don't forward it."
+    : "This link works for 7 days and is just for you, so please don't forward it.";
   const after = o.existing ? "" : `After that, sign in any time at ${host} with this email address.`;
   const text = [`Hi ${o.name},`, intro, `${cta}: ${o.link}`, small, after, assistant, "Any problems, message Charlie."].filter(Boolean).join("\n\n");
   const p = (t: string, extra = "") => `<p style="margin:0 0 16px;${extra}">${t}</p>`;
