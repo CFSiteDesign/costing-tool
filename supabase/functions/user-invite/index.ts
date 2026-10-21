@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
   if (body.mode === "send_welcome") {
     const key = await resendKey(admin);
     if (!key) return json({ error: "email_not_set_up" });
-    const site = (Deno.env.get("SITE_URL") ?? "https://mm-costing-tool.vercel.app").replace(/\/$/, "");
+    const site = (Deno.env.get("SITE_URL") ?? "https://madmonkeyhostels.com/experiencedashboard").replace(/\/$/, "");
     const cc = (body.cc ?? []).map((x) => String(x).trim().toLowerCase()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)).slice(0, 5);
     const noExpiry = body.no_expiry === true;   // the link then lasts until a password is saved
     const out = [];
