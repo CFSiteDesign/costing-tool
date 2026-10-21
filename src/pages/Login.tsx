@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { asset } from "@/lib/paths";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function Login() {
     <div className="min-h-screen grid place-items-center bg-secondary/50 p-4">
       <form onSubmit={submit} className="w-full max-w-sm bg-background border rounded-lg p-6 shadow-sm space-y-4">
         <div className="space-y-1.5">
-          <img src="/mm-logo.png" alt="Mad Monkey" className="h-11 w-auto" />
+          <img src={asset("mm-logo.png")} alt="Mad Monkey" className="h-11 w-auto" />
           <div className="text-xs text-muted-foreground">Experiences &amp; Costing</div>
         </div>
         <div className="space-y-1.5">

@@ -6,6 +6,7 @@ import type { ItineraryDoc, ItineraryBlock } from "@/lib/itinerary";
 import { fmtDayDate } from "@/lib/itinerary";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { asset } from "@/lib/paths";
 
 /** The asset: the Mad Monkey itinerary, on screen and on paper. Real logo file top-left of every printed sheet. */
 export default function ItineraryPublic() {
@@ -56,7 +57,7 @@ export function ItineraryDocument({ doc, pax, reference, updatedAt, showPrint = 
           <thead className="it-page-head">
             <tr><td>
               <div className="flex items-center justify-between">
-                <img src="/mm-logo.png" alt="Mad Monkey" className="h-12 w-auto" />
+                <img src={asset("mm-logo.png")} alt="Mad Monkey" className="h-12 w-auto" />
                 <div className="text-[11px] text-[#6c6c6c] text-right uppercase tracking-wider">Detailed itinerary{reference ? ` · ${reference}` : ""}</div>
               </div>
             </td></tr>

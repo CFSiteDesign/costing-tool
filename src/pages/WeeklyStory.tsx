@@ -11,6 +11,7 @@ import { Tip } from "@/components/app/Tip";
 import { toast } from "sonner";
 import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, RotateCcw, Undo2, Send, Loader2 } from "lucide-react";
+import { asset } from "@/lib/paths";
 
 /**
  * Weekly story (Oct 2026): the week's key events as an Instagram story, always 1080 x 1920.
@@ -198,7 +199,7 @@ const StoryCanvas = forwardRef<HTMLDivElement, { doc: StoryDoc }>(function Story
         ))}
       </div>
       {/* the official wordmark, white version on Mad Black, bottom-right with clear space */}
-      <img src="/brand/mad-monkey-white.png" alt="Mad Monkey" crossOrigin="anonymous" style={{ position: "absolute", right: 72, bottom: 72, width: 160, height: "auto" }} />
+      <img src={asset("brand/mad-monkey-white.png")} alt="Mad Monkey" crossOrigin="anonymous" style={{ position: "absolute", right: 72, bottom: 72, width: 160, height: "auto" }} />
     </div>
   );
 });

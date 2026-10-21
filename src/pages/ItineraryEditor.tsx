@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
 import { ArrowLeft, Sparkles, Save, Link2, ExternalLink, Plus, Trash2, ArrowUp, ArrowDown, ImagePlus, X, AlertTriangle, RefreshCw, Check } from "lucide-react";
+import { asset, appUrl } from "@/lib/paths";
 
 interface Row { quote_id: string; doc: ItineraryDoc; share_slug: string; model: string | null; generated_at: string | null; updated_at: string; generation_meta: { usage?: Record<string, number>; ms?: number } | null }
 const lines = (a: string[]) => a.join("\n");
@@ -104,7 +105,7 @@ export default function ItineraryEditor() {
     const { data } = supabase.storage.from("itinerary-photos").getPublicUrl(path);
     patchBlock(dayNo, b.id, { photo_url: data.publicUrl });
   };
-  const shareUrl = row?.share_slug ? `${window.location.origin}/it/${row.share_slug}` : null;
+  const shareUrl = row?.share_slug ? appUrl(`/it/${row.share_slug}`) : null;
   const flaggedCount = useMemo(() => (doc?.days ?? []).reduce((n, d) => n + d.blocks.filter((b) => b.flagged).length, 0), [doc]);
 
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
@@ -148,7 +149,7 @@ export default function ItineraryEditor() {
         </div>
       ) : (
         <div className="max-w-[210mm] mx-auto my-4 bg-background border shadow-sm px-8 py-8 space-y-6">
-          <div className="flex items-center justify-between"><img src="/mm-logo.png" alt="Mad Monkey" className="h-10 w-auto" /><span className="text-[11px] text-muted-foreground uppercase tracking-wider">Detailed itinerary · {quote?.reference}</span></div>
+          <div className="flex items-center justify-between"><img src={asset("mm-logo.png")} alt="Mad Monkey" className="h-10 w-auto" /><span className="text-[11px] text-muted-foreground uppercase tracking-wider">Detailed itinerary · {quote?.reference}</span></div>
           {doc.flags?.length > 0 && (
             <div className="rounded-md border border-[hsl(var(--st-pending))]/40 bg-[hsl(var(--st-pending))]/5 p-3 text-sm">
               <div className="font-medium flex items-center gap-1.5 mb-1"><AlertTriangle className="h-4 w-4 text-[hsl(var(--st-pending))]" /> Checks against the quote</div>

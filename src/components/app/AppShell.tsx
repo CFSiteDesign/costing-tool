@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { asset } from "@/lib/paths";
 
 const NAV = [
   { to: "/experiences", label: "Experiences", icon: Compass, tip: "Every tour and event at this hostel: rates, days, times, status." },
@@ -68,7 +69,7 @@ export default function AppShell() {
     <div className="flex h-screen overflow-hidden">
       <aside className={cn("shrink-0 border-r bg-secondary/60 flex flex-col transition-[width] duration-200 motion-reduce:transition-none", collapsed ? "w-14" : "w-[220px]")}>
         <div className={cn("h-14 flex items-center border-b", collapsed ? "justify-center px-0" : "px-4")}>
-          {collapsed ? <img src="/mm-head.png" alt="Mad Monkey" className="h-7 w-7" /> : <img src="/mm-logo.png" alt="Mad Monkey" className="h-8 w-auto" />}
+          {collapsed ? <img src={asset("mm-head.png")} alt="Mad Monkey" className="h-7 w-7" /> : <img src={asset("mm-logo.png")} alt="Mad Monkey" className="h-8 w-auto" />}
         </div>
         <nav className="flex-1 py-3 px-2 space-y-0.5">
           {NAV.filter((n) => canSeeNav(n, access)).map((n) => {

@@ -5,6 +5,7 @@ import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { asset } from "@/lib/paths";
 
 /**
  * Where an invite link lands: /set-password?token_hash=...&type=invite (or recovery for a reset),
@@ -78,7 +79,7 @@ export default function SetPassword() {
     <div className="min-h-screen grid place-items-center bg-secondary/50 p-4">
       <div className="w-full max-w-sm bg-background border rounded-lg p-6 shadow-sm space-y-4">
         <div className="space-y-1.5">
-          <img src="/mm-logo.png" alt="Mad Monkey" className="h-11 w-auto" />
+          <img src={asset("mm-logo.png")} alt="Mad Monkey" className="h-11 w-auto" />
           <div className="text-xs text-muted-foreground">Experiences &amp; Costing</div>
         </div>
         {state === "checking" && <p className="text-sm text-muted-foreground">Checking your link…</p>}

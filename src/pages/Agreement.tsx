@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { usd } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { asset } from "@/lib/paths";
 
 interface FrozenLine {
   id: string; day_id: string | null; kind: string; title: string; description: string | null;
@@ -40,7 +41,7 @@ export default function Agreement() {
         {/* locked branded header */}
         <div className="bg-[#1A1A18] text-white px-8 py-6 flex items-center justify-between">
           <div className="space-y-1">
-            <img src="/mm-logo-white.png" alt="Mad Monkey" className="h-9 w-auto" />
+            <img src={asset("mm-logo-white.png")} alt="Mad Monkey" className="h-9 w-auto" />
             <div className="text-xs text-white/70">Group Trip Agreement</div>
           </div>
           <div className="text-right text-sm">

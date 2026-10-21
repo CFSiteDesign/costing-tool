@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { X, Check, Undo2, Pencil, Send, Maximize2, Minimize2, UserRound } from "lucide-react";
 import { friendlyAiError, invokeErrorMessage } from "@/lib/aiErrors";
+import { asset } from "@/lib/paths";
 
 /** The Assistant (codename MIMO in code, tables and docs): a clean slide-over; the model proposes, the person confirms, the app applies. */
 
@@ -43,7 +44,7 @@ export function MimoNavButton({ collapsed }: { collapsed: boolean }) {
   const { open, toggle } = useMimo();
   const btn = (
     <button onClick={toggle} data-tour="assistant" className={cn("w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] font-medium transition-colors", collapsed && "justify-center", open ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/60")}>
-      <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0" />
+      <img src={asset("mm-head.png")} alt="" className="h-5 w-5 shrink-0" />
       {!collapsed && <span>Assistant</span>}
       {!collapsed && <span className="ml-auto text-[10px] text-muted-foreground/70">⌘K</span>}
     </button>
@@ -149,7 +150,7 @@ export function MimoPanel() {
       {open && <div className="fixed inset-0 z-40 bg-black/10 sm:hidden animate-in fade-in-0 motion-reduce:animate-none" onClick={() => setOpen(false)} />}
       <aside className={cn("fixed top-0 right-0 z-50 h-full w-full bg-background border-l flex flex-col transition-[transform,width] duration-200 ease-out motion-reduce:transition-none", wide ? "sm:w-full" : "sm:w-[420px]", open ? "translate-x-0" : "translate-x-full")} aria-hidden={!open}>
         <div className={cn("h-14 shrink-0 border-b flex items-center gap-2.5 px-4", wide && "sm:px-6")}>
-          <img src="/mm-head.png" alt="" className="h-6 w-6" />
+          <img src={asset("mm-head.png")} alt="" className="h-6 w-6" />
           <span className="font-semibold">Assistant</span>
           {loc && <span className="text-[11px] rounded-full border px-2 py-0.5 text-muted-foreground">{loc.name}</span>}
           <Tip side="bottom" label={wide ? "Back to the side panel" : "Fullscreen"}>
@@ -178,7 +179,7 @@ export function MimoPanel() {
             <div key={i} className="flex justify-end"><span className="max-w-[85%] rounded-2xl bg-secondary px-3 py-1.5 text-[13.5px]">{t.content}</span></div>
           ) : (
             <div key={i} className="flex gap-2.5 animate-mimo-in motion-reduce:animate-none">
-              <img src="/mm-head.png" alt="" className="h-5 w-5 mt-0.5 shrink-0" />
+              <img src={asset("mm-head.png")} alt="" className="h-5 w-5 mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1 space-y-2">
                 <p className="leading-relaxed"><Linked text={t.content} /></p>
                 {t.kind === "brand" && (t.handoff || t.sources?.length) ? (
@@ -235,7 +236,7 @@ function Thinking({ prompt, hostel, ccy }: { prompt: string; hostel: string; ccy
   useEffect(() => { setI(0); const t = setInterval(() => setI((n) => (n + 1) % lines.length), 2400); return () => clearInterval(t); }, [lines]);
   return (
     <div className="flex gap-2.5 items-center text-muted-foreground text-[13px]" aria-live="polite">
-      <img src="/mm-head.png" alt="" className="h-5 w-5 shrink-0 animate-mimo-bob motion-reduce:animate-none" />
+      <img src={asset("mm-head.png")} alt="" className="h-5 w-5 shrink-0 animate-mimo-bob motion-reduce:animate-none" />
       <span key={i} className="flex items-baseline gap-1 animate-mimo-in motion-reduce:animate-none">
         {lines[i]}
         <span className="flex gap-[3px] ml-0.5 translate-y-[-1px]" aria-hidden>
@@ -307,7 +308,7 @@ function MeetMimo({ step, setStep, hostel, first, onTry, onDone }: { step: numbe
   return (
     <div className="pt-6 space-y-4">
       <div className="flex gap-2.5">
-        <img src="/mm-head.png" alt="" className="h-6 w-6 mt-0.5 shrink-0" />
+        <img src={asset("mm-head.png")} alt="" className="h-6 w-6 mt-0.5 shrink-0" />
         <div className="space-y-1.5">
           <p className="text-[15px] font-medium">{last ? "Try one" : screens[step].title}</p>
           <p className="text-muted-foreground leading-relaxed">{last ? "Here's an example. Send it, and I'll show you what I'd change before anything happens." : screens[step].body}</p>

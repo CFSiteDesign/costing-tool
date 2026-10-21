@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tip } from "@/components/app/Tip";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Plus, Trash2, Save } from "lucide-react";
+import { asset } from "@/lib/paths";
 
 /**
  * Booking request (quote feedback, 16 Oct 2026): the internal document Reservations books from, once a quote is
@@ -223,7 +224,7 @@ function BookingDoc({ v, d, reference }: { v: Version; d: Details; reference: st
   return (
     <div className="br-doc">
       <header className="br-head">
-        <img src="/mm-logo.png" alt="Mad Monkey" />
+        <img src={asset("mm-logo.png")} alt="Mad Monkey" />
         <div><div className="br-title">Booking request</div><div className="br-sub">For Reservations · {reference}</div></div>
       </header>
 

@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Percent, Copy, ExternalLink, FileText, GripVertical, Clock, CopyPlus, LogOut, AlertTriangle, Sparkles, ClipboardList, Check } from "lucide-react";
+import { appUrl } from "@/lib/paths";
 
 type Day = { id: string; day_no: number; date: string | null; location_id: string | null; notes: string | null };
 type Version = { id: string; version_no: number; created_at: string; total_usd: number; per_person_usd: number; share_slug: string; sent_at: string | null };
@@ -704,7 +705,7 @@ export default function QuoteBuilder() {
           {(versions ?? []).length === 0 && <p className="text-sm text-muted-foreground">None yet — generate one from the builder.</p>}
           <div className="space-y-2">
             {(versions ?? []).map((v) => {
-              const url = `${window.location.origin}/a/${v.share_slug}`;
+              const url = appUrl(`/a/${v.share_slug}`);
               return (
                 <div key={v.id} className="border rounded-md px-3 py-2 flex items-center justify-between gap-2 text-sm">
                   <div>
