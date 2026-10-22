@@ -31,13 +31,12 @@ export default function Quotes() {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ title: "", pax: "2", contact: "", company: "", email: "", customerCountry: "" });
 
-  const { data: rows } = useQuery({
+  const { data: rows, isLoading, error: listError } = useQuery({
     queryKey: ["quotes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quotes")
-        .select("id, reference, title, status, pax_count, created_at, customers(contact_name, company_name, country), quote_versions(version_no, total_usd)")
-        .order("created_at", { ascending: false });
+      // An RPC (POST, no query string), not the long embed GET: a browser extension silently blocked that GET for
+      // Hayley (22 Oct 2026), and the page showed "No quotes yet". Same rows and shape; RLS still applies (migration 021).
+      const { data, error } = await supabase.rpc("list_quotes");
       if (error) throw error;
       return (data ?? []) as unknown as QuoteRow[];
     },
@@ -164,7 +163,12 @@ export default function Quotes() {
           </thead>
           <tbody className="mm-stagger">
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No quotes yet — create the first one.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">
+                {isLoading ? "Loading quotes…"
+                  : listError ? <span className="text-destructive">Couldn't load the quotes. Refresh the page. If it still fails, pause any ad blocker for this site, or message Charlie.</span>
+                  : (rows ?? []).length > 0 ? "No quotes match these filters."
+                  : "No quotes yet. Create the first one."}
+              </td></tr>
             )}
             {filtered.map((r) => (
               <tr key={r.id} className="border-t hover:bg-secondary/40 h-11 cursor-pointer" onClick={() => nav(`/quotes/${r.id}`)}>

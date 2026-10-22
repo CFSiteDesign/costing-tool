@@ -170,6 +170,7 @@ const json = (body: unknown, init: ResponseInit = {}) =>
 
 export function mockResponse(url: URL, method: string, headers: Headers, persona: HarnessPersona): Response {
   const path = url.pathname;
+  if (path === "/rest/v1/rpc/list_quotes") return json(tables(persona).quotes);   // the Quotes list (migration 021)
   if (path.startsWith("/rest/v1/rpc/")) return json(null);
   if (path.startsWith("/rest/v1/")) {
     const wantsObject = (headers.get("accept") ?? "").includes("vnd.pgrst.object");
