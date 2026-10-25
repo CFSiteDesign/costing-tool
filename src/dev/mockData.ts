@@ -61,7 +61,13 @@ function products(): Row[] {
       brief_description: `${title} from the tour desk.`, long_description: null, meeting_point: "Reception", inclusions: null, exclusions: null,
       things_to_bring: null, cancellation_policy: null, itinerary: null, travel_insurance_required: false, photo_album_url: null, remarks: null,
       rezdy_reference: null, expires_on: null, last_verified_at: i % 3 === 0 ? null : `${today}T09:00:00Z`, updated_at: `${today}T09:00:00Z`,
+      price_options: [],
       ...extra,
+      // the first product shows two prices and the website status line (Oct 2026)
+      ...(i === 0 ? { bookable_on_website: true, price_options: [
+        { label: "Without transfer", local_amount: local(rate - 5), rate_usd: rate - 5 },
+        { label: "With transfer", local_amount: local(rate), rate_usd: rate },
+      ] } : {}),
     }));
     TRANSPORT.forEach(([title, rate, vehicle, from, to, times, mins], i) => rows.push({
       id: pid(li + 1, 100 + i), location_id: l.id, category: "transport", title, rate_usd: rate, rate_raw: null, local_amount: local(rate),
@@ -184,6 +190,7 @@ const json = (body: unknown, init: ResponseInit = {}) =>
 export function mockResponse(url: URL, method: string, headers: Headers, persona: HarnessPersona): Response {
   const path = url.pathname;
   if (path === "/rest/v1/rpc/list_quotes") return json(tables(persona).quotes);   // the Quotes list (migration 021)
+  if (path === "/rest/v1/rpc/website_status") return json({ pending: 1, last_done_at: null, last_done_by: null });   // product page (024)
   if (path.startsWith("/rest/v1/rpc/")) return json(null);
   if (path.startsWith("/rest/v1/")) {
     const wantsObject = (headers.get("accept") ?? "").includes("vnd.pgrst.object");

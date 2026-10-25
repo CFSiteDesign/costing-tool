@@ -18,6 +18,7 @@ import { Tip } from "@/components/app/Tip";
 import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { holdUnsaved } from "@/lib/unsaved";
+import { PriceOptionsEditor, optionsFrom, rowsFrom } from "@/components/app/PriceOptions";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
 
@@ -66,6 +67,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     expires_on: (product as unknown as { expires_on: string | null }).expires_on ?? "",
     slots: (transport?.departure_times ?? []).map((t) => t.slice(0, 5)).join(", "),
     pickup: transport?.pickup_point ?? "", dropoff: transport?.dropoff_point ?? "", route: transport?.route_raw ?? "",
+    options: rowsFrom(product.price_options),
   };
   const [f, setF] = useState(init);
   const [saving, setSaving] = useState(false);
@@ -99,12 +101,14 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     const slots = f.slots.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
     const badSlot = slots.find((x) => !/^([01]?\d|2[0-3]):[0-5]\d$/.test(x));
     if (badSlot) return toast.error(`"${badSlot}" isn't a time — use HH:MM`);
+    const po = optionsFrom(f.options, ccy);
+    if ("error" in po) return toast.error(po.error);
 
     setSaving(true);
     const patch: Record<string, unknown> = {
       title: f.title.trim(), category: f.category, status: f.status,
       active_on_ground: f.active_on_ground, bookable_on_website: f.bookable_on_website,
-      rate_usd: d, local_amount: l, local_currency: ccy,
+      rate_usd: d, local_amount: l, local_currency: ccy, price_options: po.options,
       ...(rateChanged ? { fx_rate_used: ccy === "USD" ? 1 : fxRate, fx_as_of: new Date().toISOString() } : {}),
       days_of_week: f.days, starts_at: f.starts_at || null, ends_at: f.ends_at || null,
       duration_minutes: f.duration ? Number(f.duration) : null,
@@ -130,6 +134,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     qc.invalidateQueries({ queryKey: ["product", product.id] });
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["my-week"] });
+    qc.invalidateQueries({ queryKey: ["website-status", product.id] });
   };
 
   const verify = async () => {
@@ -144,6 +149,16 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     queryFn: async () => (await supabase.from("product_assets").select("*").eq("product_id", product.id).order("created_at", { ascending: false })).data as Asset[],
   });
   const latestAsset = assets?.[0] ?? null;
+  // whether Reden has copied this product's changes to the website yet (GMs can't read his queue, so via an RPC)
+  const { data: webStatus } = useQuery({
+    queryKey: ["website-status", product.id],
+    enabled: product.bookable_on_website,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("website_status", { p_product: product.id });
+      if (error) throw error;
+      return data as { pending: number; last_done_at: string | null; last_done_by: string | null } | null;
+    },
+  });
 
   // called as a plain function, never as <Field />: a component defined inside this one is a new type on every render,
   // so React would rebuild the textarea on each keystroke and drop the cursor after one character
@@ -213,6 +228,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           </div>
           {ccy !== "USD" && fxRate && <p className="text-[11px] text-muted-foreground">1 USD = {money(fxRate, ccy)} · quotes use the USD figure</p>}
           {product.rate_raw && product.rate_usd == null && <p className="text-[11px] text-[hsl(var(--st-pending))]">Sheet said: “{product.rate_raw}”</p>}
+          <PriceOptionsEditor rows={f.options} onChange={(rows) => set("options", rows)} ccy={ccy} fxRate={fxRate} readOnly={!canEdit} />
         </div>
         <div className="space-y-1">
           <Tip label="Drives the 'what runs on a Monday?' filter, My week, and which days the quote builder offers it."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Days it runs</Label></Tip>
@@ -240,6 +256,19 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <label className="flex items-center gap-2 text-sm"><Switch disabled={!canEdit} checked={f.bookable_on_website} onCheckedChange={(v) => set("bookable_on_website", v)} /> Listed on website</label>
           <label className="flex items-center gap-2 text-sm"><Switch disabled={!canEdit} checked={f.insurance} onCheckedChange={(v) => set("insurance", v)} /> Insurance required</label>
         </div>
+        {product.bookable_on_website && webStatus && (
+          <div className="col-span-2 max-md:col-span-1 text-xs">
+            {webStatus.pending > 0 ? (
+              <Tip label="Reden copies changes to the Mad Monkey website and Rezdy, then ticks them off. The change is already live here.">
+                <span className="text-[hsl(var(--st-pending))] cursor-help">Website: waiting for Reden to copy {webStatus.pending} change{webStatus.pending === 1 ? "" : "s"} across</span>
+              </Tip>
+            ) : (
+              <span className="text-[hsl(var(--st-active))] inline-flex items-center gap-1">
+                <Check className="h-3.5 w-3.5" /> Website up to date{webStatus.last_done_at ? `, ${webStatus.last_done_by ?? "head office"} updated it ${new Date(webStatus.last_done_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {(transport || f.category === "transport") && (

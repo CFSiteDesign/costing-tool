@@ -21,8 +21,12 @@ export const STATUS_LABELS: Record<ProductStatus, string> = {
 export interface Location { id: string; name: string; country: string; timezone: string; currency: string; }
 export interface RoomType { id: string; code: string; name: string; sort_order: number; is_sample: boolean; }
 
+/** One named price a guest can choose (Ha Giang Loop: "With bus tickets" / "Without bus tickets"). Migration 024. */
+export interface PriceOption { label: string; local_amount: number | null; rate_usd: number | null; }
+
 export interface Product {
   id: string;
+  price_options?: PriceOption[];
   location_id: string;
   category: Category;
   title: string;

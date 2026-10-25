@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
-import { CATEGORY_LABELS, type Category } from "@/lib/types";
+import { CATEGORY_LABELS, type Category, type PriceOption } from "@/lib/types";
+import { formatOptions } from "@/components/app/PriceOptions";
 
 /**
  * Export to spreadsheet (Oct 2026): every experience the signed-in person can see, as an .xlsx with an
@@ -34,6 +35,7 @@ const COLS: [string, number, (p: Row, t: Row | undefined) => unknown][] = [
   ["Rate USD", 10, (p) => (p.rate_usd == null ? "" : Number(p.rate_usd))],
   ["Local price", 12, (p) => (p.local_amount == null ? "" : Number(p.local_amount))],
   ["Currency", 9, (p) => p.local_currency ?? ""],
+  ["Price options", 40, (p) => formatOptions(p.price_options as PriceOption[] | null, p.local_currency as string | null)],
   ["Days", 16, (p) => days(p.days_of_week as number[])],
   ["Start", 8, (p) => hhmm(p.starts_at as string)],
   ["Finish", 8, (p) => hhmm(p.ends_at as string)],

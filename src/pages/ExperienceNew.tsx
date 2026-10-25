@@ -16,6 +16,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { useFx, money } from "@/lib/fx";
 import { holdUnsaved } from "@/lib/unsaved";
+import { PriceOptionsEditor, optionsFrom, type PriceRow } from "@/components/app/PriceOptions";
 
 export default function ExperienceNew() {
   const auth = useAuth();
@@ -29,6 +30,7 @@ export default function ExperienceNew() {
     days: [] as number[], starts: "", ends: "", minGuests: "1", maxGuests: "",
     meetingPoint: "", inclusions: "", thingsToBring: "", photoUrl: "", bookable: false,
     oneTime: false, expiresOn: "", status: "active" as "active" | "paused",
+    options: [] as PriceRow[],
   });
   const filled = Object.entries(f).some(([k, v]) => !["category", "minGuests", "status", "rateCcy"].includes(k) && (Array.isArray(v) ? v.length > 0 : typeof v === "boolean" ? v : String(v).trim() !== ""));
   useEffect(() => {
@@ -62,6 +64,8 @@ export default function ExperienceNew() {
     if (typed != null && ccy !== "USD" && !fxRate) { toast.error(`No FX rate for ${ccy} yet — enter USD`); return; }
     const rate = typed == null ? null : ccy === "USD" ? typed : Math.round((typed / fxRate!) * 100) / 100;
     const localAmount = typed == null ? null : ccy === "USD" ? (localCcy === "USD" ? typed : null) : typed;
+    const po = optionsFrom(f.options, localCcy);
+    if ("error" in po) { toast.error(po.error); return; }
     setBusy(true);
     const { error } = await supabase.from("products").insert({
       location_id: auth.currentLocation.id,
@@ -72,6 +76,7 @@ export default function ExperienceNew() {
       rate_usd: rate,
       local_amount: localAmount,
       local_currency: localCcy,
+      price_options: po.options,
       fx_rate_used: typed == null ? null : (ccy === "USD" ? 1 : fxRate),
       fx_as_of: typed == null ? null : new Date().toISOString(),
       brief_description: f.brief.trim(),
@@ -136,6 +141,7 @@ export default function ExperienceNew() {
             {localCcy !== "USD" && f.rate && isFinite(Number(f.rate)) && (f.rateCcy || localCcy) !== "USD" && fx.rate(localCcy) && (
               <p className="text-[11px] text-muted-foreground">≈ ${(Number(f.rate) / fx.rate(localCcy)!).toFixed(2)} USD · quotes use the USD figure</p>
             )}
+            <PriceOptionsEditor rows={f.options} onChange={(rows) => set("options", rows)} ccy={localCcy} fxRate={fx.rate(localCcy)} />
           </div>
         </div>
         <div className="space-y-1.5">

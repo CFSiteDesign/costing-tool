@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { money } from "@/lib/fx";
+import { formatOptions } from "@/components/app/PriceOptions";
 import { Tip } from "@/components/app/Tip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -55,15 +56,17 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
       if (error) throw error;
       const events = (data ?? []) as WebEvent[];
       const userIds = [...new Set(events.flatMap((e) => [e.changed_by, e.website_done_by]).filter(Boolean))] as string[];
-      const pids = [...new Set(events.filter((e) => e.field === "rate_usd").map((e) => e.product_id).filter(Boolean))] as string[];
+      const pids = [...new Set(events.filter((e) => e.field === "rate_usd" || e.field === "price_options").map((e) => e.product_id).filter(Boolean))] as string[];
       const [{ data: profs }, { data: prods }] = await Promise.all([
         userIds.length ? supabase.from("profiles").select("id, full_name").in("id", userIds) : Promise.resolve({ data: [] }),
         pids.length ? supabase.from("products").select("id, local_amount, local_currency").in("id", pids) : Promise.resolve({ data: [] }),
       ]);
+      type P = { id: string; local_amount: number | null; local_currency: string | null };
       const names = new Map((profs ?? []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name ?? "unknown"]));
-      const local = new Map((prods ?? []).filter((p: { local_amount: number | null; local_currency: string | null }) => p.local_amount != null && p.local_currency && p.local_currency !== "USD")
-        .map((p: { id: string; local_amount: number; local_currency: string }) => [p.id, money(p.local_amount, p.local_currency)]));
-      return { events, names, local };
+      const local = new Map((prods ?? []).filter((p: P) => p.local_amount != null && p.local_currency && p.local_currency !== "USD")
+        .map((p: P) => [p.id, money(Number(p.local_amount), p.local_currency!)]));
+      const ccyOf = new Map((prods ?? []).map((p: P) => [p.id, p.local_currency]));
+      return { events, names, local, ccyOf };
     },
   });
 
@@ -110,6 +113,11 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
     if (e.field === "rate_usd") {
       const loc = e.product_id ? data?.local.get(e.product_id) : undefined;
       return <><span className="text-muted-foreground">{label}:</span> ${e.old_value ?? "(blank)"} → ${e.new_value ?? "(blank)"}{loc ? <span className="text-muted-foreground">, now {loc}</span> : null}</>;
+    }
+    if (e.field === "price_options") {
+      const ccy = e.product_id ? data?.ccyOf.get(e.product_id) : null;
+      const fmt = (v: string | null) => { try { return formatOptions(v ? JSON.parse(v) : [], ccy) || null; } catch { return v; } };
+      return <><span className="text-muted-foreground">Price options:</span> <Val v={fmt(e.old_value)} /> → <Val v={fmt(e.new_value)} /></>;
     }
     const t = (v: string | null) => (v && (e.field === "starts_at" || e.field === "ends_at") ? v.slice(0, 5) : v);   // 17:00:00 -> 17:00
     return <><span className="text-muted-foreground">{label}:</span> <Val v={t(e.old_value)} /> → <Val v={t(e.new_value)} /></>;

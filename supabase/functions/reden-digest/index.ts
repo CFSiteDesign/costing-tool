@@ -59,16 +59,30 @@ Deno.serve(async (req: Request) => {
   }
 
   // the current local price for price lines: the website shows the hostel's own currency
-  const pids = [...new Set(events.filter((e) => e.field === "rate_usd" && e.product_id).map((e) => e.product_id))] as string[];
+  const pids = [...new Set(events.filter((e) => (e.field === "rate_usd" || e.field === "price_options") && e.product_id).map((e) => e.product_id))] as string[];
   const localOf = new Map<string, string>();
+  const ccyOf = new Map<string, string>();
+  const amt = (n: number, ccy: string) => `${SYM[ccy] ?? ccy + " "}${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   if (pids.length) {
     const { data: prods } = await supabase.from("products").select("id, local_amount, local_currency").in("id", pids);
     for (const p of prods ?? []) {
-      if (p.local_amount != null && p.local_currency && p.local_currency !== "USD") {
-        localOf.set(p.id, `${SYM[p.local_currency] ?? p.local_currency + " "}${Number(p.local_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })}`);
-      }
+      if (p.local_currency) ccyOf.set(p.id, p.local_currency);
+      if (p.local_amount != null && p.local_currency && p.local_currency !== "USD") localOf.set(p.id, amt(p.local_amount, p.local_currency));
     }
   }
+  // price options (migration 024) arrive as JSON: "Without bus tickets ₫4,280,000 ($165.78), With bus tickets ..."
+  const fmtOptions = (v: string | null, ccy: string | undefined) => {
+    if (!v) return "(none)";
+    try {
+      const opts = JSON.parse(v) as { label: string; local_amount: number | null; rate_usd: number | null }[];
+      if (!opts.length) return "(none)";
+      return opts.map((o) => {
+        const usd = o.rate_usd != null ? `$${Number(o.rate_usd).toFixed(2)}` : "";
+        const local = ccy && ccy !== "USD" && o.local_amount != null ? amt(o.local_amount, ccy) : "";
+        return `${o.label} ${local ? `${local}${usd ? ` (${usd})` : ""}` : usd}`.trim();
+      }).join(", ");
+    } catch { return v; }
+  };
 
   const byLoc = new Map<string, typeof events>();
   for (const e of events) {
@@ -103,10 +117,14 @@ Deno.serve(async (req: Request) => {
         const local = localOf.get(e.product_id);
         return `${e.product_title}: price $${e.old_value ?? "(blank)"} -> $${e.new_value ?? "(blank)"}${local ? `, now ${local}` : ""}  (by ${who}, ${when})`;
       }
+      if (e.field === "price_options") {
+        const ccy = ccyOf.get(e.product_id);
+        return `${e.product_title}: price options ${fmtOptions(e.old_value, ccy)} -> ${fmtOptions(e.new_value, ccy)}  (by ${who}, ${when})`;
+      }
       return `${e.product_title}: ${e.field.replace(/_/g, " ")}: ${e.old_value ?? "(blank)"} -> ${e.new_value ?? "(blank)"}  (by ${who}, ${when})`;
     });
     const subject = `[Mad Monkey] ${loc?.name ?? "Unknown"}: ${evts.length} website product change${evts.length === 1 ? "" : "s"}`;
-    const text = `Website-bookable product changes for ${loc?.name ?? "unknown location"}:\n\n${lines.join("\n")}\n\nOpen the Experience Database for full details.`;
+    const text = `Website-bookable product changes for ${loc?.name ?? "unknown location"}:\n\n${lines.join("\n")}\n\nOnce the website and Rezdy match, tick them off in the Experience Database under Approvals > Website updates: https://madmonkeyhostels.com/experiencedashboard/approvals`;
 
     if (preview) { results.push({ loc: loc?.name, to: settings?.recipients ?? [], subject, text }); continue; }
     if (!resendKey) { results.push({ loc: loc?.name, wouldSend: evts.length, subject }); continue; }
