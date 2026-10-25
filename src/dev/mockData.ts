@@ -143,7 +143,10 @@ function tables(persona: HarnessPersona): Record<string, Row[] | Row> {
         changed_by: "harness-gm", changed_at: new Date(Date.now() - 20 * 3600_000).toISOString() },
       { id: 4, product_id: pid(2, 3), product_title: "Sunset Cruise", location_id: LOCATIONS[1].id, field: "starts_at", old_value: "17:00:00", new_value: "16:30:00",
         changed_by: "harness-ho", changed_at: new Date(Date.now() - 5 * 3600_000).toISOString() },
-    ],
+      { id: 5, product_id: pid(1, 2), product_title: "Karaoke Night", location_id: LOCATIONS[0].id, field: "rate_usd", old_value: "5.00", new_value: "6.00",
+        changed_by: "harness-gm", changed_at: new Date(Date.now() - 30 * 3600_000).toISOString(),
+        website_done_at: new Date(Date.now() - 26 * 3600_000).toISOString(), website_done_by: "harness-ho" },
+    ].map((e) => ({ website_done_at: null, website_done_by: null, ...e })),
     sheet_sync_proposals: [],
     product_time_proposals: [],
     weekly_stories: [],
@@ -163,6 +166,7 @@ function matches(row: Row, col: string, expr: string): boolean {
   switch (op) {
     case "eq": return s === arg;
     case "neq": return s !== arg;
+    case "not": return !matches(row, col, arg);   // not.is.null
     case "is": return arg === "null" ? v == null : s === arg;
     case "in": return arg.replace(/^\(|\)$/g, "").split(",").map((x) => x.replace(/^"|"$/g, "")).includes(s);
     case "gte": return v != null && s >= arg;

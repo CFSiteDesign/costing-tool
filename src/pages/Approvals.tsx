@@ -42,12 +42,13 @@ export default function Approvals() {
   const { data: counts } = useQuery({
     queryKey: ["pending-approvals", "split"],
     queryFn: async () => {
-      const [a, b, w] = await Promise.all([
+      const [a, b, w, d] = await Promise.all([
         supabase.from("sheet_sync_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("notification_events").select("id", { count: "exact", head: true }).is("website_done_at", null),
+        supabase.from("notification_events").select("id", { count: "exact", head: true }).not("website_done_by", "is", null),
       ]);
-      return { sheet: a.count ?? 0, times: b.count ?? 0, website: w.count ?? 0 };
+      return { sheet: a.count ?? 0, times: b.count ?? 0, website: w.count ?? 0, websiteDone: d.count ?? 0 };
     },
   });
   const [tab, setTab] = useState("website");
@@ -60,10 +61,12 @@ export default function Approvals() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="website">Website updates{counts ? ` (${counts.website})` : ""}</TabsTrigger>
+          <TabsTrigger value="website-done">Completed{counts ? ` (${counts.websiteDone})` : ""}</TabsTrigger>
           <TabsTrigger value="sheet">Sheet changes{counts ? ` (${counts.sheet})` : ""}</TabsTrigger>
           <TabsTrigger value="times">Times{counts ? ` (${counts.times})` : ""}</TabsTrigger>
         </TabsList>
         <TabsContent value="website" className="mt-3"><WebsiteQueue /></TabsContent>
+        <TabsContent value="website-done" className="mt-3"><WebsiteQueue done /></TabsContent>
         <TabsContent value="sheet" className="mt-3">
           <p className="text-sm text-muted-foreground mb-3">Nothing changes on an experience until it is approved here.</p>
           <SheetQueue />
