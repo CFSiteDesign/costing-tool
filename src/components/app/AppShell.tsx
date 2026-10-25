@@ -20,7 +20,7 @@ const NAV = [
   { to: "/quotes", label: "Quotes", icon: FileText, quoting: true, tip: "Group trip quotes, agreements and detailed itineraries." },   // hidden from GMs (phase 2)
   { to: "/activity", label: "Activity", icon: History, tip: "Every change, who made it and when." },
   { to: "/global-events", label: "Global events", icon: Globe, headOffice: true, tip: "Events sent to every hostel to accept or decline." },
-  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, headOffice: true, tip: "Changes from the flow chart and start / finish times, waiting for head office approval." },
+  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, headOffice: true, tip: "Website updates to copy across, plus changes from the flow chart and start / finish times, waiting for head office." },
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true, tip: "Rate sync, Reden emails, currencies, imports." },
 ];
 
@@ -49,12 +49,13 @@ export default function AppShell() {
     queryKey: ["pending-approvals"],
     enabled: !!auth.session && isHeadOffice,
     refetchInterval: 60_000,
-    queryFn: async () => {   // flow-chart sheet changes + times, both waiting for head office
-      const [a, b] = await Promise.all([
+    queryFn: async () => {   // website updates, flow-chart sheet changes and times, all waiting for head office
+      const [a, b, w] = await Promise.all([
         supabase.from("sheet_sync_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("notification_events").select("id", { count: "exact", head: true }).is("website_done_at", null),
       ]);
-      return (a.count ?? 0) + (b.count ?? 0);
+      return (a.count ?? 0) + (b.count ?? 0) + (w.count ?? 0);
     },
   });
 

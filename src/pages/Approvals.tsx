@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Check, X, FileText, ClipboardCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SheetQueue } from "@/components/app/SheetQueue";
+import { WebsiteQueue } from "@/components/app/WebsiteQueue";
 
 interface Proposal {
   id: number; product_id: string; location_id: string;
@@ -35,31 +36,38 @@ const span = (s: string | null, e: string | null, d: number | null) => {
   return <>{t5(s)}{e ? `–${t5(e)}` : <span className="text-[hsl(var(--st-pending))]"> no finish</span>}{d ? <span className="text-muted-foreground"> · {d % 60 === 0 ? `${d / 60}h` : `${d}m`}</span> : null}</>;
 };
 
-/** Approvals: the final flow-chart sync (sheet changes) and the times queue, both waiting for head office. */
+/** Approvals: website updates for Reden to copy across, the final flow-chart sync (sheet changes) and the times
+ *  queue, all waiting for head office. */
 export default function Approvals() {
   const { data: counts } = useQuery({
     queryKey: ["pending-approvals", "split"],
     queryFn: async () => {
-      const [a, b] = await Promise.all([
+      const [a, b, w] = await Promise.all([
         supabase.from("sheet_sync_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("notification_events").select("id", { count: "exact", head: true }).is("website_done_at", null),
       ]);
-      return { sheet: a.count ?? 0, times: b.count ?? 0 };
+      return { sheet: a.count ?? 0, times: b.count ?? 0, website: w.count ?? 0 };
     },
   });
-  const [tab, setTab] = useState("sheet");
+  const [tab, setTab] = useState("website");
   return (
     <div className="p-4 space-y-3 max-w-6xl">
       <div data-tour="approvals-head">
         <h1 className="text-xl font-semibold flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Approvals</h1>
-        <p className="text-sm text-muted-foreground">Changes from the experience flow chart, waiting for head office. Nothing changes on an experience until it is approved here.</p>
+        <p className="text-sm text-muted-foreground">Waiting for head office: website updates to copy across, and changes from the old flow chart.</p>
       </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
+          <TabsTrigger value="website">Website updates{counts ? ` (${counts.website})` : ""}</TabsTrigger>
           <TabsTrigger value="sheet">Sheet changes{counts ? ` (${counts.sheet})` : ""}</TabsTrigger>
           <TabsTrigger value="times">Times{counts ? ` (${counts.times})` : ""}</TabsTrigger>
         </TabsList>
-        <TabsContent value="sheet" className="mt-3"><SheetQueue /></TabsContent>
+        <TabsContent value="website" className="mt-3"><WebsiteQueue /></TabsContent>
+        <TabsContent value="sheet" className="mt-3">
+          <p className="text-sm text-muted-foreground mb-3">Nothing changes on an experience until it is approved here.</p>
+          <SheetQueue />
+        </TabsContent>
         <TabsContent value="times" className="mt-3"><TimesQueue /></TabsContent>
       </Tabs>
     </div>
