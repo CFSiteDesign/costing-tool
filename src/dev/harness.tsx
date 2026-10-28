@@ -71,6 +71,7 @@ export function HarnessRoot({ children }: { children: React.ReactNode }) {
       allLocations: LOCATIONS,
       currentLocation: pool.find((l) => l.id === locId) ?? pool[0] ?? null,
       setCurrentLocationId: setLocId,
+      reloadLocations: async () => {},
       fullName: person.name,
       signOut: () => exitHarness(),
     };

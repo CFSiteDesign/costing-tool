@@ -16,6 +16,7 @@ export interface AuthState {
   allLocations: Location[];      // whatever RLS lets this user read
   currentLocation: Location | null;
   setCurrentLocationId: (id: string | null) => void;
+  reloadLocations: () => Promise<void>;   // after head office adds a hostel
   fullName: string;
   signOut: () => void;
 }
@@ -85,6 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentLocationId: (id) => {
       if (id) localStorage.setItem("mm.location", id); else localStorage.removeItem("mm.location");
       setCurrentLocationId(id);
+    },
+    reloadLocations: async () => {
+      const { data } = await supabase.from("locations").select("*").order("name");
+      if (data) setAllLocations(data as Location[]);
     },
     fullName,
     signOut: () => supabase.auth.signOut(),

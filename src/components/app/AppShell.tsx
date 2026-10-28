@@ -9,7 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Compass, CalendarDays, FileText, History, Settings, ChevronDown, Globe, Bus, ClipboardCheck, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { AddHostelDialog } from "@/components/app/AddHostelDialog";
 import { cn } from "@/lib/utils";
 import { asset } from "@/lib/paths";
 
@@ -45,6 +46,7 @@ export default function AppShell() {
   const isHeadOffice = access.isHeadOffice;
   const switchable = auth.seesAllLocations ? auth.allLocations : auth.myLocations;
   const { collapsed, narrow, toggle: toggleSidebar } = useCollapsedSidebar();
+  const [addHostel, setAddHostel] = useState(false);
   const { data: pendingApprovals } = useQuery({
     queryKey: ["pending-approvals"],
     enabled: !!auth.session && isHeadOffice,
@@ -115,23 +117,34 @@ export default function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 shrink-0 border-b flex items-center justify-between px-4 gap-3">
           {/* head office switches between every hostel; a GM with more than one hostel (e.g. Hanoi + Hoi An) switches between theirs */}
-          {switchable.length > 1 ? (
-            <Select
-              value={auth.currentLocation?.id ?? ""}
-              onValueChange={(v) => auth.setCurrentLocationId(v)}
-            >
-              <SelectTrigger className="w-[210px] h-9" data-tour="location-switcher">
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                {switchable.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.name} · {l.country}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="font-medium text-[15px]" data-tour="location-switcher">{auth.currentLocation?.name ?? "—"}</div>
-          )}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {switchable.length > 1 ? (
+              <Select
+                value={auth.currentLocation?.id ?? ""}
+                onValueChange={(v) => auth.setCurrentLocationId(v)}
+              >
+                <SelectTrigger className="w-[210px] h-9" data-tour="location-switcher">
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {switchable.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name} · {l.country}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="font-medium text-[15px]" data-tour="location-switcher">{auth.currentLocation?.name ?? "—"}</div>
+            )}
+            {(auth.isAdmin || auth.roles.includes("head_office")) && (
+              <Tip label="Add a hostel">
+                <button type="button" aria-label="Add a hostel" onClick={() => setAddHostel(true)}
+                  className="h-9 w-9 shrink-0 grid place-items-center rounded-md border text-muted-foreground hover:text-foreground hover:bg-secondary">
+                  <Plus className="h-4 w-4" />
+                </button>
+              </Tip>
+            )}
+          </div>
+          <AddHostelDialog open={addHostel} onOpenChange={setAddHostel} />
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               {auth.fullName} <ChevronDown className="h-3.5 w-3.5" />
