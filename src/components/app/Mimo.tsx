@@ -185,7 +185,7 @@ export function MimoPanel() {
                 {t.kind === "brand" && (t.handoff || t.sources?.length) ? (
                   <div className="space-y-1 text-[12px] text-muted-foreground">
                     {t.handoff && <div className="flex items-center gap-1.5"><UserRound className="h-3.5 w-3.5 shrink-0" /> Passed to {t.handoff.route_to}. They'll get back to you.</div>}
-                    {t.sources?.length ? <div>From the marketing team: {t.sources.map((s) => s.title).join("; ")}</div> : null}
+                    {t.sources?.length ? <div>From {brandFrom(t.sources)}</div> : null}
                   </div>
                 ) : null}
                 {t.changes?.map((c) => <ChangeCard key={c.id} c={c} onConfirm={() => apply(i, c)} onCancel={() => cancel(i, c)} onUndo={() => undo(i, c)}
@@ -245,6 +245,12 @@ function Thinking({ prompt, hostel, ccy }: { prompt: string; hostel: string; ccy
       </span>
     </div>
   );
+}
+
+/** Where a brand answer came from: Drive files by name, FAQ and The 40 entries as the team's answers (their titles are raw questions). */
+function brandFrom(sources: BrandSource[]) {
+  const files = sources.filter((s) => s.kind === "drive").map((s) => s.title).slice(0, 2);
+  return [...(sources.some((s) => s.kind !== "drive") ? ["the marketing team's answers"] : []), ...files].join(" and ");
 }
 
 /** Links in a reply become tappable, shortened to the site name; everything else stays plain text. */
