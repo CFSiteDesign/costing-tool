@@ -69,6 +69,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     slots: (transport?.departure_times ?? []).map((t) => t.slice(0, 5)).join(", "),
     pickup: transport?.pickup_point ?? "", dropoff: transport?.dropoff_point ?? "", route: transport?.route_raw ?? "",
     options: rowsFrom(product.price_options),
+    urgent: !!product.urgent,
   };
   const [f, setF] = useState(init);
   const [saving, setSaving] = useState(false);
@@ -102,6 +103,9 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     const slots = f.slots.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
     const badSlot = slots.find((x) => !/^([01]?\d|2[0-3]):[0-5]\d$/.test(x));
     if (badSlot) return toast.error(`"${badSlot}" isn't a time — use HH:MM`);
+    if (f.bookable_on_website && !init.bookable_on_website && !(photoCount ?? 0) && !f.photo_album_url.trim()) {
+      return toast.error("Add at least one photo (drag it onto this page) or a photo album link before listing this on the website");
+    }
     const po = optionsFrom(f.options, ccy);
     if ("error" in po) return toast.error(po.error);
 
@@ -109,7 +113,7 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     const patch: Record<string, unknown> = {
       title: f.title.trim(), category: f.category, status: f.status,
       active_on_ground: f.active_on_ground, bookable_on_website: f.bookable_on_website,
-      rate_usd: d, local_amount: l, local_currency: ccy, price_options: po.options,
+      rate_usd: d, local_amount: l, local_currency: ccy, price_options: po.options, urgent: f.urgent,
       ...(rateChanged ? { fx_rate_used: ccy === "USD" ? 1 : fxRate, fx_as_of: new Date().toISOString() } : {}),
       days_of_week: f.days, starts_at: f.starts_at || null, ends_at: f.ends_at || null,
       duration_minutes: f.duration ? Number(f.duration) : null,
@@ -160,6 +164,10 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     queryFn: async () => (await supabase.from("product_assets").select("*").eq("product_id", product.id).order("created_at", { ascending: false })).data as Asset[],
   });
   const latestAsset = assets?.[0] ?? null;
+  const { data: photoCount } = useQuery({
+    queryKey: ["product-photos-count", product.id],
+    queryFn: async () => (await supabase.from("product_photos").select("id", { count: "exact", head: true }).eq("product_id", product.id)).count ?? 0,
+  });
   // whether Reden has copied this product's changes to the website yet (GMs can't read his queue, so via an RPC)
   const { data: webStatus } = useQuery({
     queryKey: ["website-status", product.id],
@@ -270,6 +278,11 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <label className="flex items-center gap-2 text-sm"><Switch disabled={!canEdit} checked={f.bookable_on_website} onCheckedChange={(v) => set("bookable_on_website", v)} /> Listed on website</label>
           <label className="flex items-center gap-2 text-sm"><Switch disabled={!canEdit} checked={f.insurance} onCheckedChange={(v) => set("insurance", v)} /> Insurance required</label>
         </div>
+        {f.bookable_on_website && (
+          <label className="col-span-2 max-md:col-span-1 flex items-center gap-2 text-sm">
+            <Switch disabled={!canEdit} checked={f.urgent} onCheckedChange={(v) => set("urgent", v)} /> Urgent: Reden does this one first
+          </label>
+        )}
         {product.bookable_on_website && webStatus && (
           <div className="col-span-2 max-md:col-span-1 text-xs">
             {webStatus.pending > 0 ? (

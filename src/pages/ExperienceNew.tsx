@@ -64,6 +64,7 @@ export default function ExperienceNew() {
     if (typed != null && ccy !== "USD" && !fxRate) { toast.error(`No FX rate for ${ccy} yet — enter USD`); return; }
     const rate = typed == null ? null : ccy === "USD" ? typed : Math.round((typed / fxRate!) * 100) / 100;
     const localAmount = typed == null ? null : ccy === "USD" ? (localCcy === "USD" ? typed : null) : typed;
+    if (f.bookable && !f.photoUrl.trim()) { toast.error("Add a photo album link before listing on the website. You can also add photos on the product page once it's created, with Listed on website off."); return; }
     const po = optionsFrom(f.options, localCcy);
     if ("error" in po) { toast.error(po.error); return; }
     setBusy(true);

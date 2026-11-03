@@ -66,7 +66,9 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
       const local = new Map((prods ?? []).filter((p: P) => p.local_amount != null && p.local_currency && p.local_currency !== "USD")
         .map((p: P) => [p.id, money(Number(p.local_amount), p.local_currency!)]));
       const ccyOf = new Map((prods ?? []).map((p: P) => [p.id, p.local_currency]));
-      return { events, names, local, ccyOf };
+      const allPids = [...new Set(events.map((e) => e.product_id).filter(Boolean))] as string[];
+      const { data: urg } = allPids.length ? await supabase.from("products").select("id").eq("urgent", true).in("id", allPids) : { data: [] };
+      return { events, names, local, ccyOf, urgent: new Set((urg ?? []).map((u: { id: string }) => u.id)) };
     },
   });
 
@@ -82,8 +84,9 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
     }
     for (const g of m.values()) g.events.sort((a, b) => a.changed_at.localeCompare(b.changed_at));
     const rows = [...m.values()];
+    const urgentFirst = (a: { product_id: string | null }, b: { product_id: string | null }) => Number(!!(b.product_id && data?.urgent.has(b.product_id))) - Number(!!(a.product_id && data?.urgent.has(a.product_id)));
     return done ? rows.sort((a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? ""))
-      : rows.sort((a, b) => locName(a.location_id).localeCompare(locName(b.location_id))
+      : rows.sort((a, b) => urgentFirst(a, b) || locName(a.location_id).localeCompare(locName(b.location_id))
         || b.events[b.events.length - 1].changed_at.localeCompare(a.events[a.events.length - 1].changed_at));
   }, [data, locFilter, done, auth.allLocations]);
   const perLoc = useMemo(() => {
@@ -161,6 +164,7 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
           <div key={g.key} className="px-3 py-2.5 flex gap-3 items-start hover:bg-secondary/30">
             <div className="flex-1 min-w-0 space-y-1">
               <div>
+                {!done && g.product_id && data?.urgent.has(g.product_id) && <span className="mr-2 rounded bg-destructive text-destructive-foreground text-[10px] font-semibold px-1.5 py-0.5 uppercase tracking-wide">Urgent</span>}
                 {g.product_id && !g.events.some((e) => e.field === "product_removed") ? <Link to={`/experiences/${g.product_id}`} className="font-medium hover:underline underline-offset-2">{g.title}</Link> : <span className="font-medium">{g.title}</span>}
                 <span className="text-xs text-muted-foreground"> · {locName(g.location_id)}</span>
               </div>

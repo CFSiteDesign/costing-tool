@@ -27,6 +27,7 @@ export interface PriceOption { label: string; local_amount: number | null; rate_
 export interface Product {
   id: string;
   price_options?: PriceOption[];
+  urgent?: boolean;
   location_id: string;
   category: Category;
   title: string;
