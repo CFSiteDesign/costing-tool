@@ -190,9 +190,9 @@ export default function Experiences() {
                 <th className="font-medium px-3 py-2.5 w-28"><TipHead label="Times" tip="Start and finish. Edit on the product page. Transport uses departure time slots instead." /></th>
                 <th className="font-medium px-3 py-2.5 w-32"><TipHead label="Status" tip="Active, Paused, Signature Tour, or Pending update — same meanings as the old sheet's colours. Paused products stay here but drop out of the costing tool." /></th>
                 <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Website" tip="Marks this as listed on the Mad Monkey website. Not a live connection — the site itself is updated by hand. Changes to marked products queue an email to Reden so he knows what to update." /></th>
-                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere — nothing is ever deleted." /></th>
+                <th className="font-medium px-3 py-2.5 w-24"><TipHead label="Active" tip="Running on the ground right now. Switching off pauses it everywhere. It stays in your list and can be switched back on." /></th>
                 <th className="font-medium px-3 py-2.5 w-28" data-tour="exp-verified"><TipHead label="Verified" tip="When someone last confirmed these details are current. Any edit clears it, so a product needs verifying again after changes. Click the shield to mark it verified today." /></th>
-                <th className="font-medium px-3 py-2.5 w-36"><TipHead label="Asset" tip="The social graphic for this experience. Create opens STUDIO prefilled; View shows the latest one; it flags itself out of date when the name, day, time or price change." /></th>
+                <th className="font-medium px-3 py-2.5 w-36 sticky right-0 bg-secondary z-10 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.12)]"><TipHead label="Asset" tip="The social graphic for this experience. Create opens STUDIO prefilled; View shows the latest one; it flags itself out of date when the name, day, time or price change." /></th>
               </tr>
             </thead>
             <tbody>
@@ -294,7 +294,7 @@ export default function Experiences() {
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-1">
+                  <td className="px-3 py-1 sticky right-0 bg-background z-[1] shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.12)]">
                     <AssetCell product={p} asset={assets?.[p.id] ?? null} currency={auth.currentLocation?.currency ?? "USD"} canEdit={canEdit} />
                   </td>
                 </tr>
