@@ -15,9 +15,10 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tip } from "@/components/app/Tip";
-import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, ShieldCheck, Trash2 } from "lucide-react";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { holdUnsaved } from "@/lib/unsaved";
+import { ProductPhotos } from "@/components/app/ProductPhotos";
 import { PriceOptionsEditor, optionsFrom, rowsFrom } from "@/components/app/PriceOptions";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
@@ -137,6 +138,16 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     qc.invalidateQueries({ queryKey: ["website-status", product.id] });
   };
 
+  const remove = async () => {
+    const onWeb = product.bookable_on_website ? " It is on the website, so Reden is told to take it down." : " Reden is told.";
+    if (!window.confirm(`Delete "${f.title}"?${onWeb}\n\nIf it might come back, pause it instead (Status > Paused). Deleting removes it from your list.`)) return;
+    const { error } = await supabase.rpc("delete_product", { p_id: product.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${f.title} deleted. Reden has been told.`);
+    qc.invalidateQueries({ queryKey: ["products"] }); qc.invalidateQueries({ queryKey: ["my-week"] }); qc.invalidateQueries({ queryKey: ["pending-approvals"] });
+    nav("/experiences", { replace: true });
+  };
+
   const verify = async () => {
     const { data: me } = await supabase.auth.getUser();
     const { error } = await supabase.from("products").update({ last_verified_at: new Date().toISOString(), last_verified_by: me.user?.id }).eq("id", product.id);
@@ -193,6 +204,9 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
             <Button variant="outline" size="sm" className="gap-1.5" onClick={verify} title="Stamps today's date as 'last verified' — a quick way to say these details have been checked and are still right">
               <ShieldCheck className="h-3.5 w-3.5" /> Mark verified
             </Button>
+            <Tip label="Removes it from your list and tells Reden. To stop it running but keep it, set Status to Paused instead.">
+              <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={remove}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
+            </Tip>
             {savedAt && !dirty && <span className="text-xs text-[hsl(var(--st-active))] inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Saved {savedAt}</span>}
             {dirty && <span className="text-xs text-[hsl(var(--st-pending))]">Unsaved changes</span>}
             <Tip label="Nothing changes until you press Save. Saving clears the verified stamp, so mark it verified again once you've checked it."><Button size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button></Tip>
@@ -279,6 +293,8 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
           <div className="space-y-1 col-span-2"><Tip label="Comma-separated 24h times, e.g. 08:30, 11:30, 17:00. In the quote builder this transfer is picked by slot, never typed."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Departure times (quotes pick from these)</Label></Tip><Input className="tabular-nums" placeholder="08:30, 11:30, 17:00" readOnly={!canEdit} value={f.slots} onChange={(e) => set("slots", e.target.value)} /></div>
         </div>
       )}
+
+      <ProductPhotos productId={product.id} locationId={product.location_id} canEdit={canEdit} />
 
       <div className="rounded-md border p-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">

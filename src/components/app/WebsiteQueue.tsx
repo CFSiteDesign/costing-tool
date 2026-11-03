@@ -108,6 +108,7 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
   const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const who = (id: string | null) => (id ? data?.names.get(id) ?? "unknown" : "system");
   const line = (e: WebEvent) => {
+    if (e.field === "product_removed") return <span className="font-medium text-destructive">Deleted ({e.old_value ?? "removed"}){e.old_value === "on the website" ? ": take it down from the website and Rezdy" : ""}</span>;
     if (e.field === "product_added") return <span className="font-medium text-[hsl(var(--st-active))]">New product</span>;
     const label = FIELD_LABEL[e.field] ?? e.field.replace(/_/g, " ");
     if (e.field === "rate_usd") {
@@ -160,7 +161,7 @@ export function WebsiteQueue({ done = false }: { done?: boolean }) {
           <div key={g.key} className="px-3 py-2.5 flex gap-3 items-start hover:bg-secondary/30">
             <div className="flex-1 min-w-0 space-y-1">
               <div>
-                {g.product_id ? <Link to={`/experiences/${g.product_id}`} className="font-medium hover:underline underline-offset-2">{g.title}</Link> : <span className="font-medium">{g.title}</span>}
+                {g.product_id && !g.events.some((e) => e.field === "product_removed") ? <Link to={`/experiences/${g.product_id}`} className="font-medium hover:underline underline-offset-2">{g.title}</Link> : <span className="font-medium">{g.title}</span>}
                 <span className="text-xs text-muted-foreground"> · {locName(g.location_id)}</span>
               </div>
               <ul className="text-sm space-y-0.5">
