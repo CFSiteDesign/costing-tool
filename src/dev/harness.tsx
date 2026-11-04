@@ -55,7 +55,7 @@ export function HarnessRoot({ children }: { children: React.ReactNode }) {
 
   const auth = useMemo<AuthState>(() => {
     const person = PEOPLE[persona];
-    const seesAll = person.roles.some((r) => r === "admin" || r === "head_office" || r === "sales");
+    const seesAll = person.roles.some((r) => r === "admin" || r === "head_office" || r === "sales" || r === "viewer");
     const mine = persona === "gm" ? [LOCATIONS[0]] : [];
     const pool = seesAll ? LOCATIONS : mine;
     return {
@@ -64,7 +64,7 @@ export function HarnessRoot({ children }: { children: React.ReactNode }) {
       roles: person.roles,
       isAdmin: person.roles.includes("admin"),
       isEditor: person.roles.some((r) => r === "admin" || r === "head_office" || r === "gm"),
-      canQuote: seesAll,
+      canQuote: person.roles.some((r) => r === "admin" || r === "head_office" || r === "sales"),
       rolesLoaded: true,
       seesAllLocations: seesAll,
       myLocations: mine,

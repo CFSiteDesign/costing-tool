@@ -20,11 +20,11 @@ export function accessFor(roles: readonly Role[]): Access {
   const has = (r: Role) => roles.includes(r);
   const isAdmin = has("admin");
   const isHeadOffice = isAdmin || has("head_office");
-  const seesAll = isHeadOffice || has("sales");
+  const seesAll = isHeadOffice || has("sales") || has("viewer");
   return {
     isAdmin,
     isHeadOffice,
-    canQuote: seesAll,
+    canQuote: isHeadOffice || has("sales"),
     isEditor: isHeadOffice || has("gm"),
     seesAllLocations: seesAll,
     persona: isAdmin ? "admin" : has("head_office") ? "head_office" : has("sales") ? "sales" : "gm",

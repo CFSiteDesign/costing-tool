@@ -1,7 +1,7 @@
 export type Category = "mm_tour" | "nightly_event" | "third_party_tour" | "one_time_event" | "transport";
 export type ProductStatus = "active" | "paused" | "signature" | "pending_update";
 export type SeasonTier = "lean" | "mid" | "high";
-export type Role = "admin" | "head_office" | "gm" | "sales";
+export type Role = "admin" | "head_office" | "gm" | "sales" | "viewer";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   mm_tour: "MM Tours",

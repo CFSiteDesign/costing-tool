@@ -6,7 +6,7 @@ layout and styling, never their content. `10` is an example booking request made
 
 ---
 
-Make a 4 to 5 minute feature tour video, 16:9, of the Mad Monkey Experience Database (mm-costing-tool.vercel.app),
+Make a 4 to 5 minute feature tour video, 16:9, of the Mad Monkey Experience Database (madmonkeyhostels.com/experiencedashboard),
 covering everything it does, for everyone who uses it: hostel general managers (GMs), head office, and the sales team
 who build group trip quotes. Clear, quick and warm, a bit of Mad Monkey cheek, never corporate, never "AI magic".
 Organise it in chapters by who uses each part, with a chapter card for each.
@@ -108,7 +108,7 @@ Chiang Mai, 2 travellers, 18 to 22 January 2027", total $430.58.
 5. Chapter: For sales (2:45 to 4:15). Quotes list, auto-create trip, the builder, pricing and discounts, notes,
    agreement version, detailed itinerary, mark accepted, booking request PDF, payment reminder.
 6. Behind the scenes (4:15 to 4:35). Rates synced nightly, ALL IN bookings, keys and settings.
-7. Close (4:35 to 4:50). Brand frame, logo, "mm-costing-tool.vercel.app". Voice: "One list, always current.
+7. Close (4:35 to 4:50). Brand frame, logo, "madmonkeyhostels.com/experiencedashboard". Voice: "One list, always current.
    Everything else reads from it."
 
 Write a voice-over line for every scene, plain and short, in the order above.

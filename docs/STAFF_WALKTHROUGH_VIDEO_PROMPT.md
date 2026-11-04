@@ -10,7 +10,7 @@ Upload these with the prompt (all in the "Staff walkthrough video" folder in Dow
 
 Make a 2 minute 45 second to 3 minute walkthrough video, 16:9, for Mad Monkey Hostels staff: the general managers
 (GMs) who run the hostels across Southeast Asia. It teaches them how to use the Experience Database, the web app at
-mm-costing-tool.vercel.app where every hostel keeps its tours, nightly events, one-off parties and transport, with
+madmonkeyhostels.com/experiencedashboard where every hostel keeps its tours, nightly events, one-off parties and transport, with
 prices, days and times. The viewers are busy hostel managers, not tech people, and many speak English as a second
 language. Keep it clear, warm, quick and a bit cheeky, like a good team brief. It only explains how the software works: no questions, requests or calls to action. Never corporate, never "AI magic".
 
@@ -23,7 +23,7 @@ rules override this brief for brand frames (open, chapter cards, close).
 - Each GM gets an email from updates@experience.madmonkeyhostels.com, subject "Your login for the Mad Monkey
   Experience Database". The link opens a page titled "Choose your password": type it twice ("Same again"), press
   "Save and go in", and they are in. The link works for 7 days.
-- After that they sign in at mm-costing-tool.vercel.app with their work email and password.
+- After that they sign in at madmonkeyhostels.com/experiencedashboard with their work email and password.
 - A GM only sees their own hostel. If they run more than one (for example Hanoi and Hoi An), a hostel dropdown at the
   top left switches between them.
 - The first time they sign in, a short guided tour runs. They can replay it from the menu under their name.
@@ -131,7 +131,7 @@ rules override this brief for brand frames (open, chapter cards, close).
 8. The safety net (148 to 165s). Activity log, then four quick cards: "Nothing changes until you Save or Confirm",
    "Nothing is ever deleted, pause it instead", "Every change is logged", "Sold on the website? Reden updates it". Voice:
    "You can't break it. Nothing's deleted, every change is logged, and nothing happens until you say so."
-9. Close (165 to 175s). Brand frame with the logo file and "mm-costing-tool.vercel.app". Voice: "That's the
+9. Close (165 to 175s). Brand frame with the logo file and "madmonkeyhostels.com/experiencedashboard". Voice: "That's the
    Experience Database. One list for your hostel, always current."
 
 ## Look and feel

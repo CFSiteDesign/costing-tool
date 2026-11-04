@@ -1,0 +1,56 @@
+{
+  "hostel": "Siem Reap",
+  "ran_at": "2026-09-13T00:11:50.609Z",
+  "results": [
+    {
+      "scenario": "Follow-up across turns",
+      "turns": [
+        "what time does karaoke start?",
+        "push it back an hour"
+      ],
+      "by": {
+        "claude-sonnet-5": [
+          {
+            "user": "what time does karaoke start?",
+            "reply": "Karaoke night runs 8pm to 11pm, but heads up, it's on Saturdays only, not tonight.",
+            "kind": "answer",
+            "model_used": "claude-sonnet-5",
+            "ms": 3530,
+            "usage": {
+              "input": 2,
+              "output": 59,
+              "cache_read": 16208,
+              "cache_write": 0
+            },
+            "changes": []
+          },
+          {
+            "user": "push it back an hour",
+            "reply": "Karaoke night moves to 9pm to midnight, keeping the same 3 hour length. Confirm below.",
+            "kind": "proposal",
+            "model_used": "claude-sonnet-5",
+            "ms": 4797,
+            "usage": {
+              "input": 2,
+              "output": 168,
+              "cache_read": 16208,
+              "cache_write": 48
+            },
+            "changes": [
+              {
+                "product": "Karaoke night",
+                "field": "start",
+                "old": "8pm, finish 11pm",
+                "new": "9pm, finish 12am",
+                "confidence": "exact",
+                "strong": null,
+                "used_name": "karaoke",
+                "alternatives": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

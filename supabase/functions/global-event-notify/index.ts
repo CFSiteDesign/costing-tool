@@ -5,7 +5,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // trigger (pg_net) with { event_id }. Without RESEND_API_KEY it records what it WOULD send.
 // Sender comes from the RESEND_FROM secret (must be on a Resend-verified domain).
 
-const APP_URL = "https://mm-costing-tool.vercel.app";
+const APP_URL = "https://madmonkeyhostels.com/experiencedashboard";
 
 Deno.serve(async (req: Request) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

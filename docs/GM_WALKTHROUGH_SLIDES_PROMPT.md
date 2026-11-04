@@ -6,7 +6,7 @@ them are sample data: use the layout, not the names) and `mm-logo.png`, `mm-logo
 ---
 
 Make a 13 slide presentation, 16:9, with speaker notes on every slide, that explains how the Mad Monkey Experience
-Database (mm-costing-tool.vercel.app) works for hostel general managers (GMs). It is presented live on a video call.
+Database (madmonkeyhostels.com/experiencedashboard) works for hostel general managers (GMs). It is presented live on a video call.
 The only job of the deck is to explain how the software works: no questions slide, no to-do list, no requests, no
 status updates, no decisions. The audience are busy hostel managers, many with English as a second language: one idea
 per slide, very few words on the slide, big and readable on a shared screen. The speaker notes carry the explanation.
@@ -28,7 +28,7 @@ rules override this brief.
   place. Head office quotes and the Mad Monkey website are kept in line with it.
 - Getting in: each GM gets an email from updates@experience.madmonkeyhostels.com, subject "Your login for the Mad
   Monkey Experience Database". The link opens "Choose your password" and works for 7 days. After that, sign in at
-  mm-costing-tool.vercel.app with your work email. More than one hostel? A dropdown at the top left switches.
+  madmonkeyhostels.com/experiencedashboard with your work email. More than one hostel? A dropdown at the top left switches.
 - Left menu: Experiences, My week, Transport, Activity, and the Assistant at the bottom (Cmd K opens it anywhere).
 - Experiences: the full list, with search, filters and day letters (M T W T F S S) to see what runs on a given day.
   Change prices, days and status right in the table, or click a name for everything else. Nothing saves until "Save".
@@ -67,7 +67,7 @@ rules override this brief.
 3. **Getting in.** The email subject line, "Choose your password", the web address.
    Notes: Your login arrives by email from updates@experience.madmonkeyhostels.com, called "Your login for the Mad
    Monkey Experience Database". The link lets you choose your own password and works for seven days. After that you
-   sign in at mm-costing-tool.vercel.app with your work email. If you run more than one hostel, a dropdown at the top
+   sign in at madmonkeyhostels.com/experiencedashboard with your work email. If you run more than one hostel, a dropdown at the top
    left switches between them.
 
 4. **Your screen.** Screenshot 01 with the left menu ringed.
@@ -116,7 +116,7 @@ rules override this brief.
     change, who made it and when, with the before and after. And Export downloads your whole list as a spreadsheet.
 
 13. **The ground rules.** Four short cards: "Nothing changes until you Save or Confirm", "Nothing is ever deleted,
-    pause it", "Every change is logged", "Sold on the website? Reden updates it". Logo and mm-costing-tool.vercel.app
+    pause it", "Every change is logged", "Sold on the website? Reden updates it". Logo and madmonkeyhostels.com/experiencedashboard
     along the bottom.
     Notes: Four things to remember. Nothing changes until you press Save or Confirm. Nothing is ever deleted, you pause
     it instead. Every change is logged with your name. And anything sold on the website is passed to Reden, who keeps

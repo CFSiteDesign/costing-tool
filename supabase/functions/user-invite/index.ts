@@ -17,7 +17,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
-const ROLES = ["admin", "head_office", "sales", "gm"];
+const ROLES = ["admin", "head_office", "sales", "gm", "viewer"];
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
         admin.from("user_roles").select("role").eq("user_id", prof.id),
         admin.from("user_locations").select("locations(name)").eq("user_id", prof.id),
       ]);
-      const seesAll = (roles ?? []).some((r) => ["admin", "head_office", "sales"].includes(r.role));
+      const seesAll = (roles ?? []).some((r) => ["admin", "head_office", "sales", "viewer"].includes(r.role));
       const hostels = (locs ?? []).map((l) => (l.locations as unknown as { name: string })?.name).filter(Boolean).sort();
       const code = randomCode();
       const hash = await sha256(code);

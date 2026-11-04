@@ -67,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [session]);
 
-  const seesAll = roles.some((r) => r === "admin" || r === "head_office" || r === "sales");
+  const seesAll = roles.some((r) => r === "admin" || r === "head_office" || r === "sales" || r === "viewer");
+  const canQuote = roles.some((r) => r === "admin" || r === "head_office" || r === "sales");   // viewers (Customer Service) never see quotes
 
   const currentLocation = useMemo(() => {
     const pool = seesAll ? allLocations : myLocations;
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: roles.includes("admin"),
     isEditor: roles.some((r) => r === "admin" || r === "head_office" || r === "gm"),
     seesAllLocations: seesAll,
-    canQuote: seesAll,
+    canQuote,
     rolesLoaded,
     myLocations, allLocations, currentLocation,
     setCurrentLocationId: (id) => {

@@ -5,7 +5,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // to its Mad Monkey contact: booking reference, agent / company, total due and the deadline.
 // Without an email key it reports what it would send and marks nothing.
 
-const APP = "https://mm-costing-tool.vercel.app";
+const APP = "https://madmonkeyhostels.com/experiencedashboard";
 
 Deno.serve(async () => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
