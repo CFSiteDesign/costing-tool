@@ -9,6 +9,7 @@ import { DayFilter, DaysPicker } from "@/components/app/DaysPicker";
 import { RateCell } from "@/components/app/RateCell";
 import { Tip, TipHead } from "@/components/app/Tip";
 import { PendingGlobalEvents } from "@/components/app/PendingGlobalEvents";
+import { WalkthroughBanner } from "@/components/app/WalkthroughBanner";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,7 @@ export default function Experiences() {
 
   return (
     <div className="p-4 space-y-3">
+      <WalkthroughBanner />
       <PendingGlobalEvents />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
