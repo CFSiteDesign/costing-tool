@@ -27,6 +27,7 @@ straight away.
 | `{ "emails": ["a@x.com", "b@y.com"] }` | The same for up to 100 guests. |
 | `{ "booking_ref": "SOL-LAO-001" }` | One booking. |
 | `{ "date": "2026-11-24" }` | Every confirmed guest on an ALL IN trip that day (from their arrival day to their last day), each with `on_date`: which day of the trip it is and that day's plan. Use this for the daily WhatsApp messages. |
+| `{ "all": true }` | Every ALL IN booking, cancelled ones included, in one call (added 13 Nov 2026). Use this for a full sync of your own copy instead of asking for every calendar day with `date`: one call instead of hundreds, and it also picks up cancellations, which `date` lookups leave out. |
 
 Errors: `401` missing, wrong or revoked key; `400` bad body.
 
@@ -80,7 +81,9 @@ Errors: `401` missing, wrong or revoked key; `400` bad body.
 | --- | --- |
 | `status` | `confirmed` or `cancelled`. Email and ref lookups include cancelled trips; date lookups don't. |
 | `payment_state` | `deposit_paid`, `paid_in_full`, `balance_failed` (retrying), `balance_failed_final`, `cancelled`, `refunded`. |
-| `days[]` | The day-by-day. An entry can cover several days (`day_from` to `day_to`, e.g. Indonesia's "Days 10–12"). |
+| `days[]` | The day-by-day. An entry can cover several days (`day_from` to `day_to`, e.g. Indonesia's "Days 10–12"). It is the itinerary that was live when the booking was made, so it can differ from the trip page (see `itinerary_edition`). |
+| `itinerary_edition` | `null` when the booking follows the trip's current itinerary, as on its page. Otherwise the name of the older itinerary it was booked under, e.g. `via-sihanoukville` for Cambodia bookings made before the Kampot route. |
+| `payment_state` vs `payment.balance_status` | Switch on `payment_state`. A balance that failed for good is `payment_state: balance_failed_final` with `balance_status: failed_final` (not `failed`). `refunded` and `cancelled` always come with `status: cancelled`. |
 | `whatsapp.opt_in` | The checkout box: "Keep me posted on WhatsApp ... Trip updates only. Opt out anytime." Trip updates, not marketing. Asked from 13 Oct 2026; earlier bookings are `false`. |
 | `travellers[]` | One per spot. The main trip pages only ask for the lead booker's details, so other spots are usually empty and crew members won't match on their own email. |
 | `role` | On email lookups: whether that email is the lead booker or a named traveller. |
@@ -94,4 +97,6 @@ Errors: `401` missing, wrong or revoked key; `400` bad body.
 - The sync signs its requests to the ALL IN site with a key that never leaves
   the Experience Database; no password is shared between the two.
 - Itinerary changes on the trip pages are reloaded with
-  `mm-squad-trips/tools/export-itineraries.ts` (see that file).
+  `mm-squad-trips/tools/export-itineraries.ts` (see that file) into `tools/data/allin_trip_days.sql`.
+- When a route changes for guests who already booked, the old days stay as an older edition
+  (`allin_trip_editions`, migration 033) and bookings made before the new page went live keep them.

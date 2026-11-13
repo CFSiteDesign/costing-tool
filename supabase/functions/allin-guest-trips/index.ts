@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { type Edition, editionFor } from "./editions.ts";
 
 // ALL IN guest trips for other Mad Monkey apps (Charlie, 19 Oct 2026): Dhany's Loyalty app and Ayush's main website
 // and WhatsApp messages. Every booking comes back with its day-by-day on real dates, so a guest can see where to be
@@ -6,15 +7,20 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //
 // Each app sends its own key in the x-api-key header (made in Settings > API keys; only a SHA-256 hash is kept here).
 // Bookings come from allin_bookings, synced from the ALL IN site every 5 minutes; days from allin_trip_days.
+// A booking follows the itinerary that was live when it was made (allin_trip_editions, migration 033): Cambodia
+// bookings made before the Kampot route keep the Sihanoukville one.
 //
 //   { "email": "guest@x.com" }        that guest's ALL IN trips, as the lead booker or a named traveller
 //   { "emails": ["a@x.com", ...] }    the same for up to 100 guests
 //   { "booking_ref": "SOL-LAO-001" }  one booking
 //   { "date": "2026-11-24" }          every confirmed guest on an ALL IN trip that day, with that day's plan
+//   { "all": true }                   every booking, cancelled ones too: one call for a full sync (13 Nov 2026,
+//                                     replaces walking every calendar day with "date")
 //
 // Server to server only: the key must never reach a browser, so there are no CORS headers.
 
 const MAX_EMAILS = 100;
+const MAX_ALL = 2000;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -37,7 +43,7 @@ async function sha256(text: string) {
 }
 
 type DayRow = {
-  trip_slug: string; day_from: number; day_to: number; label: string; place: string; body: string;
+  trip_slug: string; edition: string; day_from: number; day_to: number; label: string; place: string; body: string;
   transport: string | null; activities: string | null; meals: string | null;
 };
 type BookingRow = {
@@ -46,10 +52,10 @@ type BookingRow = {
 };
 
 // The day-by-day on real dates. Day 1 is the departure date; guests arrive the day before.
-function datedDays(b: BookingRow, days: DayRow[]) {
+function datedDays(b: BookingRow, days: DayRow[], edition: string) {
   const start = b.departure_date;
   return days
-    .filter((d) => d.trip_slug === b.trip_slug)
+    .filter((d) => d.trip_slug === b.trip_slug && d.edition === edition)
     .sort((x, y) => x.day_from - y.day_from)
     .map((d) => ({
       day_from: d.day_from,
@@ -65,12 +71,15 @@ function datedDays(b: BookingRow, days: DayRow[]) {
     }));
 }
 
-function shape(b: BookingRow, days: DayRow[], onDate?: string) {
-  const itinerary = datedDays(b, days);
+function shape(b: BookingRow, days: DayRow[], editions: Edition[], onDate?: string) {
+  const edition = editionFor(b.trip_slug, b.payload.booked_at, editions);
+  const itinerary = datedDays(b, days, edition);
   const arrival = b.departure_date ? plusDays(b.departure_date, -1) : null;
   const out: Record<string, unknown> = {
     ...b.payload,
     arrival: { date: arrival, note: "Arrive the day before Day 1 and check in at the first hostel." },
+    // null: the trip's current itinerary, as on its page. Otherwise the older one this booking was made under.
+    itinerary_edition: edition || null,
     days: itinerary,
     synced_at: b.synced_at,
   };
@@ -124,20 +133,28 @@ Deno.serve(async (req) => {
         .eq("status", "confirmed").lte("departure_date", plusDays(onDate, 1)).gte("end_date", onDate);
       if (error) throw error;
       rows = (data ?? []) as BookingRow[];
+    } else if (body.all === true) {
+      const { data, error } = await sb.from("allin_bookings").select(cols).limit(MAX_ALL);
+      if (error) throw error;
+      rows = (data ?? []) as BookingRow[];
     } else {
-      return json({ error: 'Send {"email"}, {"emails": [...]}, {"booking_ref"} or {"date": "YYYY-MM-DD"}' }, 400);
+      return json({ error: 'Send {"email"}, {"emails": [...]}, {"booking_ref"}, {"date": "YYYY-MM-DD"} or {"all": true}' }, 400);
     }
 
     const slugs = [...new Set(rows.map((r) => r.trip_slug).filter((s): s is string => Boolean(s)))];
-    const { data: days, error: dErr } = slugs.length
-      ? await sb.from("allin_trip_days").select("*").in("trip_slug", slugs)
-      : { data: [], error: null };
+    const [{ data: days, error: dErr }, { data: editions, error: eErr }] = slugs.length
+      ? await Promise.all([
+        sb.from("allin_trip_days").select("*").in("trip_slug", slugs),
+        sb.from("allin_trip_editions").select("trip_slug,edition,booked_before").in("trip_slug", slugs),
+      ])
+      : [{ data: [], error: null }, { data: [], error: null }];
     if (dErr) throw dErr;
+    if (eErr) throw eErr;
 
     const bookings = rows
       .sort((a, b) => String(a.departure_date ?? "").localeCompare(String(b.departure_date ?? "")))
       .map((r) => {
-        const shaped = shape(r, (days ?? []) as DayRow[], onDate);
+        const shaped = shape(r, (days ?? []) as DayRow[], (editions ?? []) as Edition[], onDate);
         // For an email lookup: whether the asked-for guest is the lead booker or a named traveller.
         if (emails.length) {
           const lead = lower((r.payload.lead as { email?: string } | undefined)?.email);
