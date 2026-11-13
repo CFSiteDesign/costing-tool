@@ -14,6 +14,25 @@ export const MAX_KEY_PER_DAY = 3;
 
 export interface KeyDay { product_id: string; weekday: number }
 
+/** A product_date_rules row. "available" = a dated run on starts_on (a multi-day trip departs that day);
+ *  "blackout" = not running from starts_on to ends_on (or just starts_on), whatever its weekdays say. */
+export interface DateRule { product_id: string; kind: "available" | "blackout"; starts_on: string; ends_on: string | null }
+
+/** Every rule that touches from..to: dated runs starting inside it, and blackouts overlapping it. */
+export const dateRulesBetween = (from: string, to: string) =>
+  supabase.from("product_date_rules").select("product_id, kind, starts_on, ends_on")
+    .lte("starts_on", to).or(`starts_on.gte.${from},ends_on.gte.${from}`);
+
+/** What the rules say about one date: products with a dated run that day, and products blacked out that day. */
+export function rulesOn(rules: DateRule[], dateStr: string) {
+  const dated = new Set<string>(), blackout = new Set<string>();
+  for (const r of rules) {
+    if (r.kind === "blackout") { if (r.starts_on <= dateStr && (r.ends_on ?? r.starts_on) >= dateStr) blackout.add(r.product_id); }
+    else if (r.starts_on === dateStr) dated.add(r.product_id);
+  }
+  return { dated, blackout };
+}
+
 export function useWeek(locId: string | undefined, weekStart: Date) {
   const days = Array.from({ length: 7 }, (_, i) => plus(weekStart, i));
   const today = iso(new Date());
@@ -26,10 +45,10 @@ export function useWeek(locId: string | undefined, weekStart: Date) {
         supabase.from("products").select("*").eq("location_id", locId!).eq("active_on_ground", true)
           .neq("status", "paused").neq("category", "transport")   // transport has its own tab
           .or(`expires_on.is.null,expires_on.gte.${today}`),
-        supabase.from("product_date_rules").select("product_id, starts_on, ends_on").gte("starts_on", from).lte("starts_on", to),
+        dateRulesBetween(from, to),
         supabase.from("product_key_days").select("product_id, weekday").eq("location_id", locId!),
       ]);
-      return { products: (products ?? []) as Product[], rules: rules ?? [], keys: (keys ?? []) as KeyDay[] };
+      return { products: (products ?? []) as Product[], rules: (rules ?? []) as DateRule[], keys: (keys ?? []) as KeyDay[] };
     },
   });
   const keySet = new Set((q.data?.keys ?? []).map((k) => `${k.product_id}:${k.weekday}`));
@@ -37,9 +56,9 @@ export function useWeek(locId: string | undefined, weekStart: Date) {
   const rowsFor = (d: Date) => {
     const weekday = weekdayOf(d);
     const dateStr = iso(d);
-    const dated = new Set((q.data?.rules ?? []).filter((r) => r.starts_on === dateStr).map((r) => r.product_id));
+    const { dated, blackout } = rulesOn(q.data?.rules ?? [], dateStr);
     return (q.data?.products ?? [])
-      .filter((p) => (p.category !== "one_time_event" && p.days_of_week.includes(weekday)) || dated.has(p.id))
+      .filter((p) => !blackout.has(p.id) && ((p.category !== "one_time_event" && p.days_of_week.includes(weekday)) || dated.has(p.id)))
       .sort((a, b) => (a.starts_at ?? "99").localeCompare(b.starts_at ?? "99") || a.title.localeCompare(b.title));
   };
   const keysFor = (d: Date) => rowsFor(d).filter((p) => isKey(p, d));

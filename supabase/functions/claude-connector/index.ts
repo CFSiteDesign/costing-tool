@@ -251,7 +251,7 @@ const tools: Tool[] = [
   {
     name: "whats_on",
     title: "What's on",
-    description: "The programme at one hostel for a day or a run of days (what guests can do, in time order), worked out the same way as the dashboard's My week: live experiences on that weekday plus dated one-offs, transport left out. Defaults to today in the hostel's time zone.",
+    description: "The programme at one hostel for a day or a run of days (what guests can do, in time order), worked out the same way as the dashboard's My week: live experiences on that weekday plus dated one-offs, minus blackout days, transport left out. Defaults to today in the hostel's time zone.",
     inputSchema: {
       type: "object",
       properties: {
@@ -277,6 +277,7 @@ const tools: Tool[] = [
           and (e.expires_on is null or e.expires_on >= d::date)
           and ((e.category <> 'one_time_event' and extract(isodow from d)::smallint = any(e.days_of_week))
                or d::date = any(coalesce(e.dated_runs, '{}')))
+          and not (d::date = any(coalesce(e.blackout_dates, '{}')))
         order by d, e.starts_at nulls last, e.title`;
       return pack({ hostel: h.hostel, country: h.country, from: start, days, rows });
     }),

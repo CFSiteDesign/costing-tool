@@ -8,6 +8,7 @@ import type { Product, RoomType, SeasonTier } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
 import { usd } from "@/lib/format";
 import { clashes, timeSpan } from "@/lib/clash";
+import { dateRulesBetween, rulesOn, type DateRule } from "@/lib/week";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,21 +87,21 @@ export default function AutoTrip() {
       const [{ data: products }, { data: rules }, { data: rates }, { data: bf }] = await Promise.all([
         supabase.from("products").select("*").in("location_id", locIds).eq("active_on_ground", true).neq("status", "paused")
           .in("category", ["mm_tour", "nightly_event", "third_party_tour", "one_time_event"]).or(`expires_on.is.null,expires_on.gte.${today}`),
-        supabase.from("product_date_rules").select("product_id, starts_on").gte("starts_on", dateRange![0]).lte("starts_on", dateRange![1]),
+        dateRulesBetween(dateRange![0], dateRange![1]),
         supabase.from("accommodation_rates").select("location_id, room_type_id, season, rate_usd").in("location_id", locIds),
         supabase.from("breakfast_rates").select("location_id, rate_usd_pp").in("location_id", locIds),
       ]);
-      return { products: (products ?? []) as Product[], rules: rules ?? [], rates: rates ?? [], bf: bf ?? [] };
+      return { products: (products ?? []) as Product[], rules: (rules ?? []) as DateRule[], rates: rates ?? [], bf: bf ?? [] };
     },
   });
 
   /** Everything that runs at that hostel on that date, in time order (untimed last). */
   const optionsFor = (d: GenDay) => {
     const wd = isoWeekday(d.date);
-    const dated = new Set((menu?.rules ?? []).filter((r) => r.starts_on === d.date).map((r) => r.product_id));
+    const { dated, blackout } = rulesOn(menu?.rules ?? [], d.date);
     return (menu?.products ?? [])
       .filter((p) => p.location_id === d.location_id)
-      .filter((p) => (p.category !== "one_time_event" && p.days_of_week.includes(wd)) || dated.has(p.id))
+      .filter((p) => !blackout.has(p.id) && ((p.category !== "one_time_event" && p.days_of_week.includes(wd)) || dated.has(p.id)))
       .sort((a, b) => (a.starts_at ?? "99").localeCompare(b.starts_at ?? "99") || a.title.localeCompare(b.title));
   };
   const stayRate = (d: GenDay) => {
