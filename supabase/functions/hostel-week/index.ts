@@ -4,7 +4,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // and makes that week's posters from it, so every title, day, time and price comes from here.
 //
 //   POST { "action": "locations", "ts": 1763020800000 }
-//     -> { locations: [{ name, country, timezone, currency }] }   every active hostel, for STUDIO's Monday schedule
+//     -> { locations: [{ name, country, timezone, currency }], gms: [{ email, hostels }] }
+//        every active hostel (STUDIO's Monday schedule) and each GM login's hostels (who sees which pack)
 //   POST { "action": "week", "location": "Siargao", "week_start": "2026-11-16", "ts": 1763020800000 }
 //     -> { hostel, country, currency, timezone, week_start, experiences: [...] }   (public.hostel_week)
 //
@@ -35,9 +36,27 @@ Deno.serve(async (req: Request) => {
     if (typeof body.ts !== "number" || Math.abs(Date.now() - body.ts) > MAX_SKEW_MS) return json({ error: "stale request" }, 401);
 
     if (body.action === "locations") {
-      const { data, error } = await sb.from("locations").select("name,country,timezone,currency").eq("is_active", true).order("name");
+      const { data, error } = await sb.from("locations").select("id,name,country,timezone,currency").eq("is_active", true).order("name");
       if (error) throw error;
-      return json({ locations: data ?? [] });
+      // Which GM runs which hostel, so STUDIO shows each GM their own hostel's posters. Same rule as the
+      // connector's gm_logins: a GM login tied to 3 hostels or fewer (head office accounts are left out).
+      const [roles, links, people] = await Promise.all([
+        sb.from("user_roles").select("user_id").eq("role", "gm"),
+        sb.from("user_locations").select("user_id,location_id"),
+        sb.from("profiles").select("id,email").eq("is_active", true),
+      ]);
+      for (const r of [roles, links, people]) if (r.error) throw r.error;
+      const names = new Map((data ?? []).map((l) => [l.id, l.name]));
+      const isGm = new Set((roles.data ?? []).map((r) => r.user_id));
+      const byUser = new Map<string, string[]>();
+      for (const l of links.data ?? []) {
+        if (!isGm.has(l.user_id) || !names.has(l.location_id)) continue;
+        byUser.set(l.user_id, [...(byUser.get(l.user_id) ?? []), names.get(l.location_id)!]);
+      }
+      const gms = (people.data ?? [])
+        .filter((p) => p.email && byUser.has(p.id) && byUser.get(p.id)!.length <= 3)
+        .map((p) => ({ email: String(p.email).toLowerCase(), hostels: [...new Set(byUser.get(p.id))].sort() }));
+      return json({ locations: (data ?? []).map(({ id: _id, ...l }) => l), gms });
     }
 
     if (body.action === "week") {
