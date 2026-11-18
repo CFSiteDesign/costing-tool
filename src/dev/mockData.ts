@@ -3,6 +3,7 @@
  * `import.meta.env.DEV`, so production builds never include it. While the harness is on, every request that is not
  * to the local dev server is answered here: nothing reaches the production database, and writes go nowhere.
  */
+import { SIARGAO } from "../../tools/lineup/samples";
 import type { Location, Product, Role } from "@/lib/types";
 
 if (!import.meta.env.DEV) throw new Error("The tour harness is development-only.");
@@ -191,6 +192,9 @@ export function mockResponse(url: URL, method: string, headers: Headers, persona
   const path = url.pathname;
   if (path === "/rest/v1/rpc/list_quotes") return json(tables(persona).quotes);   // the Quotes list (migration 021)
   if (path === "/rest/v1/rpc/website_status") return json({ pending: 1, last_done_at: null, last_done_by: null });   // product page (024)
+  if (path === "/rest/v1/rpc/lineup_week") return json(lineupBundle(persona, false));   // weekly lineup (035)
+  if (path === "/rest/v1/rpc/lineup_set_key") return json({});
+  if (path === "/functions/v1/lineup") return json({ ok: true, bundle: lineupBundle(persona, true) });
   if (path.startsWith("/rest/v1/rpc/")) return json(null);
   if (path.startsWith("/rest/v1/")) {
     const wantsObject = (headers.get("accept") ?? "").includes("vnd.pgrst.object");
@@ -238,4 +242,21 @@ export function installMockFetch(persona: HarnessPersona) {
 export function uninstallMockFetch() {
   if (realFetch) window.fetch = realFetch;
   realFetch = null;
+}
+
+/** Weekly lineup for the harness: the spec's Siargao sample week, as lineup_week() returns it. */
+function lineupBundle(persona: HarnessPersona, approved: boolean) {
+  const days = SIARGAO.days.map((d, i) => ({ ...d, iso: `2026-11-${23 + i}`, items: d.items.map((it, j) => ({ ...it, id: `harness-${i}-${j}` })) }));
+  const file = "/lineup/all-in-sticker.png";
+  return {
+    week: { ...SIARGAO, hostel: LOCATIONS[0].name, everyDay: SIARGAO.everyDay.map((it, j) => ({ ...it, id: `harness-ed-${j}` })), days },
+    hostel: { id: LOCATIONS[0].id, name: LOCATIONS[0].name, timezone: LOCATIONS[0].timezone, colourway: "orange-yellow" },
+    row: {
+      id: "harness-lineup", week_start: "2026-11-23", status: approved ? "approved" : "draft", colourway: "orange-yellow", key_picks: {},
+      approved_at: approved ? new Date().toISOString() : null, approved_by: approved ? PEOPLE[persona].name : null, auto_approved: false,
+      files: approved ? { post: file, post_print: file, story: file, colourway: "orange-yellow", rendered_at: new Date().toISOString() } : null,
+      flags: null, notified_at: null,
+    },
+    can_edit: persona !== "sales",
+  };
 }
