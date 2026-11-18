@@ -193,7 +193,7 @@ function lineupView(week,format,colourway){
   var sp=hd.dates.indexOf(' ');
   var story=F.H>1500;
   return {W:F.W,H:F.H,bg:C.background,top:F.top,bottom:F.bottom,fit:Math.round(L.s*100)/100,tier:L.tier,overfull:L.overfull,
-    deco:story?[{size:440,x:720,y:-200,r:8},{size:300,x:600,y:-150,r:-10},{size:480,x:-170,y:1665,r:-6}].map(function(d){d.fill=C.display;d.line=C.outline;return d;}):[],
+    deco:story?[{size:440,x:720,y:-200,r:8}].map(   /* Charlie 18 Nov: one starburst, top right (was 3) */function(d){d.fill=C.display;d.line=C.outline;return d;}):[],
     head:{h:L.headH,side:hd.side,stack:!hd.side,name:hd.name,nameF:hd.nameF,subF:hd.subF,display:C.display,ol:C.outline,stickerText:C.stickerText,
       dates:hd.dates,dateFs:hd.dateFs,sticker:!hd.side||!hd.burst,burst:hd.side&&!!hd.burst,burstSize:hd.burst,burstFs:hd.burstFs,
       burstDates:sp>0?hd.dates.slice(0,sp)+'\n'+hd.dates.slice(sp+1):hd.dates},
