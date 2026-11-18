@@ -72,8 +72,10 @@ export default function MyWeek() {
           <Tip label="Previous week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, -7))}><ChevronLeft className="h-4 w-4" /></Button></Tip>
           <Tip label="Jump back to the current week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button></Tip>
           <Tip label="Next week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button></Tip>
-          <Tip label="Build this week's Instagram story (1080 x 1920) from the key events.">
+          <Tip label="This week's lineup poster: every event, Monday to Sunday, for WhatsApp, print and Instagram.">
             <Button size="sm" className="h-8 gap-1.5 ml-2" onClick={() => nav(`/lineup?week=${iso(weekStart)}`)}><CalendarRange className="h-4 w-4" /> Weekly lineup</Button>
+          </Tip>
+          <Tip label="Build this week's Instagram story (1080 x 1920) from the key events.">
             <Button size="sm" variant="outline" className="h-8 gap-1.5" data-tour="week-story" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
           </Tip>
           <span className="ml-2 text-sm text-muted-foreground tabular-nums">
