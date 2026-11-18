@@ -2,7 +2,7 @@ import type { Product } from "@/lib/types";
 import { daysLabel, shortTime } from "@/lib/format";
 import { money } from "@/lib/fx";
 
-export const STUDIO_URL = "https://mad-monkey-studio.vercel.app/";
+export const STUDIO_URL = "https://studio.madmonkeygroup.com/";
 
 /**
  * Deep link into STUDIO with exactly the five fields the client asked for —
