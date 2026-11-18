@@ -205,7 +205,7 @@ export default function Lineup() {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] [&>*]:min-w-0">
             <div className="flex gap-3 items-start">
               <figure className="flex-[1] min-w-0">
                 <div className="[&>svg]:w-full [&>svg]:h-auto [&>svg]:block rounded-md overflow-hidden shadow-sm border" dangerouslySetInnerHTML={{ __html: postSvg }} />
