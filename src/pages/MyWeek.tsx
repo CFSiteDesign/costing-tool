@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/app/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tip, TipHead } from "@/components/app/Tip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Star, Zap, Smartphone } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Zap, Smartphone, CalendarRange } from "lucide-react";
 
 /** Who runs it - the phase-2 "MM or third party" column. */
 const RUN_BY: Record<Product["category"], string> = {
@@ -73,7 +73,8 @@ export default function MyWeek() {
           <Tip label="Jump back to the current week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(mondayOf(new Date()))}>This week</Button></Tip>
           <Tip label="Next week"><Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(plus(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button></Tip>
           <Tip label="Build this week's Instagram story (1080 x 1920) from the key events.">
-            <Button size="sm" className="h-8 gap-1.5 ml-2" data-tour="week-story" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
+            <Button size="sm" className="h-8 gap-1.5 ml-2" onClick={() => nav(`/lineup?week=${iso(weekStart)}`)}><CalendarRange className="h-4 w-4" /> Weekly lineup</Button>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" data-tour="week-story" onClick={() => nav(`/week/story?week=${iso(weekStart)}`)}><Smartphone className="h-4 w-4" /> Weekly story</Button>
           </Tip>
           <span className="ml-2 text-sm text-muted-foreground tabular-nums">
             {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
