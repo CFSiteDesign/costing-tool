@@ -55,13 +55,38 @@ describe("weekly lineup engine + renderer", () => {
       expect(v.top).toBe(250);
       expect(v.bottom).toBe(300);
       const svg = lineupSvg(v, ASSETS);
-      for (const m of svg.matchAll(/<text ([^>]*)>/g)) {
-        const attr = (k: string) => new RegExp(`${k}="([^"]+)"`).exec(m[1])?.[1];
-        const base = +attr("y")!, fs = +attr("font-size")!, sw = +(attr("stroke-width") ?? 0);
+      // walk the SVG, adding up translate/scale groups so every text gets its absolute position
+      const stack: { dy: number; k: number }[] = [{ dy: 0, k: 1 }];
+      for (const m of svg.matchAll(/<g transform="([^"]+)">|<\/g>|<text ([^>]*)>/g)) {
+        const top = stack[stack.length - 1];
+        if (m[0] === "</g>") { stack.pop(); continue; }
+        if (m[1] !== undefined) {
+          const t = /translate\(([-\d.]+) ([-\d.]+)\)(?: scale\(([\d.]+)\))?/.exec(m[1]);
+          stack.push(t ? { dy: top.dy + top.k * +t[2], k: top.k * +(t[3] ?? 1) } : { ...top });
+          continue;
+        }
+        const attr = (k: string) => new RegExp(`${k}="([^"]+)"`).exec(m[2])?.[1];
+        const fs = +attr("font-size")!, sw = +(attr("stroke-width") ?? 0);
+        const base = top.dy + top.k * +attr("y")!;
         const cap = (attr("font-family") ?? "").startsWith("Anton") ? 0.859 : 0.7;
-        expect(base - cap * fs - sw / 2, "ink top").toBeGreaterThanOrEqual(250);
-        expect(base + sw / 2, "ink bottom").toBeLessThanOrEqual(1920 - 300);
+        expect(base - top.k * (cap * fs + sw / 2), "ink top").toBeGreaterThanOrEqual(250);
+        expect(base + top.k * (sw / 2), "ink bottom").toBeLessThanOrEqual(1920 - 300);
       }
+    }
+  });
+
+  it("an overfull week (Koh Rong size) keeps every item and stays above the footer", () => {
+    const names = ["Beach Olympics", "The Meet-Up", "Beer Pong / Table Games", "Fire Show", "Charity Beer Pong Tournament", "Pub Quiz"];
+    const big: LineupWeek = { ...STRESS, days: STRESS.days.map((d) => ({ ...d, items: names.map((n, i) => ({ name: n, time: `${i + 2}PM`, price: 0 })) })) };
+    for (const fmt of ["post", "story"] as const) {
+      const v = lineupView(big, fmt, "blue-lime");
+      expect(v.overfull).toBe(true);
+      expect(allItems(v).length).toBe(inputCount(big));
+      const svg = lineupSvg(v, ASSETS);
+      const g = /<g transform="translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)">/.exec(svg);
+      expect(g, "rows are scaled to fit").not.toBeNull();
+      const total = v.rows.reduce((a, r) => a + r.mt + r.h, 0);
+      expect(+g![2] + total * +g![3]).toBeLessThanOrEqual(v.H - v.bottom - v.footH);
     }
   });
 
