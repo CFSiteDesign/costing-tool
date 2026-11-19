@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PriceOptionsEditor, optionsFrom, type PriceRow } from "@/components/app/PriceOptions";
+import { useFx } from "@/lib/fx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Globe, Check, X, Pencil, Link2, ExternalLink } from "lucide-react";
@@ -96,10 +98,14 @@ export function PendingGlobalEvents() {
 /** GE2: everything head office sent, editable, with "accept with these details". Only what you changed is sent as an override. */
 function EventDialog({ ev, busy, onClose, onAccept, onDecline }: { ev: PendingEvent; busy: boolean; onClose: () => void; onAccept: (o: Overrides) => void; onDecline: () => void }) {
   const oneTime = ev.category === "one_time_event";
+  const auth = useAuth();
+  const fx = useFx();
+  const ccy = auth.currentLocation?.currency ?? "USD";
   const init = {
     title: ev.title, rate: ev.rate_usd != null ? String(ev.rate_usd) : "", event_date: ev.event_date ?? "", expires_on: ev.expires_on ?? "",
     days: ev.days_of_week ?? [], starts: ev.starts_at?.slice(0, 5) ?? "", ends: ev.ends_at?.slice(0, 5) ?? "",
     brief: ev.brief_description ?? "", long: ev.long_description ?? "", inclusions: ev.inclusions ?? "", bring: ev.things_to_bring ?? "",
+    options: [] as PriceRow[],   // Nov 2026 (Kurt, Phuket): an event sold at several prices, e.g. early bird and on the day
   };
   const [f, setF] = useState(init);
   const set = <K extends keyof typeof init>(k: K, v: (typeof init)[K]) => setF((s) => ({ ...s, [k]: v }));
@@ -109,7 +115,9 @@ function EventDialog({ ev, busy, onClose, onAccept, onDecline }: { ev: PendingEv
   const accept = () => {
     if (!f.title.trim()) return toast.error("Title is required");
     if (f.brief.length > 95) return toast.error("Brief description must be 95 characters or fewer");
-    if (f.rate.trim() !== "" && !isFinite(Number(f.rate))) return toast.error("Rate must be a number");
+    if (f.rate.trim() !== "" && !isFinite(Number(f.rate))) return toast.error("Rate must be one number. Selling at more than one price? Put the main price here and add the rest under \"Add price options\".");
+    const po = optionsFrom(f.options, ccy);
+    if ("error" in po) return toast.error(po.error);
     if (oneTime && !f.event_date) return toast.error("A one-time event needs a date");
     const o: Overrides = {};
     if (changed("title")) o.title = f.title.trim();
@@ -123,6 +131,7 @@ function EventDialog({ ev, busy, onClose, onAccept, onDecline }: { ev: PendingEv
     if (changed("long")) o.long_description = f.long.trim();
     if (changed("inclusions")) o.inclusions = f.inclusions.trim();
     if (changed("bring")) o.things_to_bring = f.bring.trim();
+    if (po.options.length) o.price_options = po.options;
     onAccept(o);
   };
   const L = ({ children, k }: { children: React.ReactNode; k?: keyof typeof init }) => (
@@ -148,6 +157,10 @@ function EventDialog({ ev, busy, onClose, onAccept, onDecline }: { ev: PendingEv
           )}
           <div className="space-y-1"><L k="starts">Start</L><Input type="time" value={f.starts} onChange={(e) => set("starts", e.target.value)} /></div>
           <div className="space-y-1"><L k="ends">Finish</L><Input type="time" value={f.ends} onChange={(e) => set("ends", e.target.value)} /></div>
+          <div className="space-y-1 col-span-2 max-sm:col-span-1">
+            {f.options.length > 0 && <L k="options">Price options</L>}
+            <PriceOptionsEditor rows={f.options} onChange={(rows) => set("options", rows)} ccy={ccy} fxRate={fx.rate(ccy)} />
+          </div>
           <div className="space-y-1 col-span-2">
             <div className="flex justify-between"><L k="brief">Brief description</L><span className={`text-[11px] ${f.brief.length > 95 ? "text-destructive" : "text-muted-foreground"}`}>{f.brief.length}/95</span></div>
             <Textarea rows={2} maxLength={95} value={f.brief} onChange={(e) => set("brief", e.target.value)} />

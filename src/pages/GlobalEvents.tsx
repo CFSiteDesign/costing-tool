@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { CATEGORY_LABELS, type Category } from "@/lib/types";
+import { CATEGORY_LABELS, type Category, type PriceOption } from "@/lib/types";
+import { formatOptions } from "@/components/app/PriceOptions";
 import { daysLabel } from "@/lib/format";
 import { timeSpan } from "@/lib/clash";
 import { DaysPicker } from "@/components/app/DaysPicker";
@@ -30,6 +31,7 @@ const COLOR: Record<Resp["status"], string> = { accepted: "--st-active", decline
 const OVERRIDE_LABEL: Record<string, string> = {
   title: "name", rate_usd: "rate", local_amount: "local price", starts_at: "start", ends_at: "finish", days_of_week: "days", event_date: "date",
   expires_on: "expiry", brief_description: "brief", long_description: "description", inclusions: "inclusions", things_to_bring: "things to bring",
+  price_options: "price options",
 };
 const fmtDate = (d: string | null) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
 
@@ -246,7 +248,7 @@ export default function GlobalEvents() {
                   <div className="flex flex-wrap gap-1.5">{rs.map((r) => <Chip key={r.location_id} r={r} />)}</div>
                   {rs.some((r) => r.overrides) && (
                     <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
-                      {rs.filter((r) => r.overrides).map((r) => <div key={r.location_id}><span className="font-medium text-foreground">{locName(r.location_id)}</span> changed {changedList(r.overrides)}: {Object.entries(r.overrides!).map(([k, v]) => `${OVERRIDE_LABEL[k] ?? k} → ${Array.isArray(v) ? daysLabel(v as number[]) : String(v)}`).join("; ")}</div>)}
+                      {rs.filter((r) => r.overrides).map((r) => <div key={r.location_id}><span className="font-medium text-foreground">{locName(r.location_id)}</span> changed {changedList(r.overrides)}: {Object.entries(r.overrides!).map(([k, v]) => `${OVERRIDE_LABEL[k] ?? k} → ${k === "price_options" ? formatOptions(v as PriceOption[], "USD") : Array.isArray(v) ? daysLabel(v as number[]) : String(v)}`).join("; ")}</div>)}
                     </div>
                   )}
                 </div>
