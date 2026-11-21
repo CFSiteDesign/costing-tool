@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Download, Loader2, Share2, Star, AlertTriangle, Printer } from "lucide-react";
 import { lineupView, COLOURWAYS, type ColourwayKey } from "../../supabase/functions/_shared/lineup/engine.js";
 import { lineupSvg, type LineupAssets } from "../../supabase/functions/_shared/lineup/svg";
-import { applyKeys, lineupFileName, COLOURWAY_KEYS, type LineupBundle } from "../../supabase/functions/_shared/lineup/week";
+import { posterWeek, lineupFileName, COLOURWAY_KEYS, type LineupBundle } from "../../supabase/functions/_shared/lineup/week";
 
 /**
  * Weekly lineup (Nov 2026, spec from Claude Design): one poster per hostel per week, made from the experiences.
@@ -78,7 +78,7 @@ export default function Lineup() {
   const [colourway, setColourway] = useState<ColourwayKey>("orange-yellow");
   useEffect(() => { if (bundle) { setPicks(bundle.row.key_picks ?? {}); setColourway(bundle.row.colourway); } }, [bundle?.row.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const week = useMemo(() => (bundle ? applyKeys(bundle.week, picks) : null), [bundle, picks]);
+  const week = useMemo(() => (bundle ? posterWeek(bundle.week, picks) : null), [bundle, picks]);
   const post = useMemo(() => (week ? lineupView(week, "post", colourway) : null), [week, colourway]);
   const story = useMemo(() => (week ? lineupView(week, "story", colourway) : null), [week, colourway]);
   const postSvg = useMemo(() => (post ? lineupSvg(post, ASSETS) : ""), [post]);
@@ -173,7 +173,7 @@ export default function Lineup() {
                   {row.approved_at ? ` · ${new Date(row.approved_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}` : ""}
                 </span>
               : <span className="rounded-full bg-[hsl(var(--st-pending))]/15 text-[hsl(var(--st-pending))] px-2.5 py-0.5 font-medium">Draft · approves itself Sunday 6pm if nobody does</span>}
-            <span className="text-muted-foreground">Names, times and prices come from the experiences. <Link to={`/week?week=${weekKey}`} className="underline underline-offset-2">Change them there</Link> and the poster follows.</span>
+            <span className="text-muted-foreground">Names and times come from the experiences. <Link to={`/week?week=${weekKey}`} className="underline underline-offset-2">Change them there</Link> and the poster follows.</span>
           </div>
 
           {busy && (
@@ -241,7 +241,7 @@ export default function Lineup() {
                   ))}
                   {bundle.week.everyDay.length > 0 && (
                     <div className="px-3 py-2">
-                      <div className="text-xs font-semibold text-muted-foreground">EVERY DAY <span className="font-normal">(runs all week, so it sits in its own band)</span></div>
+                      <div className="text-xs font-semibold text-muted-foreground">EVERY DAY <span className="font-normal">(runs all week, so it is left off the poster)</span></div>
                       {bundle.week.everyDay.map((it) => (
                         <div key={it.id} className="flex gap-2 py-1 text-sm"><span className="truncate">{it.name}</span>{it.time && <span className="ml-auto text-xs text-muted-foreground">{it.time}</span>}</div>
                       ))}

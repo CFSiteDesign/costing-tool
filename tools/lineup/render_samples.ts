@@ -5,6 +5,7 @@ import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 // @deno-types="../../supabase/functions/_shared/lineup/engine.d.ts"
 import { lineupView } from "../../supabase/functions/_shared/lineup/engine.js";
 import { lineupSvg } from "../../supabase/functions/_shared/lineup/svg.ts";
+import { posterWeek } from "../../supabase/functions/_shared/lineup/week.ts";
 import { PAI, SIARGAO, STRESS } from "./samples.ts";
 
 const root = new URL("../../public/lineup/", import.meta.url);
@@ -20,7 +21,7 @@ const ways = Deno.args.slice(1).length ? Deno.args.slice(1) : ["orange-yellow"];
 Deno.mkdirSync(out, { recursive: true });
 for (const [name, week] of Object.entries({ siargao: SIARGAO, pai: PAI, stress: STRESS })) {
   for (const way of ways) for (const fmt of ["post", "story"] as const) {
-    const v = lineupView(week, fmt, way);
+    const v = lineupView(posterWeek(week as never, {}), fmt, way);   // as printed: no every-day band, dates or prices
     const svg = lineupSvg(v, assets);
     const t0 = performance.now();
     const img = new Resvg(svg, { font: { fontBuffers: fonts, loadSystemFonts: false, defaultFontFamily: "Montserrat" } }).render().asPng();

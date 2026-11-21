@@ -140,7 +140,7 @@ function row(r: RowView, x: number, y: number, w: number): string {
     out.push(`<rect x="${r1(x + 1.5)}" y="${r1(y + 1.5)}" width="${r1(w - 3)}" height="${r1(h - 3)}" rx="20.5" fill="none" stroke="${r.line}" stroke-width="3"/>`);
     const fs = r.dayFs!, sfs = r.stickerFs!;
     out.push(text(ix, y + (h + ANTON_CAP * fs) / 2, r.day!, { size: fs, fill: r.ol!, track: TRACK }));
-    out.push(text(ix + antonW(r.day!, fs) + fs * 0.35, y + (h + MONT_CAP * sfs) / 2, r.date!, { family: SMALL, weight: 900, size: sfs, fill: r.ol!, track: 0.01 }));
+    if (r.date) out.push(text(ix + antonW(r.day!, fs) + fs * 0.35, y + (h + MONT_CAP * sfs) / 2, r.date!, { family: SMALL, weight: 900, size: sfs, fill: r.ol!, track: 0.01 }));
     return out.join("");
   }
   const sh = parseShadow(r.shadow);
@@ -154,11 +154,13 @@ function row(r: RowView, x: number, y: number, w: number): string {
   } else {
     const fs = r.dayFs!, base = y + (h + ANTON_CAP * fs) / 2;
     out.push(outlined(ix, base, r.day!, fs, { fill: r.dayFill!, ol: r.ol!, olEm: 0.06, shEm: 0.06 }));
-    const sfs = r.stickerFs!, st = stickerSize(r.date!, sfs), labelEnd = ix + antonW(r.day!, fs) + fs * 0.12;
-    // beside the label at cap height; on wide labels (MON at full size) it slaps over the label's corner instead
-    const cx = Math.min(labelEnd + 6 + st.w / 2, ix + G.dayW + 8 - st.w / 2);
-    const cy = base - ANTON_CAP * fs + st.h / 2;
-    out.push(sticker(cx, cy, r.date!, sfs, r.stickerText!, r.ol!, -5));
+    if (r.date) {   // posterWeek() blanks the dates (Kyle, 19 Nov 2026), so no sticker is drawn
+      const sfs = r.stickerFs!, st = stickerSize(r.date, sfs), labelEnd = ix + antonW(r.day!, fs) + fs * 0.12;
+      // beside the label at cap height; on wide labels (MON at full size) it slaps over the label's corner instead
+      const cx = Math.min(labelEnd + 6 + st.w / 2, ix + G.dayW + 8 - st.w / 2);
+      const cy = base - ANTON_CAP * fs + st.h / 2;
+      out.push(sticker(cx, cy, r.date, sfs, r.stickerText!, r.ol!, -5));
+    }
   }
   out.push(items(r, ix + G.dayW + G.dayGap, iy, ih));
   return out.join("");

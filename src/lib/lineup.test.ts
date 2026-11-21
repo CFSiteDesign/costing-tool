@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { lineupView, COLOURWAYS, type LineupWeek, type LineupView } from "../../supabase/functions/_shared/lineup/engine.js";
 import { lineupSvg } from "../../supabase/functions/_shared/lineup/svg";
-import { applyKeys, lineupFileName, COLOURWAY_KEYS } from "../../supabase/functions/_shared/lineup/week";
+import { applyKeys, posterWeek, lineupFileName, COLOURWAY_KEYS } from "../../supabase/functions/_shared/lineup/week";
 import { PAI, SIARGAO, STRESS } from "../../tools/lineup/samples";
 
 // Acceptance checks from the Weekly Lineup spec (costing-tool-prompt.md, section 6).
@@ -105,6 +105,25 @@ describe("weekly lineup engine + renderer", () => {
     expect(first.text).toBe("PUB QUIZ");
     expect(first.key).toBe(true);
     expect(first.fs).toBeGreaterThan(other.fs);
+  });
+
+  it("Kyle's poster rules: no EVERY DAY band, no dates beside the days, no prices, every day item kept", () => {
+    for (const week of Object.values(WEEKS)) {
+      const printed = posterWeek(week as never, {});
+      for (const fmt of ["post", "story"] as const) {
+        const v = lineupView(printed, fmt, "orange-yellow");
+        const svg = lineupSvg(v, ASSETS);
+        expect(v.rows.some((r) => r.isBand)).toBe(false);
+        expect(svg).not.toContain("EVERY");
+        expect(allItems(v).some((i) => i.hasPrice)).toBe(false);
+        expect(svg, "no day date sticker").not.toContain("rotate(-5 ");
+        for (const d of week.days) if (d.date) expect(svg).not.toMatch(new RegExp(`>${d.date}</text>`));
+        expect(allItems(v).length).toBe(week.days.reduce((a, d) => a + d.items.length, 0));
+        expect(v.rows.map((r) => r.day)).toEqual(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]);
+        expect(v.head.dates, "the header keeps the week's dates").toBe(week.dates.toUpperCase());
+        expect(v.overfull).toBe(false);
+      }
+    }
   });
 
   it("offers exactly the 5 colourways and names files the spec way", () => {

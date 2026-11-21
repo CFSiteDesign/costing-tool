@@ -3,7 +3,7 @@ import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 // @deno-types="../_shared/lineup/engine.d.ts"
 import { lineupView } from "../_shared/lineup/engine.js";
 import { lineupSvg, type LineupAssets } from "../_shared/lineup/svg.ts";
-import { applyKeys, lineupFileName, type LineupBundle } from "../_shared/lineup/week.ts";
+import { posterWeek, lineupFileName, type LineupBundle } from "../_shared/lineup/week.ts";
 
 // Weekly lineup posters (migration 035, 18 Nov 2026).
 //   POST {action:"approve", location_id, week_start}   user JWT: render the final PNGs (post, 3x print, story) with
@@ -70,7 +70,7 @@ function loadRenderer(base: string) {
 
 async function renderAndStore(bundle: LineupBundle, colourway: string, base: string) {
   const { fonts, assets } = await loadRenderer(base);
-  const week = applyKeys(bundle.week, bundle.row.key_picks ?? {});
+  const week = posterWeek(bundle.week, bundle.row.key_picks ?? {});
   const opts = { font: { fontBuffers: fonts, loadSystemFonts: false, defaultFontFamily: "Montserrat" } };
   const post = lineupView(week, "post", colourway), story = lineupView(week, "story", colourway);
   const postSvg = lineupSvg(post, assets), storySvg = lineupSvg(story, assets);
@@ -137,7 +137,7 @@ async function notifyGms(bundle: LineupBundle) {
     `Hi!`, ``,
     `Next week's lineup poster for Mad Monkey ${bundle.hostel.name} (${bundle.week.dates}) is ready.`, ``,
     `Check it here, star each day's main event if you want one, pick your colours and press Approve:`, link, ``,
-    `Names, times and prices come from your experiences in the dashboard, so fix anything there and the poster updates.`,
+    `Names and times come from your experiences in the dashboard, so fix anything there and the poster updates.`,
     `If it isn't approved by Sunday 6pm it is approved as it is, so the poster is never missing.`, ``,
     `Mad Monkey Experience Dashboard`,
   ].join("\n");

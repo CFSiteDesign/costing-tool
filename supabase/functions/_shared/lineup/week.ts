@@ -26,6 +26,18 @@ export function applyKeys(week: LineupBundle["week"], picks: Record<string, stri
   };
 }
 
+/** The week exactly as the poster prints it: the GM's KEY picks, plus Kyle's poster rules (19 Nov 2026):
+ *  no EVERY DAY band, no dates beside the day labels, no prices. The header keeps the week's date range.
+ *  The page preview and the Edge Function both go through this, so the approved PNGs match the preview. */
+export function posterWeek(week: LineupBundle["week"], picks: Record<string, string>): LineupWeek {
+  const w = applyKeys(week, picks);
+  return {
+    ...w,
+    everyDay: [],
+    days: w.days.map((d) => ({ ...d, date: "", items: d.items.map((it) => ({ ...it, price: null })) })),
+  };
+}
+
 /** mm-lineup-{hostel}-{yyyy-mm-dd}-{post|post-print|story}.png */
 export const lineupFileName = (hostel: string, weekStart: string, kind: "post" | "post-print" | "story") =>
   `mm-lineup-${hostel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${weekStart}-${kind}.png`;
