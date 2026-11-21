@@ -95,7 +95,10 @@ export default function Lineup() {
     if (!loc) return;
     const run = ++exportRun.current;
     setExporting(true);
-    const { data, error } = await supabase.functions.invoke("lineup", { body: { action: "approve", location_id: loc.id, week_start: weekKey } });
+    const invoke = () => supabase.functions.invoke("lineup", { body: { action: "approve", location_id: loc.id, week_start: weekKey } });
+    let { data, error } = await invoke();
+    // 546 = the render ran out of its CPU budget on a cold server; a second try lands on a warm one
+    if (error && (error as { context?: Response }).context?.status === 546) ({ data, error } = await invoke());
     if (run !== exportRun.current) return;           // a newer change already started another export
     setExporting(false);
     if (error || !data?.ok) { toast.error(error ? await invokeErrorMessage(error) : (data?.error ?? "Couldn't make the final files")); return; }

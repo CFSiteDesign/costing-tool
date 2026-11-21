@@ -13,6 +13,7 @@ import { posterWeek, lineupFileName, type LineupBundle } from "../_shared/lineup
 //        make next week's draft and email the hostel's GMs; on the auto slot (Sunday 18:00) approve any draft for
 //        the coming week. Only when sync_config lineup_enabled = 'true'. Each hostel's render runs as its own request
 //        (action "auto_one" + the cron secret) so one request never renders more than one poster set.
+//   POST {action:"render_print", ..., secret}           internal: the 3x print file in a request of its own (CPU budget).
 // verify_jwt is off: user actions check the JWT here, cron steps only act on their own time slots.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -68,35 +69,60 @@ function loadRenderer(base: string) {
   return ready;
 }
 
-async function renderAndStore(bundle: LineupBundle, colourway: string, base: string) {
+type Kind = "post" | "post-print" | "story";
+
+/** Render the given files and upload them. Each request has a 2s CPU budget and all three files in one request
+ *  measured 1.3s to 2.05s (over the limit once, 21 Nov 2026), so the 3x print file (13M pixels, most of the work)
+ *  is rendered in a request of its own: see renderAndStore. */
+async function renderFiles(bundle: LineupBundle, colourway: string, base: string, kinds: Kind[]) {
   const { fonts, assets } = await loadRenderer(base);
   const week = posterWeek(bundle.week, bundle.row.key_picks ?? {});
   const opts = { font: { fontBuffers: fonts, loadSystemFonts: false, defaultFontFamily: "Montserrat" } };
   const post = lineupView(week, "post", colourway), story = lineupView(week, "story", colourway);
-  const postSvg = lineupSvg(post, assets), storySvg = lineupSvg(story, assets);
-  const out: Record<string, Uint8Array> = {
-    post: new Resvg(postSvg, opts).render().asPng(),
-    "post-print": new Resvg(postSvg, { ...opts, fitTo: { mode: "zoom" as const, value: 3 } }).render().asPng(),
-    story: new Resvg(storySvg, opts).render().asPng(),
-  };
   const ws = bundle.row.week_start, v = Date.now();
-  const urls: Record<string, string> = {};
-  for (const [kind, bytes] of Object.entries(out)) {
-    const path = `${bundle.hostel.id}/${ws}/${lineupFileName(bundle.hostel.name, ws, kind as "post")}`;
+  const urls: Partial<Record<Kind, string>> = {};
+  for (const kind of kinds) {
+    const bytes = kind === "story" ? new Resvg(lineupSvg(story, assets), opts).render().asPng()
+      : kind === "post" ? new Resvg(lineupSvg(post, assets), opts).render().asPng()
+      : new Resvg(lineupSvg(post, assets), { ...opts, fitTo: { mode: "zoom" as const, value: 3 } }).render().asPng();
+    const path = `${bundle.hostel.id}/${ws}/${lineupFileName(bundle.hostel.name, ws, kind)}`;
     const { error } = await admin.storage.from("lineups").upload(path, bytes, { contentType: "image/png", upsert: true, cacheControl: "300" });
     if (error) throw new Error(`upload ${kind}: ${error.message}`);
     urls[kind] = `${admin.storage.from("lineups").getPublicUrl(path).data.publicUrl}?v=${v}`;
   }
   return {
-    files: { post: urls.post, post_print: urls["post-print"], story: urls.story, colourway, rendered_at: new Date().toISOString() },
+    urls, data: week,
     flags: { fit: Math.min(post.fit, story.fit), tier: Math.max(post.tier, story.tier), overfull: post.overfull || story.overfull },
-    data: week,
+  };
+}
+
+/** The 3x print file, rendered by a request of its own (two tries). Falls back to this request without a secret. */
+async function renderPrint(bundle: LineupBundle, colourway: string, cfg: Record<string, string>, base: string): Promise<string> {
+  if (!cfg.lineup_cron_secret) return (await renderFiles(bundle, colourway, base, ["post-print"])).urls["post-print"]!;
+  let last = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const r = await fetch(SELF, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "render_print", location_id: bundle.hostel.id, week_start: bundle.row.week_start, colourway, secret: cfg.lineup_cron_secret }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.url) return j.url as string;
+    last = `HTTP ${r.status} ${j.error ?? j.message ?? ""}`.trim();
+  }
+  throw new Error(`Couldn't make the print file (${last}). Please try again.`);
+}
+
+async function renderAndStore(bundle: LineupBundle, colourway: string, cfg: Record<string, string>, base: string) {
+  const r = await renderFiles(bundle, colourway, base, ["post", "story"]);
+  const print = await renderPrint(bundle, colourway, cfg, base);
+  return {
+    files: { post: r.urls.post!, post_print: print, story: r.urls.story!, colourway, rendered_at: new Date().toISOString() },
+    flags: r.flags,
+    data: r.data,
   };
 }
 
 /** Render, store and mark approved. by = null means auto-approved by the Sunday job. */
-async function approve(bundle: LineupBundle, by: string | null, base: string) {
-  const r = await renderAndStore(bundle, bundle.row.colourway, base);
+async function approve(bundle: LineupBundle, by: string | null, cfg: Record<string, string>, base: string) {
+  const r = await renderAndStore(bundle, bundle.row.colourway, cfg, base);
   const first = bundle.row.status !== "approved";
   const patch: Record<string, unknown> = { status: "approved", files: r.files, flags: r.flags, data: r.data, colourway: bundle.row.colourway, updated_at: new Date().toISOString() };
   if (first) Object.assign(patch, { approved_at: new Date().toISOString(), approved_by: by, auto_approved: by === null });
@@ -169,8 +195,11 @@ async function cron(cfg: Record<string, string>) {
       const b = await bundleFor(admin, h.id, nextMonday);
       if (b.row.status !== "approved") {
         // one request per hostel, so no single request renders more than one poster set
-        const r = await fetch(SELF, { method: "POST", headers: { "Content-Type": "application/json" },
+        const call = () => fetch(SELF, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "auto_one", location_id: h.id, week_start: nextMonday, secret: cfg.lineup_cron_secret }) });
+        let r = await call();
+        if (!r.ok) { await r.body?.cancel(); r = await call(); }   // one retry, so a busy moment never leaves a hostel without its poster
+        await r.body?.cancel();
         done.push({ hostel: h.name, week: nextMonday, auto: r.status });
       }
     }
@@ -191,11 +220,18 @@ Deno.serve(async (req) => {
   try {
     if (body.action === "cron") return json(await cron(cfg));
 
+    if (body.action === "render_print") {
+      if (!cfg.lineup_cron_secret || body.secret !== cfg.lineup_cron_secret) return json({ error: "Not allowed" }, 403);
+      const b = await bundleFor(admin, body.location_id, body.week_start);
+      const r = await renderFiles(b, body.colourway || b.row.colourway, base, ["post-print"]);
+      return json({ ok: true, url: r.urls["post-print"] });
+    }
+
     if (body.action === "auto_one") {
       if (!cfg.lineup_cron_secret || body.secret !== cfg.lineup_cron_secret) return json({ error: "Not allowed" }, 403);
       const b = await bundleFor(admin, body.location_id, body.week_start);
       if (b.row.status === "approved") return json({ ok: true, already: true });
-      const r = await approve(b, null, base);
+      const r = await approve(b, null, cfg, base);
       console.log(JSON.stringify({ auto_approved: b.hostel.name, week: body.week_start, flags: r.flags }));
       return json({ ok: true, flags: r.flags });
     }
@@ -209,7 +245,7 @@ Deno.serve(async (req) => {
       const b = await bundleFor(userDb, body.location_id, body.week_start);   // checks this user can see the hostel
       if (!b.can_edit) return json({ error: "Your login can view the lineup but not approve it." }, 403);
       const t0 = Date.now();
-      const r = await approve(b, u.user.id, base);
+      const r = await approve(b, u.user.id, cfg, base);
       console.log(JSON.stringify({ approved: b.hostel.name, week: body.week_start, by: u.user.email, ms: Date.now() - t0, flags: r.flags }));
       return json({ ok: true, bundle: await bundleFor(userDb, body.location_id, body.week_start) });
     }
