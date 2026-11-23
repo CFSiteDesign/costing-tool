@@ -10,7 +10,7 @@ interface Photo { id: string; url: string; sort_order: number; caption: string |
 const BUCKET = "product-photos";
 const MAX_SIDE = 1800;
 
-async function shrink(file: File): Promise<Blob> {
+export async function shrink(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
   const c = document.createElement("canvas");

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORY_LABELS, type Category } from "@/lib/types";
@@ -15,6 +15,7 @@ import { Check, X, FileText, ClipboardCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SheetQueue } from "@/components/app/SheetQueue";
 import { WebsiteQueue } from "@/components/app/WebsiteQueue";
+import { HostelworldQueue } from "@/components/app/HostelworldQueue";
 
 interface Proposal {
   id: number; product_id: string; location_id: string;
@@ -42,31 +43,35 @@ export default function Approvals() {
   const { data: counts } = useQuery({
     queryKey: ["pending-approvals", "split"],
     queryFn: async () => {
-      const [a, b, w, d] = await Promise.all([
+      const [a, b, w, d, h] = await Promise.all([
         supabase.from("sheet_sync_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("product_time_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("notification_events").select("id", { count: "exact", head: true }).is("website_done_at", null),
         supabase.from("notification_events").select("id", { count: "exact", head: true }).not("website_done_by", "is", null),
+        supabase.from("hostelworld_changes").select("id", { count: "exact", head: true }).is("done_at", null),
       ]);
-      return { sheet: a.count ?? 0, times: b.count ?? 0, website: w.count ?? 0, websiteDone: d.count ?? 0 };
+      return { sheet: a.count ?? 0, times: b.count ?? 0, website: w.count ?? 0, websiteDone: d.count ?? 0, hostelworld: h.count ?? 0 };
     },
   });
-  const [tab, setTab] = useState("website");
+  const [params] = useSearchParams();   // the daily Hostelworld email links to ?tab=hostelworld
+  const [tab, setTab] = useState(() => params.get("tab") ?? "website");
   return (
     <div className="p-4 space-y-3 max-w-6xl">
       <div data-tour="approvals-head">
         <h1 className="text-xl font-semibold flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Approvals</h1>
-        <p className="text-sm text-muted-foreground">Waiting for head office: website updates to copy across, and changes from the old flow chart.</p>
+        <p className="text-sm text-muted-foreground">Waiting for head office: website and Hostelworld updates to copy across, and changes from the old flow chart.</p>
       </div>
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="website">Website updates{counts ? ` (${counts.website})` : ""}</TabsTrigger>
           <TabsTrigger value="website-done">Completed{counts ? ` (${counts.websiteDone})` : ""}</TabsTrigger>
+          <TabsTrigger value="hostelworld">Hostelworld{counts ? ` (${counts.hostelworld})` : ""}</TabsTrigger>
           <TabsTrigger value="sheet">Sheet changes{counts ? ` (${counts.sheet})` : ""}</TabsTrigger>
           <TabsTrigger value="times">Times{counts ? ` (${counts.times})` : ""}</TabsTrigger>
         </TabsList>
         <TabsContent value="website" className="mt-3"><WebsiteQueue /></TabsContent>
         <TabsContent value="website-done" className="mt-3"><WebsiteQueue done /></TabsContent>
+        <TabsContent value="hostelworld" className="mt-3"><HostelworldQueue /></TabsContent>
         <TabsContent value="sheet" className="mt-3">
           <p className="text-sm text-muted-foreground mb-3">Nothing changes on an experience until it is approved here.</p>
           <SheetQueue />

@@ -19,6 +19,7 @@ import { ArrowLeft, Check, ShieldCheck, Trash2 } from "lucide-react";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { holdUnsaved } from "@/lib/unsaved";
 import { ProductPhotos } from "@/components/app/ProductPhotos";
+import { HostelworldPanel, HOSTELWORLD_CATEGORIES } from "@/components/app/HostelworldPanel";
 import { PriceOptionsEditor, optionsFrom, rowsFrom } from "@/components/app/PriceOptions";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
@@ -308,6 +309,8 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
       )}
 
       <ProductPhotos productId={product.id} locationId={product.location_id} canEdit={canEdit} />
+
+      {HOSTELWORLD_CATEGORIES.includes(product.category) && <HostelworldPanel productId={product.id} locationId={product.location_id} canEdit={canEdit} />}
 
       <div className="rounded-md border p-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
