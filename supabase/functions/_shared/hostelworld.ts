@@ -15,10 +15,13 @@ export interface HwChange {
   changed_at: string;
 }
 
-/** reden: every event and tour. team (Adel, Katrina): nightly events, plus anything called a Meet-Up. */
+/** Since 24 Nov 2026 (Reden, Katrina; migration 039) only nightly events and Meet-Ups are logged at all: tours have
+ *  their own process. The two audiences (Reden / Adel and Katrina) are kept so a wider list stays a one-line change. */
 export type HwAudience = "all" | "nightly";
 
 export const isMeetUp = (title: string | null) => /\bmeet[\s-]?ups?\b/i.test(title ?? "");
+/** What counts for Hostelworld: the same rule as is_hostelworld_product() in migration 039. */
+export const isHostelworldProduct = (category: string, title: string | null) => category === "nightly_event" || isMeetUp(title);
 export const inAudience = (c: Pick<HwChange, "category" | "product_title">, a: HwAudience) =>
   a === "all" || c.category === "nightly_event" || isMeetUp(c.product_title);
 

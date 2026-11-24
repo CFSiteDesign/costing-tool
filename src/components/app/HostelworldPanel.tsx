@@ -7,12 +7,11 @@ import { shrink } from "@/components/app/ProductPhotos";
 import { toast } from "sonner";
 import { Check, Download, ImagePlus, X } from "lucide-react";
 
-/** Hostelworld Link Up box on an event or tour (migration 038, 23 Nov 2026): the exact photo the Link Up should use
+/** Hostelworld Link Up box on a nightly event or Meet-Up (migrations 038 + 039): the exact photo the Link Up should use
  *  (its own upload, separate from the product photos) and whether someone has checked it is on Hostelworld.
  *  Saves straight away and keeps its own state, so it never resets unsaved edits in the form around it.
  *  Changing the photo goes out in the daily Hostelworld email. */
 const BUCKET = "product-photos";
-export const HOSTELWORLD_CATEGORIES = ["nightly_event", "mm_tour", "one_time_event", "third_party_tour"];
 
 interface Hw { hostelworld_photo_url: string | null; on_hostelworld: boolean | null; hostelworld_checked_at: string | null; checked_by_name: string | null }
 

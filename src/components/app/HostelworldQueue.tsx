@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Check, Undo2 } from "lucide-react";
-import { HW_CATEGORY, hwLine, inAudience, type HwAudience, type HwChange } from "../../../supabase/functions/_shared/hostelworld";
+import { HW_CATEGORY, hwLine, type HwChange } from "../../../supabase/functions/_shared/hostelworld";
 
-/** Approvals > Hostelworld (migration 038, 23 Nov 2026): every change to an event or tour, for whoever updates the
+/** Approvals > Hostelworld (migrations 038 + 039): every change to a nightly event or Meet-Up, for whoever updates the
  *  Link Ups in the Hostelworld Inbox to copy across and tick off. The same changes go out in a daily email
  *  (hostelworld-digest). The change itself is already live here; ticking only records that Hostelworld now matches. */
 interface Row extends HwChange { done_at: string | null; done_by: string | null }
@@ -20,7 +20,6 @@ export function HostelworldQueue() {
   const qc = useQueryClient();
   const canTick = auth.isAdmin || auth.roles.includes("head_office");
   const [done, setDone] = useState(false);
-  const [scope, setScope] = useState<HwAudience>("all");
   const [locFilter, setLocFilter] = useState("all");
 
   const { data, isLoading, error } = useQuery({
@@ -40,7 +39,7 @@ export function HostelworldQueue() {
   });
 
   const locName = (id: string | null) => auth.allLocations.find((l) => l.id === id)?.name ?? "—";
-  const inScope = useMemo(() => (data?.rows ?? []).filter((r) => inAudience(r, scope)), [data, scope]);
+  const inScope = useMemo(() => data?.rows ?? [], [data]);
   const groups = useMemo(() => {
     const m = new Map<string, { key: string; product_id: string | null; title: string; category: string; location_id: string | null; done_at: string | null; done_by: string | null; rows: Row[] }>();
     for (const r of inScope) {
@@ -85,7 +84,7 @@ export function HostelworldQueue() {
         <p className="text-sm text-muted-foreground max-w-3xl">
           {done
             ? "Hostelworld changes already ticked off, newest first. Ticked one by mistake? Move it back."
-            : "Every change to an event or tour, for the Link Ups in the Hostelworld Inbox. They are already live here and go out in one email a day; once the Link Up matches, press Done."}
+            : "Every change to a nightly event or Meet-Up, for the Link Ups in the Hostelworld Inbox. They are already live here and go out in one email a day; once the Link Up matches, press Done."}
         </p>
         {canTick && !done && groups.length > 1 && (
           <Tip label="Ticks off every change shown (with the filters applied).">
@@ -102,13 +101,6 @@ export function HostelworldQueue() {
           <button type="button" onClick={() => setDone(false)} className={`px-3 py-1.5 ${!done ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-secondary"}`}>To do</button>
           <button type="button" onClick={() => setDone(true)} className={`px-3 py-1.5 ${done ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-secondary"}`}>Completed</button>
         </div>
-        <Select value={scope} onValueChange={(v) => setScope(v as HwAudience)}>
-          <SelectTrigger className="w-64 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All events and tours</SelectItem>
-            <SelectItem value="nightly">Nightly events and Meet-Ups</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={locFilter} onValueChange={setLocFilter}>
           <SelectTrigger className="w-56 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>

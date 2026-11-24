@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDigest, hwLine, hwValue, inAudience, parseEmails, type HwChange } from "../../supabase/functions/_shared/hostelworld";
+import { buildDigest, hwLine, hwValue, inAudience, isHostelworldProduct, parseEmails, type HwChange } from "../../supabase/functions/_shared/hostelworld";
 
 // Hostelworld Link Up alerts (migration 038): Katrina's rules from 23 Nov 2026. Reden gets every event and tour;
 // Adel and Katrina only nightly events and anything called a Meet-Up. One email a day.
@@ -22,6 +22,15 @@ describe("Hostelworld alerts", () => {
     expect(inAudience({ category: "mm_tour", product_title: "Sunset Boat Tour" }, "nightly")).toBe(false);
     expect(inAudience({ category: "one_time_event", product_title: "Christmas Party" }, "nightly")).toBe(false);
     expect(inAudience({ category: "third_party_tour", product_title: "Kayaking" }, "all")).toBe(true);
+  });
+
+  it("24 Nov: only nightly events and Meet-Ups count for Hostelworld (tours have their own process)", () => {
+    expect(isHostelworldProduct("nightly_event", "Pub Quiz")).toBe(true);
+    expect(isHostelworldProduct("mm_tour", "The Meet-Up")).toBe(true);
+    expect(isHostelworldProduct("mm_tour", "Sunset Boat Tour")).toBe(false);
+    expect(isHostelworldProduct("third_party_tour", "Kayaking")).toBe(false);
+    expect(isHostelworldProduct("one_time_event", "Christmas Party")).toBe(false);
+    expect(isHostelworldProduct("transport", "Airport Transfer")).toBe(false);
   });
 
   it("values read the way people say them", () => {
