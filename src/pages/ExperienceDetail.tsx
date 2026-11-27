@@ -15,7 +15,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tip } from "@/components/app/Tip";
-import { ArrowLeft, Check, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Check, ShieldCheck, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AssetCell, type Asset } from "@/components/app/AssetCell";
 import { holdUnsaved } from "@/lib/unsaved";
 import { ProductPhotos } from "@/components/app/ProductPhotos";
@@ -24,6 +25,10 @@ import { isHostelworldProduct } from "../../supabase/functions/_shared/hostelwor
 import { PriceOptionsEditor, optionsFrom, rowsFrom } from "@/components/app/PriceOptions";
 
 interface Transport { vehicle_type: string | null; route_raw: string | null; origin: string | null; destination: string | null; pickup_point: string | null; dropoff_point: string | null; departure_times: string[]; }
+
+/** The vehicle types most used on the Transport tab, offered as suggestions (any text is allowed). */
+const VEHICLE_TYPES = ["Bus", "Van", "Ferry/Boat", "Taxi Service", "Car", "Train", "Bike/Scooter", "Tricycle", "Buggy Car", "Sleeper Bus", "Flight ticket"];
+const EXPERIENCE_CATEGORIES: Category[] = ["third_party_tour", "mm_tour", "nightly_event", "one_time_event"];
 
 /** E2: the product detail page — everything editable in place, one explicit Save, never silent. */
 export default function ExperienceDetail() {
@@ -42,6 +47,73 @@ export default function ExperienceDetail() {
   if (isLoading || !data) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   // key by id + updated_at so a fresh save re-seeds the form from the server copy
   return <DetailForm key={`${data.product.id}:${(data.product as unknown as { updated_at?: string }).updated_at ?? ""}`} product={data.product} transport={data.transport} />;
+}
+
+/** Reden, 26 Nov 2026: hostels kept adding transfers under Experiences, then deleting and re-adding them under Transport
+ *  (which floods his to-do with "deleted" and "new"). Moving keeps the same product, its history and its Rezdy/website
+ *  links, and changes only the category. Transport details are kept when it moves out, so moving back restores them. */
+function MoveDialog({ product, transport, onClose }: { product: Product; transport: Transport | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const toTransport = product.category !== "transport";
+  const [target, setTarget] = useState<Category>("third_party_tour");
+  const [vehicle, setVehicle] = useState(transport?.vehicle_type ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const move = async () => {
+    setBusy(true);
+    try {
+      const category: Category = toTransport ? "transport" : target;
+      const { error } = await supabase.from("products").update({ category }).eq("id", product.id);
+      if (error) throw error;
+      if (toTransport) {
+        const v = vehicle.trim() || null;
+        const { error: te } = transport
+          ? (v ? await supabase.from("transport_details").update({ vehicle_type: v }).eq("product_id", product.id) : { error: null })
+          : await supabase.from("transport_details").insert({ product_id: product.id, vehicle_type: v, departure_times: [] });
+        if (te) toast.error(`Moved, but the type wasn't saved: ${te.message}`);
+      }
+      toast.success(toTransport ? `${product.title} is now on the Transport tab` : `${product.title} is now in Experiences (${CATEGORY_LABELS[category]})`);
+      for (const k of ["product", "products", "transport", "my-week"]) qc.invalidateQueries({ queryKey: [k] });
+      onClose();
+    } catch (e) {
+      toast.error(`Not moved: ${(e as Error).message}`);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{toTransport ? "Move to Transport" : "Move to Experiences"}</DialogTitle>
+          <DialogDescription>
+            {toTransport
+              ? `"${product.title}" leaves the Experiences list, My week and the weekly posters, and shows on the Transport tab instead. Its price, photos and history stay as they are.`
+              : `"${product.title}" leaves the Transport tab and shows in the Experiences list. Its price, photos and history stay as they are.`}
+          </DialogDescription>
+        </DialogHeader>
+        {toTransport ? (
+          <div className="space-y-1">
+            <Label htmlFor="move-vehicle" className="text-xs text-muted-foreground uppercase tracking-wide">Type (optional)</Label>
+            <Input id="move-vehicle" list="vehicle-types" placeholder="e.g. Bus, Van, Ferry/Boat" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">Departure times, pick-up and drop-off can be added on the product page afterwards.</p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Which kind of experience is it?</Label>
+            <Select value={target} onValueChange={(v) => setTarget(v as Category)}>
+              <SelectTrigger id="move-category"><SelectValue /></SelectTrigger>
+              <SelectContent>{EXPERIENCE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>)}</SelectContent>
+            </Select>
+            {target === "one_time_event" && <p className="text-[11px] text-muted-foreground">Set its date and expiry on the product page afterwards.</p>}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" disabled={busy} onClick={onClose}>Cancel</Button>
+          <Button disabled={busy} onClick={move}>{busy ? "Moving…" : toTransport ? "Move to Transport" : "Move to Experiences"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function DetailForm({ product, transport }: { product: Product; transport: Transport | null }) {
@@ -70,11 +142,13 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
     expires_on: (product as unknown as { expires_on: string | null }).expires_on ?? "",
     slots: (transport?.departure_times ?? []).map((t) => t.slice(0, 5)).join(", "),
     pickup: transport?.pickup_point ?? "", dropoff: transport?.dropoff_point ?? "", route: transport?.route_raw ?? "",
+    vehicle: transport?.vehicle_type ?? "",
     options: rowsFrom(product.price_options),
     urgent: !!product.urgent,
   };
   const [f, setF] = useState(init);
   const [saving, setSaving] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const dirty = JSON.stringify(f) !== JSON.stringify(init);
   const set = <K extends keyof typeof init>(k: K, v: (typeof init)[K]) => setF((s) => ({ ...s, [k]: v }));
@@ -129,8 +203,8 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
       expires_on: f.category === "one_time_event" && f.expires_on ? f.expires_on : null,
     };
     const { error } = await supabase.from("products").update(patch).eq("id", product.id);
-    if (!error && (transport || f.category === "transport")) {
-      const tp = { product_id: product.id, departure_times: slots.map((x) => x.padStart(5, "0")), pickup_point: f.pickup || null, dropoff_point: f.dropoff || null, route_raw: f.route || null };
+    if (!error && f.category === "transport") {
+      const tp = { product_id: product.id, departure_times: slots.map((x) => x.padStart(5, "0")), pickup_point: f.pickup || null, dropoff_point: f.dropoff || null, route_raw: f.route || null, vehicle_type: f.vehicle.trim() || null };
       const { error: te } = await supabase.from("transport_details").upsert(tp, { onConflict: "product_id" });
       if (te) toast.error(te.message);
     }
@@ -214,6 +288,11 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
             <Button variant="outline" size="sm" className="gap-1.5" onClick={verify} title="Stamps today's date as 'last verified' — a quick way to say these details have been checked and are still right">
               <ShieldCheck className="h-3.5 w-3.5" /> Mark verified
             </Button>
+            <Tip label={dirty ? "Save or undo your changes first." : product.category === "transport" ? "Added under Transport by mistake? Moves it to the Experiences list. Nothing else changes." : "Is this really a transfer, bus, boat or rental? Moves it to the Transport tab. Nothing else changes."}>
+              <span><Button variant="outline" size="sm" className="gap-1.5" disabled={dirty} onClick={() => setMoving(true)} data-tour="move-product">
+                <ArrowLeftRight className="h-3.5 w-3.5" /> {product.category === "transport" ? "Move to Experiences" : "Move to Transport"}
+              </Button></span>
+            </Tip>
             <Tip label="Removes it from your list and tells Reden. To stop it running but keep it, set Status to Paused instead.">
               <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={remove}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
             </Tip>
@@ -300,14 +379,21 @@ function DetailForm({ product, transport }: { product: Product; transport: Trans
         )}
       </div>
 
-      {(transport || f.category === "transport") && (
+      {f.category === "transport" && (
         <div className="rounded-md bg-secondary p-3 grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          <div className="space-y-1 col-span-2"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Route</Label><Input readOnly={!canEdit} value={f.route} onChange={(e) => set("route", e.target.value)} /></div>
+          <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Route</Label><Input readOnly={!canEdit} value={f.route} onChange={(e) => set("route", e.target.value)} /></div>
+          <div className="space-y-1">
+            <Tip label="Bus, van, ferry/boat, taxi, bike/scooter… The Transport tab groups and filters by this."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Type</Label></Tip>
+            <Input list="vehicle-types" placeholder="e.g. Bus" readOnly={!canEdit} value={f.vehicle} onChange={(e) => set("vehicle", e.target.value)} />
+          </div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Pick-up</Label><Input readOnly={!canEdit} value={f.pickup} onChange={(e) => set("pickup", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground uppercase tracking-wide">Drop-off</Label><Input readOnly={!canEdit} value={f.dropoff} onChange={(e) => set("dropoff", e.target.value)} /></div>
           <div className="space-y-1 col-span-2"><Tip label="Comma-separated 24h times, e.g. 08:30, 11:30, 17:00. In the quote builder this transfer is picked by slot, never typed."><Label className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted underline-offset-4">Departure times (quotes pick from these)</Label></Tip><Input className="tabular-nums" placeholder="08:30, 11:30, 17:00" readOnly={!canEdit} value={f.slots} onChange={(e) => set("slots", e.target.value)} /></div>
         </div>
       )}
+
+      <datalist id="vehicle-types">{VEHICLE_TYPES.map((v) => <option key={v} value={v} />)}</datalist>
+      {moving && <MoveDialog product={product} transport={transport} onClose={() => setMoving(false)} />}
 
       <ProductPhotos productId={product.id} locationId={product.location_id} canEdit={canEdit} />
 
